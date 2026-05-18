@@ -2430,7 +2430,7 @@ function nextPluralChallenge() {
 // ==========================================
 // FEATURE G: AI TUTOR CHATBOT
 // ==========================================
-const TUTOR_MODEL = localStorage.getItem('syngnosia_tutor_model') || 'gemma4-26b';
+const TUTOR_MODEL = localStorage.getItem('syngnosia_tutor_model') || 'VladimirGav/gemma4-26b-16GB-VRAM:latest';
 const OLLAMA_URL  = 'http://localhost:11434';
 
 function buildTutorSystemPrompt() {
