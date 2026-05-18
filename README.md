@@ -14,6 +14,10 @@
 
 **RadReqs-AI** is a premium, AI-powered educational suite designed specifically for aspiring Radiation Therapists and Radiologic Technologists (X-Ray Techs). It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor powered by Google's Gemma 4.
 
+<p align="center">
+  <img src="./assets/screenshots/RadReqsLandingPageDarkModeScreenshot.jpg" alt="RadReqs-AI Hub Landing Page" width="100%">
+</p>
+
 ---
 
 ## 🌟 Features
@@ -28,6 +32,21 @@ The foundational module for clinical language mastery.
 - **Abbreviation Decoder & Pluralization:** Rapid-fire tools to master medical shorthand and grammar.
 - **Dr. Lex (AI Tutor):** An integrated, warm, and precise AI tutor powered by **Gemma 4** (via Ollama) that can break down complex terms, provide mnemonics, and generate on-demand quizzes.
 
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyFlashcardDarkModeScreenshot1.jpg" alt="Flashcards"></td>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyWordBuilderDarkModeScreenshot.jpg" alt="Word Builder"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyChartDecrypterAIDarkModeScreenshot.jpg" alt="Chart Decrypter"></td>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyTutorAIDarkModeScreenshot1.jpg" alt="Dr. Lex AI Tutor"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyAbbreviationDecoderAIDarkModeScreenshot.jpg" alt="Abbreviation Decoder"></td>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyPluralizationAIDarkModeScreenshot.jpg" alt="Pluralization"></td>
+  </tr>
+</table>
+
 ### 3. Gamification Engine
 Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
 - **XP & Leveling System:** Progress from *Pre-Med Student* all the way to *Legacy Master*.
@@ -35,7 +54,24 @@ Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicte
 - **Achievement Badges:** Unlock over 20 unique badges like *Hundred Club*, *Code Cracker*, and *Clinical Clarity*.
 - **Daily Quests:** Complete procedurally generated daily objectives for bonus XP.
 
-### 4. Comprehensive Curriculum Roadmap
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyYourStatsDarkModeScreenshot.jpg" alt="Stats Dashboard"></td>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologylevelUpDarkModeScreenshot.jpg" alt="Level Up"></td>
+  </tr>
+</table>
+
+### 4. Fully Responsive Mobile UI
+Study anywhere, perfectly optimized for your phone.
+
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyMobileFlashcardDarkModeScreenshot1.jpg" alt="Mobile Flashcard"></td>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyMobileTutorLightModeScreenshot.jpg" alt="Mobile Tutor"></td>
+  </tr>
+</table>
+
+### 5. Comprehensive Curriculum Roadmap
 Placeholders are beautifully integrated for future module expansion, creating a complete pathway:
 - Anatomy & Physiology
 - General Physics & Mathematics Core
