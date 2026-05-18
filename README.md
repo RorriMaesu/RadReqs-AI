@@ -14,6 +14,9 @@
 
 **RadReqs-AI** is a premium, AI-powered educational suite designed specifically for aspiring Radiation Therapists and Radiologic Technologists (X-Ray Techs). It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor powered by Google's Gemma 4.
 
+> [!NOTE]
+> **Author's Note & Disclaimer:** I am a new student starting my learning path in this field and developed this application for my personal study. While I am happy to share this tool with other students, please note that it is provided "as-is" with absolutely no guarantees of accuracy. I am using it to learn, and encourage you to always cross-reference definitions with official textbooks.
+
 <p align="center">
   <img src="./assets/screenshots/RadReqsLandingPageDarkModeScreenshot.jpg" alt="RadReqs-AI Hub Landing Page" width="100%">
 </p>
