@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Terminology</title>
+    <script>
+        // Apply dark mode before first paint — prevents flash of white
+        (function() {
+            var pref = localStorage.getItem('syngnosia_darkmode');
+            if (pref === null || pref === 'true') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hidden-tab { display: none !important; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.1); }
+        }
+        .xp-gain-anim {
+            position: absolute;
+            color: #10b981;
+            font-weight: 800;
+            font-size: 1.25rem;
+            animation: floatUp 1s cubic-bezier(0.2, 1, 0.2, 1) forwards;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Flashcard 3D Flip Styles */
+        .flip-card {
+            perspective: 1000px;
+            width: 100%;
+            height: 280px;
+        }
+        @media (min-width: 640px) {
+            .flip-card { height: 320px; }
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+        .flip-card-front {
+            background-color: white;
+            border: 2px solid #e5e7eb;
+        }
+        .flip-card-back {
+            background-color: #f0fdfa; /* teal-50 */
+            border: 2px solid #14b8a6; /* teal-500 */
+            transform: rotateY(180deg);
+        }
+        
+        /* Word Builder Slot Styles */
+        .wb-slot {
+            min-height: 80px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8fafc;
+            transition: all 0.2s ease;
+        }
+        .wb-slot.filled {
+            border-style: solid;
+            border-color: #0ea5e9;
+            background-color: #e0f2fe;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.1);
+        }
+        
+        /* Glassmorphism utility */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+
+        /* Shake animation for incorrect answers */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        /* Bottom nav safe area for notched phones */
+        .bnav-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+        /* ============================================================
+           DARK MODE OVERRIDES
+           .dark .class wins on specificity (0,2,0) vs Tailwind's (0,1,0).
+           Covers both static HTML and all JS-generated DOM uniformly.
+           ============================================================ */
+
+        /* Page & card surfaces */
+        .dark body { background-color: #0f1117; }
+        .dark .bg-white { background-color: #1a1d27; }
+        .dark .bg-gray-50 { background-color: #13151e; }
+        .dark .bg-gray-100 { background-color: #1e2130; }
+        .dark .bg-gray-200 { background-color: #363a52; }
+        .dark .bg-gray-200\/80 { background-color: rgba(20, 23, 38, 0.9); }
+        .dark .bg-white\/95 { background-color: rgba(26, 29, 39, 0.97); }
+        .dark .bg-slate-50 { background-color: #1e2130; }
+
+        /* Streak badge gradient */
+        .dark .from-orange-50 {
+            --tw-gradient-from: #431407;
+            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+        }
+        .dark .to-amber-50 { --tw-gradient-to: #2d1a00; }
+
+        /* Text */
+        .dark .text-gray-800 { color: #e2e8f0; }
+        .dark .text-gray-700 { color: #cbd5e1; }
+        .dark .text-gray-600 { color: #94a3b8; }
+        .dark .text-gray-500 { color: #94a3b8; }
+        .dark .text-gray-400 { color: #64748b; }
+        .dark .text-orange-800 { color: #fdba74; }
+
+        /* Borders */
+        .dark .border-gray-100 { border-color: #252836; }
+        .dark .border-gray-200 { border-color: #363a52; }
+        .dark .border-gray-300 { border-color: #4a4e6b; }
+        .dark .border-orange-200 { border-color: rgba(194, 65, 12, 0.35); }
+
+        /* Hover states */
+        .dark .hover\:bg-gray-50:hover { background-color: #1e2130; }
+        .dark .hover\:bg-gray-100:hover { background-color: #252836; }
+        .dark .hover\:bg-gray-100\/50:hover { background-color: rgba(37, 40, 54, 0.7); }
+        .dark .hover\:text-gray-800:hover { color: #e2e8f0; }
+        .dark .hover\:text-gray-900:hover { color: #f1f5f9; }
+        .dark .hover\:border-gray-300:hover { border-color: #4a4e6b; }
+
+        /* Grade button accent tints (large interactive surfaces) */
+        .dark .bg-rose-100 { background-color: rgba(190, 18, 60, 0.2); }
+        .dark .hover\:bg-rose-200:hover { background-color: rgba(190, 18, 60, 0.3); }
+        .dark .text-rose-700 { color: #fda4af; }
+        .dark .bg-amber-100 { background-color: rgba(217, 119, 6, 0.2); }
+        .dark .hover\:bg-amber-200:hover { background-color: rgba(217, 119, 6, 0.3); }
+        .dark .text-amber-700 { color: #fcd34d; }
+        .dark .bg-teal-50 { background-color: rgba(13, 148, 136, 0.12); }
+        .dark .bg-teal-100 { background-color: rgba(13, 148, 136, 0.2); }
+        .dark .hover\:bg-teal-100:hover { background-color: rgba(13, 148, 136, 0.28); }
+        .dark .text-teal-700 { color: #5eead4; }
+        .dark .text-teal-900 { color: #99f6e4; }
+        .dark .bg-green-100 { background-color: rgba(21, 128, 61, 0.2); }
+        .dark .hover\:bg-green-200:hover { background-color: rgba(21, 128, 61, 0.28); }
+        .dark .text-green-700 { color: #86efac; }
+
+        /* Inputs & selects */
+        .dark input:not([type="checkbox"]):not([type="radio"]),
+        .dark textarea,
+        .dark select {
+            background-color: #1e2130;
+            color: #e2e8f0;
+            border-color: #363a52;
+        }
+        .dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
+
+        /* Custom CSS class overrides */
+        .dark .glass-panel {
+            background: rgba(22, 25, 40, 0.96);
+            border-bottom-color: rgba(45, 50, 80, 0.5);
+        }
+        .dark .flip-card-front {
+            background-color: #1a1d27;
+            border-color: #363a52;
+        }
+        .dark .flip-card-back {
+            background-color: #0d2520;
+            border-color: #0f766e;
+        }
+        .dark .wb-slot {
+            border-color: #363a52;
+            background-color: #13151e;
+        }
+        .dark .wb-slot.filled {
+            border-color: #0ea5e9;
+            background-color: #0c2233;
+        }
+
+        /* Scrollbars */
+        .dark ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .dark ::-webkit-scrollbar-thumb { background-color: #363a52; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-track { background-color: #13151e; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col selection:bg-teal-200 selection:text-teal-900">
+    <div id="xp-gain-container" class="fixed inset-0 pointer-events-none flex flex-col items-center justify-center z-[150]"></div>
+    <div id="achievement-toast-container" class="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[150] flex flex-col gap-2 pointer-events-none"></div>
+    
+    <!-- HEADER -->
+    <header class="glass-panel sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="../index.html" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors shadow-sm" title="Back to Hub">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-teal-700 flex items-center gap-2 tracking-tight shrink-0">
+                    <i class="fa-solid fa-staff-snake text-teal-500"></i>
+                    <span class="hidden sm:inline">Medical Terminology</span>
+                </h1>
+                
+                <!-- XP & Level Badge -->
+                <div class="relative group cursor-pointer" onclick="openStatsModal()">
+                    <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1 pr-4 py-1 shadow-sm hover:border-teal-300 transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center text-white font-black shadow-inner">
+                            <span id="level-num">1</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span id="level-title" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-none mt-0.5">Pre-Med</span>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <div class="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div id="xp-progress" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                                <span id="xp-header-text" class="text-[10px] font-bold text-teal-600">0 XP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="hidden sm:flex flex-col items-end gap-0.5">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <span id="mastery-text">0%</span> Mastered
+                    </div>
+                    <div class="w-14 sm:w-28 h-2 bg-gray-200 rounded-full overflow-hidden border border-gray-200">
+                        <div id="mastery-progress" class="h-full bg-gradient-to-r from-teal-400 to-teal-600 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 bg-gradient-to-r from-orange-50 to-amber-50 text-orange-800 px-3 py-2 rounded-xl font-bold text-sm shadow-sm border border-orange-200 whitespace-nowrap">
+                    <i class="fa-solid fa-fire text-orange-500"></i>
+                    <span id="streak-counter">0</span>
+                    <span id="shield-indicator" class="hidden text-xs ml-1"></span>
+                </div>
+                <a href="https://buymeacoffee.com/rorrimaesu" target="_blank" title="Support the App" class="w-9 h-9 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-600 hover:bg-yellow-100 hover:border-yellow-400 flex items-center justify-center shadow-sm transition-colors shrink-0 hidden sm:flex">
+                    <i class="fa-solid fa-mug-hot"></i>
+                </a>
+                <button id="btn-stats" title="View Stats" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-teal-600 hover:bg-teal-50 hover:border-teal-300 flex items-center justify-center shadow-sm transition-colors shrink-0">
+                    <i class="fa-solid fa-chart-simple"></i>
+                </button>
+                <button id="btn-settings" title="Settings & Reset" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-gray-700 hover:border-gray-300 flex items-center justify-center shadow-sm transition-colors shrink-0">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile system filter (lg:hidden) -->
+    <div class="lg:hidden bg-white border-b border-gray-100 px-4 py-2.5 shadow-sm">
+        <div class="relative">
+            <select id="system-filter-mobile" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 font-medium rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 block w-full px-4 py-2.5 pr-10 text-sm shadow-sm cursor-pointer">
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                <i class="fa-solid fa-chevron-down text-xs"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page layout: sidebar (desktop) + content -->
+    <div class="flex flex-1 min-h-0">
+
+        <!-- System sidebar (desktop only) -->
+        <aside class="hidden lg:flex flex-col w-52 shrink-0 border-r border-gray-100 sticky top-16 self-start h-[calc(100vh-4rem)] overflow-y-auto bg-white py-4">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 mb-3">Body Systems</p>
+            <nav id="system-sidebar-list" class="flex flex-col gap-0.5 px-2">
+                <!-- Populated by JS -->
+            </nav>
+        </aside>
+
+        <!-- Content column -->
+        <div class="flex-1 flex flex-col min-w-0">
+
+            <!-- Desktop tab navigation (lg only) -->
+            <div class="hidden lg:flex px-6 pt-6 pb-2 justify-center">
+                <div class="inline-flex bg-gray-200/80 backdrop-blur-sm rounded-full p-1 shadow-inner gap-1" role="group">
+                    <button id="nav-flashcards" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 bg-white text-teal-700 shadow shadow-gray-300/50">Flashcards</button>
+                    <button id="nav-word-builder" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Word Builder</button>
+                    <button id="nav-chart-decrypter" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Chart Decrypter</button>
+                    <button id="nav-abbrev-decoder" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Abbreviations</button>
+                    <button id="nav-pluralization" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Pluralization</button>
+                    <button id="nav-tutor" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">AI Tutor</button>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <main class="max-w-4xl mx-auto px-4 flex-grow w-full pb-28 lg:pb-10 pt-4 lg:pt-0 relative">
+        
+        <!-- FEATURE A: FLASHCARDS VIEW -->
+        <section id="view-flashcards" class="fade-in">
+            <div class="flex justify-between items-center mb-3 px-2">
+                <h2 class="text-xl font-bold text-gray-800">Spaced Repetition</h2>
+                <div class="flex items-center gap-2">
+                    <button id="fc-reverse-toggle" class="text-sm font-bold text-gray-500 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200 hover:border-teal-300 hover:text-teal-600 transition-colors flex items-center gap-1.5" title="Reverse mode: Meaning → Term">
+                        <i class="fa-solid fa-arrow-right-arrow-left text-xs"></i>
+                        <span class="hidden sm:inline">Reverse</span>
+                    </button>
+                    <div class="text-sm font-bold text-gray-500 bg-white px-4 py-1.5 rounded-full shadow-sm border border-gray-200">
+                        Card <span id="fc-current" class="text-teal-600">0</span> / <span id="fc-total">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Quests Widget -->
+            <div class="mb-6 bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+                <button class="w-full px-5 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors" onclick="document.getElementById('quest-panel').classList.toggle('hidden')">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list text-violet-500"></i>
+                        <span class="font-bold text-gray-700 text-sm">Daily Quests</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down text-gray-400 text-xs"></i>
+                </button>
+                <div id="quest-panel" class="p-4 space-y-3 border-t border-gray-100">
+                    <div id="quest-list" class="space-y-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+            <!-- Session Stats Bar -->
+            <div id="fc-stats-bar" class="flex items-center justify-center gap-3 text-sm font-bold mb-4 px-2 text-gray-400">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="flex flex-col items-center">
+                <!-- Empty State -->
+                <div id="fc-empty" class="hidden text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100 w-full">
+                    <div class="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fa-solid fa-check-double text-3xl text-teal-500"></i>
+                    </div>
+                    <h3 class="text-2xl font-extrabold text-gray-800 mb-2">All caught up!</h3>
+                    <p id="fc-empty-message" class="text-gray-500 max-w-sm mx-auto font-medium mb-6">You've reviewed everything due today.</p>
+                    <button id="fc-btn-review-mastered" class="px-6 py-3 rounded-2xl font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 transition-colors text-sm">
+                        <i class="fa-solid fa-graduation-cap mr-2"></i>Challenge Mastered Cards
+                    </button>
+                </div>
+
+                <!-- Card Container -->
+                <div id="fc-container" class="w-full max-w-xl">
+                    <div class="flip-card cursor-pointer group" id="flashcard">
+                        <div class="flip-card-inner">
+                            <div class="flip-card-front group-hover:border-teal-300 transition-colors">
+                                <span id="fc-type" class="uppercase tracking-widest text-xs font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-full mb-6 border border-teal-100">Type</span>
+                                <h3 id="fc-term" class="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-8 tracking-tight">term</h3>
+                                <div id="fc-hint" class="text-teal-600/60 dark:text-teal-300 dark:bg-teal-900/40 text-sm mt-auto flex items-center gap-2 font-medium bg-teal-50/50 px-4 py-2 rounded-full">
+                                    <i class="fa-solid fa-hand-pointer"></i> Click to reveal meaning
+                                </div>
+                                <div class="absolute top-5 right-5 flex flex-col gap-2">
+                                    <button class="w-10 h-10 rounded-full bg-gray-50 hover:bg-teal-100 text-gray-400 hover:text-teal-600 flex items-center justify-center transition-colors btn-speak shadow-sm" title="Listen to pronunciation">
+                                        <i class="fa-solid fa-volume-high"></i>
+                                    </button>
+                                    <button id="btn-mic" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-rose-100 text-gray-400 hover:text-rose-600 flex items-center justify-center transition-colors shadow-sm" title="Hold to Speak">
+                                        <i class="fa-solid fa-microphone"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flip-card-back">
+                                <span id="fc-system-badge" class="text-xs font-bold px-3 py-1 rounded-full border mb-3">System</span>
+                                <h3 id="fc-back-label" class="text-sm font-bold text-teal-700/70 uppercase tracking-widest mb-3">Meaning</h3>
+                                <p id="fc-meaning" class="text-3xl font-extrabold text-gray-800 text-center leading-tight px-6 mb-3">Meaning goes here</p>
+                                <p id="fc-examples" class="hidden text-sm text-gray-500 font-medium text-center px-4 leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Controls -->
+                    <div id="fc-controls" class="mt-6 opacity-0 pointer-events-none transition-all duration-300 translate-y-4">
+                        <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                            <button id="btn-again" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-rotate-left text-lg"></i>
+                                <span class="text-sm">Again</span>
+                                <span class="text-[10px] text-rose-400/80 font-normal hidden sm:block">1 / ←</span>
+                            </button>
+                            <button id="btn-hard" class="bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-circle-exclamation text-lg"></i>
+                                <span class="text-sm">Hard</span>
+                                <span class="text-[10px] text-orange-400/80 font-normal hidden sm:block">2</span>
+                            </button>
+                            <button id="btn-good" class="bg-teal-600 border-2 border-teal-700 text-white hover:bg-teal-700 font-bold py-3 px-1 rounded-2xl transition-all shadow-md shadow-teal-600/20 flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-check text-lg"></i>
+                                <span class="text-sm">Good</span>
+                                <span class="text-[10px] text-teal-200/80 font-normal hidden sm:block">3 / →</span>
+                            </button>
+                            <button id="btn-easy" class="bg-white border-2 border-green-200 text-green-600 hover:bg-green-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-1">
+                                <i class="fa-solid fa-star text-lg"></i>
+                                <span class="text-sm">Easy</span>
+                                <span class="text-[10px] text-green-400/80 font-normal hidden sm:block">4</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Summary -->
+                <div id="fc-session-summary" class="hidden w-full max-w-xl fade-in">
+                    <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 sm:p-12 text-center">
+                        <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-md bg-teal-50">
+                            <i id="fc-summary-icon" class="fa-solid fa-star text-4xl text-teal-500"></i>
+                        </div>
+                        <h3 class="text-2xl font-extrabold text-gray-800 mb-1">Session Complete</h3>
+                        <p id="fc-summary-accuracy" class="text-5xl font-black text-teal-600 mb-1">100%</p>
+                        <p class="text-gray-500 font-medium mb-8">Accuracy this session</p>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-gray-50 rounded-2xl p-4">
+                                <p id="fc-summary-reviewed" class="text-2xl font-black text-gray-800">0</p>
+                                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">Reviewed</p>
+                            </div>
+                            <div class="bg-green-50 rounded-2xl p-4">
+                                <p id="fc-summary-correct" class="text-2xl font-black text-green-600">0</p>
+                                <p class="text-xs text-green-600 font-bold uppercase tracking-wider mt-1">Correct</p>
+                            </div>
+                            <div class="bg-rose-50 rounded-2xl p-4">
+                                <p id="fc-summary-again" class="text-2xl font-black text-rose-500">0</p>
+                                <p class="text-xs text-rose-500 font-bold uppercase tracking-wider mt-1">To Retry</p>
+                            </div>
+                        </div>
+                        <p id="fc-summary-due-tomorrow" class="text-sm text-gray-500 font-medium mb-8">— cards due by tomorrow</p>
+                        <button id="fc-btn-continue" class="w-full px-8 py-4 rounded-2xl font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-600/20 transition-all text-lg">Continue Studying</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURE B: WORD BUILDER VIEW -->
+        <section id="view-word-builder" class="hidden-tab fade-in">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-10 mb-6">
+                <div class="flex justify-between items-start mb-8">
+                    <div>
+                        <h2 class="text-xs font-bold text-sky-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-puzzle-piece"></i> Target Definition
+                        </h2>
+                        <p id="wb-target" class="text-2xl sm:text-3xl font-extrabold text-gray-800 leading-tight">Definition goes here</p>
+                    </div>
+                    <button class="w-12 h-12 rounded-full bg-gray-50 hover:bg-sky-50 text-gray-400 hover:text-sky-500 flex items-center justify-center transition-colors btn-speak-wb shrink-0 border border-gray-100" title="Listen to result">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                </div>
+
+                <!-- Slots -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-10">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] sm:text-xs font-bold text-gray-400 text-center uppercase tracking-widest">Prefix</label>
+                        <div id="slot-prefix" class="wb-slot cursor-pointer hover:border-sky-300 group" data-type="prefix">
+                            <span class="text-gray-400 text-sm group-hover:text-sky-400 transition-colors">Select...</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] sm:text-xs font-bold text-gray-400 text-center uppercase tracking-widest">Root 1</label>
+                        <div id="slot-root1" class="wb-slot cursor-pointer hover:border-sky-300 group" data-type="root1">
+                            <span class="text-gray-400 text-sm group-hover:text-sky-400 transition-colors">Select...</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] sm:text-xs font-bold text-gray-400 text-center uppercase tracking-widest">Root 2</label>
+                        <div id="slot-root2" class="wb-slot cursor-pointer hover:border-sky-300 group" data-type="root2">
+                            <span class="text-gray-400 text-sm group-hover:text-sky-400 transition-colors">Select...</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] sm:text-xs font-bold text-gray-400 text-center uppercase tracking-widest">Suffix</label>
+                        <div id="slot-suffix" class="wb-slot cursor-pointer hover:border-sky-300 group" data-type="suffix">
+                            <span class="text-gray-400 text-sm group-hover:text-sky-400 transition-colors">Select...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Result Preview -->
+                <div class="bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 text-center mb-8 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none"></div>
+                    <p class="text-xs text-slate-400 mb-2 font-bold uppercase tracking-widest">Constructed Word</p>
+                    <p id="wb-preview" class="text-4xl font-extrabold text-sky-700 tracking-tight h-12 flex items-center justify-center transition-all duration-300">-</p>
+                </div>
+
+                <!-- Parts Bank -->
+                <div class="mb-8">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Available Word Parts</h3>
+                    <div id="wb-parts-bank" class="flex flex-wrap gap-3">
+                        <!-- Parts injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col sm:flex-row gap-4 border-t border-gray-100 pt-8">
+                    <button id="wb-btn-clear" class="px-6 py-4 rounded-xl font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 border border-gray-200 transition-colors">Clear Slots</button>
+                    <button id="wb-btn-check" class="flex-1 px-6 py-4 rounded-xl font-bold text-white bg-sky-500 hover:bg-sky-600 shadow-lg shadow-sky-500/30 transition-all text-lg">Check Answer</button>
+                    <button id="wb-btn-next" class="hidden flex-1 px-6 py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all text-lg">Next Challenge &rarr;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURE C: CHART DECRYPTER VIEW -->
+        <section id="view-chart-decrypter" class="hidden-tab fade-in">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-10">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500">
+                        <i class="fa-solid fa-file-medical text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-gray-800">Chart Decrypter</h2>
+                        <p class="text-sm font-medium text-gray-500 mt-1">Translate the clinical notes into plain English.</p>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50/50 border-l-4 border-indigo-500 p-6 rounded-r-2xl mb-10 shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-xs font-bold text-indigo-400 uppercase tracking-widest">Clinical Note</p>
+                        <span id="cd-counter" class="text-xs font-bold bg-white text-indigo-500 px-2 py-1 rounded-md shadow-sm border border-indigo-100">1/3</span>
+                    </div>
+                    <p id="cd-sentence" class="text-xl text-gray-800 leading-relaxed font-medium">The patient presented with severe <strong>hepatomegaly</strong> upon examination.</p>
+                </div>
+
+                <div class="mb-8">
+                    <label class="block text-sm font-bold text-gray-600 mb-3 uppercase tracking-wider">Literal Translation (for bolded term):</label>
+                    <input type="text" id="cd-input" class="w-full bg-white border-2 border-gray-200 rounded-2xl px-6 py-4 text-lg font-medium focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm" placeholder="e.g., enlarged liver" autocomplete="off">
+                    <p id="cd-feedback" class="mt-3 text-sm font-bold hidden"></p>
+                </div>
+
+                <div class="flex gap-4">
+                    <button id="cd-btn-check" class="flex-1 px-6 py-4 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/30 transition-all text-lg">Submit Translation</button>
+                    <button id="cd-btn-reveal" class="hidden flex-1 px-6 py-4 rounded-xl font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border-2 border-amber-200 transition-all text-lg">Show Answer</button>
+                    <button id="cd-btn-next" class="hidden flex-1 px-6 py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all text-lg">Next Chart &rarr;</button>
+                </div>
+            </div>
+            
+            <!-- Completion State -->
+            <div id="cd-completion" class="hidden mt-8 text-center bg-white rounded-3xl shadow-sm border border-gray-100 p-12">
+                <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 border-8 border-white shadow-lg">
+                    <i class="fa-solid fa-award text-5xl text-green-500"></i>
+                </div>
+                <h3 id="cd-completion-title" class="text-3xl font-extrabold text-gray-800 mb-3 tracking-tight">Outstanding!</h3>
+                <p id="cd-completion-score" class="text-xl font-bold text-indigo-600 mb-3"></p>
+                <p id="cd-completion-msg" class="text-gray-500 font-medium mb-8 max-w-sm mx-auto">You've successfully decrypted all charts and mastered these clinical translations.</p>
+                <button id="cd-btn-restart" class="px-8 py-4 rounded-xl font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors shadow-sm">Restart Scenarios</button>
+            </div>
+        </section>
+
+        <!-- FEATURE D: ABBREVIATION DECODER VIEW -->
+        <section id="view-abbrev-decoder" class="hidden-tab fade-in">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-10 text-center">
+                <div class="flex justify-center mb-6">
+                    <div class="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 border border-amber-100">
+                        <i class="fa-solid fa-bolt text-2xl"></i>
+                    </div>
+                </div>
+                <h2 class="text-3xl font-extrabold text-gray-800 tracking-tight mb-2">Abbreviation Decoder</h2>
+                <p class="text-gray-500 font-medium mb-10 max-w-md mx-auto">Decode the clinical shorthand as fast as you can. Type the exact meaning!</p>
+
+                <div class="bg-slate-50 border-2 border-slate-100 rounded-2xl p-8 mb-8 max-w-md mx-auto relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-white/50 to-transparent pointer-events-none"></div>
+                    <p class="text-xs text-slate-400 mb-2 font-bold uppercase tracking-widest">Abbreviation</p>
+                    <p id="ad-target" class="text-6xl font-black text-amber-500 tracking-tighter drop-shadow-sm h-20 flex items-center justify-center">PRN</p>
+                </div>
+
+                <div class="max-w-md mx-auto mb-8">
+                    <input type="text" id="ad-input" class="w-full text-center bg-white border-2 border-gray-200 rounded-2xl px-6 py-4 text-xl font-bold focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all shadow-sm" placeholder="Type meaning here..." autocomplete="off">
+                    <p id="ad-feedback" class="mt-4 text-sm font-bold hidden"></p>
+                </div>
+
+                <div class="max-w-md mx-auto flex gap-4">
+                    <button id="ad-btn-check" class="flex-1 px-6 py-4 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-500/30 transition-all text-lg">Check</button>
+                    <button id="ad-btn-next" class="hidden flex-1 px-6 py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all text-lg">Next &rarr;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURE E: PLURALIZATION ENGINE -->
+        <section id="view-pluralization" class="hidden-tab fade-in">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-10">
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="w-12 h-12 rounded-full bg-fuchsia-50 border border-fuchsia-100 flex items-center justify-center text-fuchsia-500">
+                        <i class="fa-solid fa-spell-check text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-extrabold text-gray-800">Pluralization Engine</h2>
+                        <p class="text-sm font-medium text-gray-500 mt-1">Master Greek & Latin plural rules.</p>
+                    </div>
+                </div>
+
+                <!-- Rule Card -->
+                <div class="bg-slate-800 text-white rounded-2xl p-6 mb-8 shadow-md">
+                    <h3 class="text-xs font-bold text-fuchsia-400 uppercase tracking-widest mb-2">Current Rule</h3>
+                    <p id="pl-rule-text" class="text-lg font-medium">Loading rule...</p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gray-50 border-2 border-gray-100 rounded-2xl p-6 text-center relative overflow-hidden">
+                        <p class="text-xs text-gray-400 mb-2 font-bold uppercase tracking-widest">Singular Term</p>
+                        <p id="pl-target" class="text-3xl font-black text-gray-700 h-10 flex items-center justify-center">-</p>
+                    </div>
+                    
+                    <div class="flex flex-col justify-center">
+                        <label class="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest text-center sm:text-left">Type the Plural</label>
+                        <input type="text" id="pl-input" class="w-full bg-white border-2 border-gray-200 rounded-2xl px-6 py-4 text-xl font-bold focus:outline-none focus:ring-4 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 transition-all shadow-sm" placeholder="e.g. vertebrae" autocomplete="off">
+                        <p id="pl-feedback" class="mt-2 text-sm font-bold hidden"></p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <button id="pl-btn-check" class="flex-1 px-6 py-4 rounded-xl font-bold text-white bg-fuchsia-600 hover:bg-fuchsia-700 shadow-lg shadow-fuchsia-600/30 transition-all text-lg">Check Spelling</button>
+                    <button id="pl-btn-next" class="hidden flex-1 px-6 py-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all text-lg">Next Term &rarr;</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEATURE G: AI TUTOR VIEW -->
+        <section id="view-tutor" class="hidden-tab fade-in">
+
+            <!-- Header -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-500">
+                            <i class="fa-solid fa-robot text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-extrabold text-gray-800">AI Tutor</h2>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span id="chat-status-dot" class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
+                                <span id="chat-status-text" class="text-xs font-medium text-gray-400">Checking&hellip;</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="chat-btn-clear" title="Clear conversation" class="text-xs font-bold text-gray-400 hover:text-rose-500 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-full hover:bg-rose-50">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden sm:inline">Clear</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Offline banner -->
+            <div id="chat-offline-banner" class="hidden bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 flex-shrink-0"></i>
+                <p class="text-sm font-medium text-amber-700">Ollama is not running. Start it with <code class="bg-amber-100 px-1 rounded font-mono">ollama serve</code> to enable the AI Tutor.</p>
+            </div>
+
+            <!-- Messages -->
+            <div id="chat-messages" class="overflow-y-auto space-y-4 mb-4 px-1" style="min-height:300px;max-height:55vh">
+                <div id="chat-empty-state" class="flex flex-col items-center justify-center text-center py-8">
+                    <div class="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center mb-4 border border-violet-100">
+                        <i class="fa-solid fa-robot text-2xl text-violet-400"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium mb-5 text-sm">Ask me anything about medical terminology!</p>
+                    <div class="flex flex-wrap justify-center gap-2" id="chat-suggestions">
+                        <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">Break down "hepatomegaly"</button>
+                        <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">Quiz me on current terms</button>
+                        <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">Mnemonic for "myalgia"</button>
+                        <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">-itis vs -osis difference</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-3 sm:p-4">
+                <div class="flex items-end gap-3">
+                    <textarea id="chat-input" rows="1" placeholder="Ask Dr. Lex about any medical term&hellip;" class="flex-1 bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all resize-none leading-relaxed"></textarea>
+                    <button id="chat-btn-send" class="w-12 h-12 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-2 px-1">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</p>
+            </div>
+
+        </section>
+
+            </main>
+        </div><!-- end content column -->
+    </div><!-- end page layout wrapper -->
+
+    <!-- Bottom tab navigation (mobile only) -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50 bnav-safe">
+        <div class="flex">
+            <button id="bnav-flashcards" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('flashcards')">
+                <i class="bnav-icon fa-solid fa-layer-group text-xl text-teal-600 transition-colors"></i>
+                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-teal-600 transition-colors">Cards</span>
+            </button>
+            <button id="bnav-word-builder" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('word-builder')">
+                <i class="bnav-icon fa-solid fa-puzzle-piece text-xl text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Builder</span>
+            </button>
+            <button id="bnav-chart-decrypter" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('chart-decrypter')">
+                <i class="bnav-icon fa-solid fa-file-medical text-xl text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Charts</span>
+            </button>
+            <button id="bnav-abbrev-decoder" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('abbrev-decoder')">
+                <i class="bnav-icon fa-solid fa-bolt text-xl text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Abbrevs</span>
+            </button>
+            <button id="bnav-pluralization" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('pluralization')">
+                <i class="bnav-icon fa-solid fa-spell-check text-xl text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Plurals</span>
+            </button>
+            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('tutor')">
+                <i class="bnav-icon fa-solid fa-robot text-xl text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- LEVEL UP MODAL -->
+    <div id="modal-levelup" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeLevelUpModal()"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center fade-in scale-up">
+            <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-gradient-to-br from-teal-400 to-emerald-600 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-white">
+                <i class="fa-solid fa-angles-up text-4xl"></i>
+            </div>
+            <div class="pt-10">
+                <h3 class="text-xs font-bold text-teal-500 uppercase tracking-widest mb-1">Level Up!</h3>
+                <p id="levelup-level" class="text-4xl font-black text-gray-800 mb-2">Level 2</p>
+                <p id="levelup-title" class="text-lg font-bold text-gray-500 mb-6">First-Year Student</p>
+                <button onclick="closeLevelUpModal()" class="w-full py-3 rounded-2xl font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/30 mb-3">Awesome!</button>
+                <a href="https://buymeacoffee.com/rorrimaesu" target="_blank" class="block w-full py-2.5 rounded-2xl font-bold text-yellow-600 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 transition-colors text-sm">
+                    <i class="fa-solid fa-mug-hot mr-1.5"></i> Finding this helpful? Buy me a coffee!
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATS MODAL -->
+    <div id="modal-stats" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeStatsModal()"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-6 sm:p-8 fade-in max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-gray-800">Your Stats</h2>
+                    <p id="stats-level-text" class="text-sm font-bold text-teal-600 mt-1">Level 1 — Pre-Med</p>
+                </div>
+                <button onclick="closeStatsModal()" class="w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 text-gray-400 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+                <!-- XP Timeline -->
+                <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex justify-between">
+                        <span>XP History</span>
+                        <span id="stats-total-xp" class="text-teal-600">0 XP Total</span>
+                    </p>
+                    <div id="stats-xp-chart" class="flex items-end gap-2 h-20">
+                        <!-- Bars injected here -->
+                    </div>
+                </div>
+                
+                <!-- Activities -->
+                <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Accuracy Breakdown</p>
+                    <div id="stats-activities" class="space-y-4">
+                        <!-- Progress bars injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div>
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Achievement Badges</p>
+                <div id="stats-badges" class="flex flex-wrap gap-3">
+                    <!-- Badges injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESET PROGRESS MODAL -->
+    <div id="modal-reset" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-reset-overlay"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 fade-in">
+            <div class="flex items-center gap-4 mb-5">
+                <div class="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-rotate-left text-xl text-rose-500"></i>
+                </div>
+                <div>
+                    <h3 class="text-xl font-extrabold text-gray-800">Reset Progress</h3>
+                    <p class="text-sm text-gray-500 font-medium mt-0.5">Choose what to reset — this cannot be undone</p>
+                </div>
+            </div>
+            <!-- Dark mode toggle -->
+            <div class="flex items-center justify-between py-3 px-1 border-b border-gray-100 mb-5">
+                <div>
+                    <p class="text-sm font-bold text-gray-700">Dark Mode</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Switch between light and dark theme</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="modal-dark-toggle" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+                </label>
+            </div>
+            <div class="space-y-3 mb-6">
+                <button id="modal-btn-reset-system" class="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-orange-200 hover:bg-orange-50 transition-colors text-left group">
+                    <i class="fa-solid fa-filter text-orange-500 text-xl shrink-0"></i>
+                    <div>
+                        <p id="modal-reset-system-label" class="font-bold text-gray-800 group-hover:text-orange-700">Reset Current System</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Clears only the active body-system filter</p>
+                    </div>
+                </button>
+                <button id="modal-btn-reset-all" class="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-rose-200 hover:bg-rose-50 transition-colors text-left group">
+                    <i class="fa-solid fa-trash text-rose-500 text-xl shrink-0"></i>
+                    <div>
+                        <p class="font-bold text-gray-800 group-hover:text-rose-700">Reset All Progress</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Clears every card, streak &amp; interval &mdash; start completely fresh</p>
+                    </div>
+                </button>
+            </div>
+            <button id="modal-btn-cancel" class="w-full py-3 rounded-2xl font-bold text-gray-500 hover:bg-gray-50 border border-gray-200 transition-colors">Cancel</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
