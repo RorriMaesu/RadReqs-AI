@@ -1401,6 +1401,46 @@ function updateFlashcardUI() {
     controls.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
 }
 
+function formatInterval(days) {
+    if (days === 0) return "< 1m";
+    if (days < 30) return days + "d";
+    if (days < 365) return (days / 30).toFixed(1).replace('.0', '') + "mo";
+    return (days / 365).toFixed(1).replace('.0', '') + "y";
+}
+
+function fuzzInterval(interval) {
+    if (interval < 4) return interval;
+    const min = Math.max(2, Math.round(interval * 0.95));
+    const max = Math.round(interval * 1.05);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function calculateFutureInterval(card, grade) {
+    const ease = state.easeFactors[card.id] !== undefined ? state.easeFactors[card.id] : 2.5;
+    const wasNew = card.interval === 0;
+    const wasMatured = card.interval >= 7;
+
+    let newInterval = card.interval;
+
+    if (grade === 0) {
+        if (wasMatured) newInterval = Math.max(1, Math.round(card.interval * 0.5));
+        else newInterval = 0;
+    } else if (grade === 1) {
+        if (wasNew || card.interval <= 1) newInterval = 1;
+        else newInterval = Math.max(1, Math.round(card.interval * 1.2));
+    } else if (grade === 2) {
+        if (wasNew) newInterval = 1;
+        else if (card.interval === 1) newInterval = 3;
+        else newInterval = Math.max(card.interval + 1, Math.round(card.interval * ease));
+    } else if (grade === 3) {
+        if (wasNew) newInterval = 3;
+        else if (card.interval === 1) newInterval = 5;
+        else newInterval = Math.round(card.interval * ease * 1.3);
+    }
+    
+    return grade > 0 ? fuzzInterval(newInterval) : newInterval;
+}
+
 function flipFlashcard() {
     if (state.fcFlipped) return;
     state.fcFlipped = true;
@@ -1410,6 +1450,16 @@ function flipFlashcard() {
     const controls = document.getElementById('fc-controls');
     controls.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
     controls.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+
+    // Expert SRS UI: Calculate and display projected intervals
+    const card = state.flashcards[state.fcIndex];
+    for (let i = 0; i < 4; i++) {
+        const lbl = document.getElementById(`lbl-int-${i}`);
+        if (lbl) {
+            const projected = calculateFutureInterval(card, i);
+            lbl.textContent = formatInterval(projected);
+        }
+    }
 }
 
 function toggleReverseMode() {
@@ -1425,13 +1475,36 @@ function toggleReverseMode() {
     updateFlashcardUI();
 }
 
+function showMasteryToast(term) {
+    const container = document.getElementById('achievement-toast-container');
+    if (!container) return;
+    
+    const toast = document.createElement('div');
+    toast.className = 'bg-teal-600 text-white px-5 py-3 rounded-2xl shadow-lg border border-teal-500 flex items-center gap-3 transform translate-y-10 opacity-0 transition-all duration-500 z-[200] mt-2';
+    toast.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center border border-teal-400">
+            <i class="fa-solid fa-graduation-cap text-teal-100"></i>
+        </div>
+        <div>
+            <p class="font-bold text-sm">Card Mastered!</p>
+            <p class="text-xs text-teal-100 opacity-90">${term}</p>
+        </div>
+    `;
+    container.appendChild(toast);
+    
+    setTimeout(() => toast.classList.remove('translate-y-10', 'opacity-0'), 10);
+    setTimeout(() => {
+        toast.classList.add('translate-y-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
+}
+
 function handleReview(grade) {
     // SM-2 spaced repetition with ease factor and session recirculation
     // grade: 0=Again, 1=Hard, 2=Good, 3=Easy
     const card    = state.flashcards[state.fcIndex];
     const wasNew  = card.interval === 0;
     const now     = Date.now();
-    const DAY_MS  = 86400000;
     const ease    = state.easeFactors[card.id] !== undefined ? state.easeFactors[card.id] : 2.5;
     const wasOverdue = card.interval > 0 && (state.dueDates[card.id] || 0) <= now;
     const wasMature  = card.interval >= 14;
@@ -1439,23 +1512,33 @@ function handleReview(grade) {
     state.sessionTotal++;
     updateStats('totalReviews', 1);
 
-    let newInterval = card.interval;
+    // Get the fuzzed new interval
+    let newInterval = calculateFutureInterval(card, grade);
     let newEase     = ease;
+
+    // Expert 4:00 AM Rollover Calculation
+    const getNextDueDate = (days) => {
+        if (days === 0) return now; // Due immediately in session
+        const d = new Date(now);
+        // If current time is before 4 AM, it counts as "yesterday"
+        if (d.getHours() < 4) {
+            d.setDate(d.getDate() - 1);
+        }
+        d.setDate(d.getDate() + days);
+        d.setHours(4, 0, 0, 0); // Rollover is precisely at 4:00 AM
+        return d.getTime();
+    };
 
     if (grade === 0) {
         // Again — lapse
-        const wasMatured = card.interval >= 7;
-        if (wasMatured) {
-            newInterval = Math.max(1, Math.round(card.interval * 0.5));
-            state.dueDates[card.id] = now + newInterval * DAY_MS;
-        } else {
-            newInterval = 0;
-            state.dueDates[card.id] = now;
+        if (newInterval === 0) {
             card._sessionLapses = (card._sessionLapses || 0) + 1;
             if (card._sessionLapses <= 3) {
                 state.flashcards.push(card);
             }
         }
+        state.dueDates[card.id] = getNextDueDate(newInterval);
+        
         newEase = Math.max(1.3, ease - 0.2);
         card.errorCount = (card.errorCount || 0) + 1;
         state.lapses[card.id] = card.errorCount;
@@ -1463,13 +1546,9 @@ function handleReview(grade) {
         state.sessionConsecutiveCorrect = 0;
 
     } else if (grade === 1) {
+        state.dueDates[card.id] = getNextDueDate(newInterval);
         newEase = Math.max(1.3, ease - 0.15);
-        if (wasNew || card.interval <= 1) {
-            newInterval = 1;
-        } else {
-            newInterval = Math.max(1, Math.round(card.interval * 1.2));
-        }
-        state.dueDates[card.id] = now + newInterval * DAY_MS;
+        
         state.sessionCorrect++;
         state.sessionConsecutiveCorrect++;
         let xpBase = 8;
@@ -1482,15 +1561,13 @@ function handleReview(grade) {
         if (wasNew) updateQuestProgress('newLearned', 1);
 
     } else if (grade === 2) {
+        state.dueDates[card.id] = getNextDueDate(newInterval);
         newEase = ease;
-        if (wasNew) {
-            newInterval = 1;
-        } else if (card.interval === 1) {
-            newInterval = 3;
-        } else {
-            newInterval = Math.max(card.interval + 1, Math.round(card.interval * ease));
+        // Ease Recovery Mechanic: if ease < 2.5, "Good" slowly heals it (+0.05)
+        if (newEase < 2.5) {
+            newEase = Math.min(2.5, newEase + 0.05);
         }
-        state.dueDates[card.id] = now + newInterval * DAY_MS;
+
         state.sessionCorrect++;
         state.sessionConsecutiveCorrect++;
         let xpBase = 12;
@@ -1503,15 +1580,9 @@ function handleReview(grade) {
         if (wasNew) updateQuestProgress('newLearned', 1);
 
     } else if (grade === 3) {
+        state.dueDates[card.id] = getNextDueDate(newInterval);
         newEase = Math.min(4.0, ease + 0.15);
-        if (wasNew) {
-            newInterval = 3;
-        } else if (card.interval === 1) {
-            newInterval = 5;
-        } else {
-            newInterval = Math.round(card.interval * ease * 1.3);
-        }
-        state.dueDates[card.id] = now + newInterval * DAY_MS;
+        
         state.sessionCorrect++;
         state.sessionConsecutiveCorrect++;
         let xpBase = 10;
@@ -1525,6 +1596,12 @@ function handleReview(grade) {
     }
 
     checkAchievements('flashcard_reviewed', {});
+
+    // Mastery Celebration Toast
+    const oldInterval = card.interval;
+    if (oldInterval < 7 && newInterval >= 7) {
+        showMasteryToast(card.term);
+    }
 
     card.interval = newInterval;
     state.easeFactors[card.id] = newEase;
