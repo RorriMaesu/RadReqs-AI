@@ -55,10 +55,10 @@ You do not need to download this repository or know how to code to use RadReqs-A
 However, for **Dr. Lex** (the AI Tutor) to work, it runs completely free and privately on your own computer. To activate him:
 
 1. **Install Ollama:** Download and install the Ollama app for [Windows (.exe)](https://ollama.com/download/OllamaSetup.exe) or [macOS (.zip)](https://ollama.com/download/Ollama-darwin.zip).
-2. **Download the 1-Click Launcher:** Download the startup script for your operating system from this repository:
-   - [Windows: `Start_Dr_Lex.bat`](https://raw.githubusercontent.com/RorriMaesu/RadReqs-AI/main/Start_Dr_Lex.bat)
-   - [macOS: `Start_Dr_Lex.command`](https://raw.githubusercontent.com/RorriMaesu/RadReqs-AI/main/Start_Dr_Lex.command) *(Note: Mac users may need to right-click -> Open, or run `chmod +x Start_Dr_Lex.command` in Terminal if you get a permissions error).*
-3. **Run the Script:** Double-click the file! 
+2. **Download the 1-Click Launchers:** 
+   - **[⬇️ Download Dr. Lex Launchers (.zip)](https://github.com/RorriMaesu/RadReqs-AI/raw/main/assets/Dr_Lex_Launchers.zip)**
+3. **Run the Script:** Open the downloaded `.zip` file and double-click the launcher for your operating system (`Start_Dr_Lex.bat` for Windows, or `Start_Dr_Lex.command` for Mac).
+   *(Note: Mac users may need to right-click -> Open if you get a permissions warning).*
 
 The script will automatically configure browser security permissions (CORS), download Dr. Lex's brain (this takes a few minutes the first time), and instantly launch the website for you to start studying!
 
