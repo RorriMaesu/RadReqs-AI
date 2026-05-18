@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RadReqs-AI | Study Suite</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./assets/css/tailwind.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
@@ -14,18 +14,6 @@
         if (urlModel) {
             localStorage.setItem('syngnosia_tutor_model', urlModel);
             window.history.replaceState({}, document.title, window.location.pathname);
-        }
-
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' }
-                    }
-                }
-            }
         }
     </script>
     <style>

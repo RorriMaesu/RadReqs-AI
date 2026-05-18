@@ -1,0 +1,25 @@
+{
+  "name": "medicaltermmastery",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">   <img src=\"./assets/RADreqsLogo.jpg\" alt=\"RadReqs-AI Logo\" width=\"200\" style=\"border-radius: 20px; margin-bottom: 20px;\"/> </div>",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./src/input.css -o ./assets/css/tailwind.css --minify",
+    "dev": "npx tailwindcss -i ./src/input.css -o ./assets/css/tailwind.css --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RorriMaesu/RadReqs-AI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/RorriMaesu/RadReqs-AI/issues"
+  },
+  "homepage": "https://github.com/RorriMaesu/RadReqs-AI#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

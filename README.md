@@ -113,11 +113,17 @@ RadReqs-AI is built with pure Vanilla JavaScript and HTML.
    git clone https://github.com/RorriMaesu/RadReqs-AI.git
    cd RadReqs-AI
    ```
-2. Start a local HTTP server from the root directory:
+2. Install dependencies (Tailwind CLI) and compile CSS:
+   ```bash
+   npm install
+   npm run build:css
+   ```
+   *(Note: Use `npm run dev` while actively editing HTML to auto-recompile CSS).*
+3. Start a local HTTP server from the root directory:
    ```bash
    python -m http.server 8000
    ```
-3. Open your browser and navigate to `http://localhost:8000`.
+4. Open your browser and navigate to `http://localhost:8000`.
 
 *Deployment Note:* The project is configured with a GitHub Actions workflow (`deploy.yml`) that automatically deploys the `main` branch to GitHub Pages.
 
