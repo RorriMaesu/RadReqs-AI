@@ -1274,7 +1274,10 @@ function setupEventListeners() {
         const panel = document.getElementById('fc-mini-chat');
         if (!panel.classList.contains('hidden')) { advanceFromMiniChat(); return; }
         const card = state.flashcards[state.fcIndex];
-        if (card) openMiniChat(card);
+        if (card) {
+            openMiniChat(card);
+            scrollMiniChatIntoView();
+        }
     });
 
     // Flashcard practice popup
@@ -1908,6 +1911,19 @@ function resetMiniChat() {
 
 function advanceFromMiniChat() {
     resetMiniChat();
+}
+
+function scrollMiniChatIntoView() {
+    const panel = document.getElementById('fc-mini-chat');
+    if (!panel || panel.classList.contains('hidden')) return;
+
+    requestAnimationFrame(() => {
+        const header = document.querySelector('header.glass-panel');
+        const headerHeight = header ? header.offsetHeight : 0;
+        const panelTop = window.scrollY + panel.getBoundingClientRect().top;
+        const targetTop = Math.max(0, panelTop - headerHeight - 12);
+        window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    });
 }
 
 function appendMiniChatBubble(role, text) {
