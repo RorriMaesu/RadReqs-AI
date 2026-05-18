@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderAbbrevDecoder();
     renderPluralization();
     checkOllamaStatus();
-    setupSuggestionChips();
+    renderChatSuggestions();
 });
 
 function loadState() {
@@ -1143,6 +1143,11 @@ function switchTab(tabId) {
         const label = activeBBtn.querySelector('.bnav-label');
         if (icon)  { icon.classList.add('text-teal-600');  icon.classList.remove('text-gray-400'); }
         if (label) { label.classList.add('text-teal-600'); label.classList.remove('text-gray-400'); }
+    }
+
+    // Feature G: Tutor Tab Auto-hydration
+    if (tabId === 'tutor' && state.chatHistory.length === 0) {
+        renderChatSuggestions();
     }
 }
 
@@ -2625,22 +2630,81 @@ function clearChat() {
                 <i class="fa-solid fa-robot text-2xl text-violet-400"></i>
             </div>
             <p class="text-gray-500 font-medium mb-5 text-sm">Ask me anything about medical terminology!</p>
-            <div class="flex flex-wrap justify-center gap-2" id="chat-suggestions">
-                <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">Break down "hepatomegaly"</button>
-                <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">Quiz me on current terms</button>
-                <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">Mnemonic for "myalgia"</button>
-                <button class="chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm">-itis vs -osis difference</button>
-            </div>
+            <div class="flex flex-wrap justify-center gap-2" id="chat-suggestions"></div>
         </div>`;
-    setupSuggestionChips();
+    renderChatSuggestions();
 }
 
-function setupSuggestionChips() {
-    document.querySelectorAll('.chat-suggestion').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const input = document.getElementById('chat-input');
-            input.value = btn.textContent;
+function generateContextualSuggestions() {
+    const pools = [];
+    
+    // Vector A: Lapses (Penalty Box)
+    const lapseEntries = Object.entries(state.lapses).sort((a, b) => b[1] - a[1]);
+    if (lapseEntries.length > 0) {
+        // Find a random term from the top 5 lapses
+        const top5 = lapseEntries.slice(0, 5);
+        const randomLapse = top5[Math.floor(Math.random() * top5.length)];
+        const termObj = dictionary.find(t => t.id === randomLapse[0]);
+        if (termObj) {
+            pools.push(`Break down my most missed term: "${termObj.term}"`);
+            pools.push(`Give me a mnemonic to remember "${termObj.term}"`);
+            pools.push(`What is a clinical example of "${termObj.term}"?`);
+        }
+    }
+    
+    // Vector B: Active Deck
+    if (state.activeSystem && state.activeSystem !== 'All') {
+        const deckTerms = dictionary.filter(t => t.system === state.activeSystem);
+        if (deckTerms.length > 0) {
+            const randomTerm = deckTerms[Math.floor(Math.random() * deckTerms.length)];
+            pools.push(`What does "${randomTerm.term}" mean in a clinical context?`);
+            pools.push(`Quiz me on 3 terms related to the ${state.activeSystem} system.`);
+        }
+    } else {
+        const randomTerm = dictionary[Math.floor(Math.random() * dictionary.length)];
+        pools.push(`Break down the term "${randomTerm.term}"`);
+    }
+
+    // Vector C: Gamification / Level
+    if (xpData.level <= 3) {
+        pools.push(`What is the best way to memorize medical prefixes?`);
+    } else {
+        pools.push(`Quiz me on advanced Level ${xpData.level} terminology.`);
+    }
+
+    // Vector D: Wildcards / Cross-Module
+    const wildcards = [
+        `Generate a short clinical SOAP note for me to decode.`,
+        `What's the difference between -itis and -osis?`,
+        `Tell me a medical joke about the cardiovascular system.`,
+        `Give me a 5-question rapid fire quiz.`
+    ];
+    pools.push(...wildcards);
+
+    // Shuffle and pick exactly 4 unique prompts
+    const uniquePools = [...new Set(pools)];
+    for (let i = uniquePools.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [uniquePools[i], uniquePools[j]] = [uniquePools[j], uniquePools[i]];
+    }
+    return uniquePools.slice(0, 4);
+}
+
+function renderChatSuggestions() {
+    const suggestionsEl = document.getElementById('chat-suggestions');
+    if (!suggestionsEl) return;
+    
+    const prompts = generateContextualSuggestions();
+    suggestionsEl.innerHTML = '';
+    
+    prompts.forEach(promptText => {
+        const btn = document.createElement('button');
+        btn.className = "chat-suggestion px-3 py-1.5 text-xs font-semibold bg-white border border-gray-200 rounded-full hover:border-violet-300 hover:text-violet-600 transition-colors shadow-sm";
+        btn.textContent = promptText;
+        btn.onclick = () => {
+            document.getElementById('chat-input').value = promptText;
             sendChatMessage();
-        });
+        };
+        suggestionsEl.appendChild(btn);
     });
 }
