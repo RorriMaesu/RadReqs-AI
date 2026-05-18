@@ -12,7 +12,7 @@
 
 <a href="https://buymeacoffee.com/rorrimaesu" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
 
-**RadReqs-AI** is a premium, AI-powered educational suite designed specifically for aspiring Radiation Therapists and Radiologic Technologists (X-Ray Techs). It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor.
+**RadReqs-AI** is a premium, AI-powered educational suite designed specifically for aspiring Radiation Therapists and Radiologic Technologists (X-Ray Techs). It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor powered by Google's Gemma 4.
 
 ---
 
@@ -26,7 +26,7 @@ The foundational module for clinical language mastery.
 - **Spaced Repetition Flashcards:** Adaptive algorithm to ensure long-term retention of medical roots, prefixes, and suffixes.
 - **Chart Decrypter:** Translates complex clinical SOAP notes into plain English, intelligently graded by an LLM.
 - **Abbreviation Decoder & Pluralization:** Rapid-fire tools to master medical shorthand and grammar.
-- **Dr. Lex (AI Tutor):** An integrated, warm, and precise AI tutor powered by Ollama that can break down complex terms, provide mnemonics, and generate on-demand quizzes.
+- **Dr. Lex (AI Tutor):** An integrated, warm, and precise AI tutor powered by **Gemma 4** (via Ollama) that can break down complex terms, provide mnemonics, and generate on-demand quizzes.
 
 ### 3. Gamification Engine
 Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
