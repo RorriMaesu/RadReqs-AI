@@ -7,6 +7,7 @@
 // CONTENT ARRAYS
 // ==========================================
 let currentWbChallenge = null;
+const DAILY_NEW_LIMIT = 20;
 
 // ==========================================
 // LOOKUP TABLES
@@ -1241,18 +1242,32 @@ function stopSpeechRecognition(e) {
 // ==========================================
 // FEATURE A: FLASHCARDS (Spaced Repetition)
 // ==========================================
-function updateFcStatsBar(due, newCount, learning, mastered) {
-    const el = document.getElementById('fc-stats-bar');
-    if (!el) return;
-    el.innerHTML = `
-        <span class="flex items-center gap-1.5 text-orange-500"><i class="fa-solid fa-rotate text-xs"></i>${due} due</span>
-        <span class="text-gray-300">·</span>
-        <span class="flex items-center gap-1.5 text-sky-500"><i class="fa-solid fa-plus text-xs"></i>${newCount} new</span>
-        <span class="text-gray-300">·</span>
-        <span class="flex items-center gap-1.5 text-yellow-500"><i class="fa-solid fa-book-open text-xs"></i>${learning} learning</span>
-        <span class="text-gray-300">·</span>
-        <span class="flex items-center gap-1.5 text-teal-500"><i class="fa-solid fa-graduation-cap text-xs"></i>${mastered} mastered</span>
-    `;
+function updateFcStatsBar(due, actionableNew, totalUnseen, learning, mastered) {
+    const total = totalUnseen + learning + mastered;
+    
+    const elDue = document.getElementById('fc-stat-due');
+    if (elDue) elDue.textContent = `${due} Due`;
+    
+    const elNew = document.getElementById('fc-stat-new');
+    if (elNew) elNew.textContent = `${actionableNew} New`;
+    
+    const elTotal = document.getElementById('fc-stat-total');
+    if (elTotal) elTotal.textContent = `${total} Cards`;
+    
+    if (total > 0) {
+        const pMastered = (mastered / total) * 100;
+        const pLearning = (learning / total) * 100;
+        const pUnseen = (totalUnseen / total) * 100;
+        
+        const elPMastered = document.getElementById('fc-prog-mastered');
+        if (elPMastered) elPMastered.style.width = `${pMastered}%`;
+        
+        const elPLearning = document.getElementById('fc-prog-learning');
+        if (elPLearning) elPLearning.style.width = `${pLearning}%`;
+        
+        const elPUnseen = document.getElementById('fc-prog-unseen');
+        if (elPUnseen) elPUnseen.style.width = `${pUnseen}%`;
+    }
 }
 
 function renderFlashcards() {
@@ -1270,9 +1285,12 @@ function renderFlashcards() {
     const learningCards = pool.filter(t => t.interval >= 1 && t.interval < 7);
     const masteredCards = pool.filter(t => t.interval >= 7);
 
+    // Apply strict daily limit to new cards
+    const remainingNewQuota = Math.max(0, DAILY_NEW_LIMIT - (state.newCardsLearnedToday || 0));
+    const selectedNew = newCards.slice(0, remainingNewQuota);
+
     // Build session deck: due cards first, then new cards.
     // No deterministic sort within groups — SM-2 ease factors already encode difficulty.
-    const selectedNew = newCards;
     let finalPool = [...dueCards, ...selectedNew];
 
     // Per-session Fisher-Yates shuffle — true randomness (Math.random, not seeded)
@@ -1282,8 +1300,8 @@ function renderFlashcards() {
         [finalPool[i], finalPool[j]] = [finalPool[j], finalPool[i]];
     }
 
-    // Update stats bar with full pool counts (before any truncation)
-    updateFcStatsBar(dueCards.length, newCards.length, learningCards.length, masteredCards.length);
+    // Update stats bar with MECE logic (Mutually Exclusive, Collectively Exhaustive)
+    updateFcStatsBar(dueCards.length, selectedNew.length, newCards.length, learningCards.length, masteredCards.length);
 
     // "All caught up" fallback: only fires when BOTH due AND new queues are truly empty
     if (finalPool.length === 0) {

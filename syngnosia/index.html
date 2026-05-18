@@ -349,8 +349,30 @@
                 </div>
             </div>
             <!-- Session Stats Bar -->
-            <div id="fc-stats-bar" class="flex items-center justify-center gap-3 text-sm font-bold mb-4 px-2 text-gray-400">
-                <!-- Populated by JS -->
+            <div id="fc-stats-bar" class="w-full max-w-xl mx-auto mb-6 flex flex-col gap-3 px-2">
+                <!-- Action Tier -->
+                <div class="flex justify-center gap-3">
+                    <div class="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-rotate text-rose-500"></i>
+                        <span id="fc-stat-due">0 Due</span>
+                    </div>
+                    <div class="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-plus text-blue-500"></i>
+                        <span id="fc-stat-new">0 New</span>
+                    </div>
+                </div>
+                <!-- Global Progress Tier -->
+                <div class="flex flex-col gap-1 mt-1">
+                    <div class="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
+                        <span>Deck Mastery</span>
+                        <span id="fc-stat-total">0 Cards</span>
+                    </div>
+                    <div class="h-2.5 w-full flex rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                        <div id="fc-prog-mastered" class="h-full bg-teal-500 transition-all duration-500" style="width: 0%" title="Mastered"></div>
+                        <div id="fc-prog-learning" class="h-full bg-amber-400 transition-all duration-500" style="width: 0%" title="Learning"></div>
+                        <div id="fc-prog-unseen" class="h-full bg-gray-200 transition-all duration-500" style="width: 100%" title="Unseen"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex flex-col items-center">
