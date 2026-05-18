@@ -8,6 +8,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
+        // Catch AI Model from URL to support multi-tier hardware launcher scripts
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlModel = urlParams.get('model');
+        if (urlModel) {
+            localStorage.setItem('syngnosia_tutor_model', urlModel);
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         tailwind.config = {
             darkMode: 'class',
             theme: {

@@ -1954,7 +1954,7 @@ Return ONLY a valid JSON object in this exact format: {"isCorrect": true/false, 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'VladimirGav/gemma4-26b-16GB-VRAM:latest',
+                model: TUTOR_MODEL,
                 prompt: prompt,
                 stream: false,
                 format: 'json',
@@ -2430,7 +2430,7 @@ function nextPluralChallenge() {
 // ==========================================
 // FEATURE G: AI TUTOR CHATBOT
 // ==========================================
-const TUTOR_MODEL = 'VladimirGav/gemma4-26b-16GB-VRAM:latest';
+const TUTOR_MODEL = localStorage.getItem('syngnosia_tutor_model') || 'gemma4-26b';
 const OLLAMA_URL  = 'http://localhost:11434';
 
 function buildTutorSystemPrompt() {
