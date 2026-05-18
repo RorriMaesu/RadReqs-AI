@@ -372,6 +372,7 @@ function setActiveSystem(sys) {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
+    checkLegalConsent();
     loadState();
     applyDarkMode(state.darkMode);
     renderSystemMenu();
@@ -995,6 +996,14 @@ function setupEventListeners() {
     document.getElementById('modal-btn-reset-all').addEventListener('click', resetAllProgress);
     document.getElementById('modal-btn-reset-system').addEventListener('click', () => resetSystemProgress(state.activeSystem));
     document.getElementById('fc-btn-review-mastered').addEventListener('click', reviewMasteredCards);
+
+    // Feature A: Legal Consent and Reporting Errors
+    const btnReport = document.getElementById('btn-report-card');
+    if (btnReport) btnReport.addEventListener('click', openReportModal);
+    const btnLegalAccept = document.getElementById('btn-legal-accept');
+    if (btnLegalAccept) btnLegalAccept.addEventListener('click', acceptLegalConsent);
+    const btnSubmitReport = document.getElementById('btn-submit-report');
+    if (btnSubmitReport) btnSubmitReport.addEventListener('click', submitReport);
 
     // Feature A: Speech Recognition (Hold to Speak)
     const micBtn = document.getElementById('btn-mic');
@@ -2802,4 +2811,104 @@ function renderChatSuggestions() {
         };
         suggestionsEl.appendChild(btn);
     });
+}
+
+// ==========================================
+// LEGAL CONSENT & ERROR REPORTING SYSTEMS
+// ==========================================
+function checkLegalConsent() {
+    const accepted = localStorage.getItem('syngnosia_legal_consent');
+    if (accepted !== 'true') {
+        const modal = document.getElementById('modal-legal');
+        if (modal) modal.classList.remove('hidden');
+    }
+}
+
+function acceptLegalConsent() {
+    localStorage.setItem('syngnosia_legal_consent', 'true');
+    const modal = document.getElementById('modal-legal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function openReportModal(e) {
+    if (e) e.stopPropagation(); // prevent card flip when clicking flag on flashcard back
+    
+    // Auto-fill context of the current flashcard
+    if (state.flashcards && state.flashcards.length > 0 && state.fcIndex < state.flashcards.length) {
+        const card = state.flashcards[state.fcIndex];
+        const termInput = document.getElementById('report-term');
+        const meaningInput = document.getElementById('report-meaning');
+        
+        if (termInput) termInput.value = card.term;
+        if (meaningInput) meaningInput.value = card.meaning;
+    }
+    
+    const modal = document.getElementById('modal-report');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function closeReportModal() {
+    const modal = document.getElementById('modal-report');
+    if (modal) modal.classList.add('hidden');
+    // Clear details field
+    const noteEl = document.getElementById('report-note');
+    if (noteEl) noteEl.value = '';
+}
+
+async function submitReport() {
+    const term = document.getElementById('report-term').value;
+    const meaning = document.getElementById('report-meaning').value;
+    const type = document.getElementById('report-type').value;
+    const note = document.getElementById('report-note').value;
+    const btn = document.getElementById('btn-submit-report');
+    
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Submitting...`;
+    
+    try {
+        const response = await fetch("https://formspree.io/f/xbdbjqrj", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                term: term,
+                aiMeaning: meaning,
+                issueType: type,
+                details: note
+            })
+        });
+        
+        if (response.ok) {
+            closeReportModal();
+            triggerReportSuccessToast();
+        } else {
+            alert("Oops! There was a problem submitting your report. Please try again.");
+        }
+    } catch (err) {
+        console.error("Error reporting issue:", err);
+        alert("Unable to reach the submission server. Check your internet connection.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+function triggerReportSuccessToast() {
+    const container = document.getElementById('achievement-toast-container');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'achievement-toast pointer-events-auto bg-white border border-gray-200 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-xs';
+    el.innerHTML = `
+        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#10b98122;border:2px solid #10b98144">
+            <i class="fa-solid fa-circle-check text-lg" style="color:#10b981"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold text-gray-800">Report Sent!</p>
+            <p class="text-[11px] text-gray-500 leading-snug">Thank you for improving the app!</p>
+        </div>`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 4500);
 }
