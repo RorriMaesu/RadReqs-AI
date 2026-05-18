@@ -315,6 +315,7 @@
                     <button id="nav-abbrev-decoder" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Abbreviations</button>
                     <button id="nav-pluralization" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Pluralization</button>
                     <button id="nav-tutor" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">AI Tutor</button>
+                    <button id="nav-dictionary" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50">Lexicon</button>
                 </div>
             </div>
 
@@ -449,6 +450,37 @@
                                 <span class="text-sm">Easy</span>
                                 <span class="text-[10px] text-green-400/80 font-normal hidden sm:block">4</span>
                             </button>
+                        </div>
+                        <div class="mt-2.5 flex justify-center">
+                            <button id="btn-dr-lex" class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors">
+                                <i class="fa-solid fa-robot text-[10px]"></i> Ask Dr. Lex
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mini Card Chat -->
+                    <div id="fc-mini-chat" class="hidden mt-5 w-full fade-in">
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div class="flex items-center justify-between px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                                        <i class="fa-solid fa-robot text-[10px] text-white"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-violet-800">Dr. Lex</span>
+                                    <span id="fc-mini-chat-status" class="text-[10px] text-violet-400 font-medium"></span>
+                                </div>
+                                <button id="fc-mini-chat-skip" class="w-7 h-7 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors" title="Close">
+                                    <i class="fa-solid fa-xmark text-sm"></i>
+                                </button>
+                            </div>
+                            <div id="fc-mini-chat-messages" class="px-4 py-3 space-y-3 max-h-44 overflow-y-auto"></div>
+                            <div class="border-t border-gray-100 p-3 flex gap-2">
+                                <input id="fc-mini-chat-input" type="text" placeholder="Ask about this term…"
+                                    class="flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 transition-colors" />
+                                <button id="fc-mini-chat-send" class="w-9 h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors shadow-sm shrink-0">
+                                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -737,6 +769,75 @@
 
         </section>
 
+        <!-- FEATURE H: LEXICON DICTIONARY VIEW -->
+        <section id="view-dictionary" class="hidden-tab fade-in">
+
+            <div class="flex items-center justify-between mb-5 px-1">
+                <h2 class="text-xl font-bold text-gray-800">Lexicon</h2>
+                <div class="inline-flex bg-gray-100 rounded-full p-1 gap-1">
+                    <button id="dict-mode-browse" class="px-4 py-1.5 text-sm font-bold rounded-full bg-white text-teal-700 shadow shadow-gray-300/50 transition-all">Browse</button>
+                    <button id="dict-mode-decompose" class="px-4 py-1.5 text-sm font-bold rounded-full text-gray-500 hover:text-gray-700 transition-all">Decomposer</button>
+                </div>
+            </div>
+
+            <!-- BROWSE MODE -->
+            <div id="dict-browse">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+                    <div class="relative mb-3">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        <input id="dict-search" type="text" placeholder="Search terms, meanings, roots…" class="w-full pl-11 pr-11 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500 transition-all" autocomplete="off">
+                        <i id="dict-search-spinner" class="fa-solid fa-spinner animate-spin absolute right-4 top-1/2 -translate-y-1/2 text-teal-500 hidden pointer-events-none"></i>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button data-filter="all"    class="dict-filter-pill px-4 py-1.5 text-xs font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all">All</button>
+                        <button data-filter="prefix" class="dict-filter-pill px-4 py-1.5 text-xs font-bold rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Prefixes</button>
+                        <button data-filter="root"   class="dict-filter-pill px-4 py-1.5 text-xs font-bold rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Roots</button>
+                        <button data-filter="suffix" class="dict-filter-pill px-4 py-1.5 text-xs font-bold rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all">Suffixes</button>
+                    </div>
+                </div>
+                <!-- AI spell-correction suggestion banner -->
+                <div id="dict-spell-suggestion" class="hidden mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500 shrink-0"></i>
+                    <span id="dict-spell-text" class="text-amber-800 font-medium flex-1"></span>
+                    <button id="dict-spell-undo" class="font-bold text-amber-700 hover:text-amber-900 underline whitespace-nowrap transition-colors"></button>
+                    <button id="dict-spell-dismiss" class="ml-1 text-amber-400 hover:text-amber-700 transition-colors" aria-label="Dismiss"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <p id="dict-result-count" class="text-xs text-gray-400 font-bold uppercase tracking-widest mb-3 mt-3 px-1">Loading…</p>
+                <div id="dict-results-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                <div id="dict-show-more-wrap" class="hidden text-center mt-5">
+                    <button id="dict-show-more" class="px-6 py-3 rounded-full font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 text-sm transition-colors">Show more results</button>
+                </div>
+            </div>
+
+            <!-- WORD DECOMPOSER MODE -->
+            <div id="dict-decompose" class="hidden">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-10 h-10 rounded-full bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-500">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-gray-800">Word Decomposer</h3>
+                            <p class="text-xs text-gray-500 font-medium">Enter any medical word &mdash; Gemma4 identifies its morpheme parts</p>
+                        </div>
+                    </div>
+                    <div id="dict-offline-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500 flex-shrink-0"></i>
+                        <p class="text-sm font-medium text-amber-700">Ollama is not running. Start it with <code class="bg-amber-100 px-1 rounded font-mono">ollama serve</code> to enable the Word Decomposer.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <input id="dict-decompose-input" type="text" placeholder="e.g. cardiomegaly, tachycardia, hepatitis…" class="flex-1 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500 transition-all" autocomplete="off">
+                        <button id="dict-decompose-btn" class="px-5 py-3 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-600/20 transition-all flex items-center gap-2 shrink-0">
+                            <i class="fa-solid fa-magnifying-glass-plus"></i>
+                            <span>Analyze</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="dict-decompose-output" class="space-y-4"></div>
+            </div>
+
+        </section>
+
             </main>
         </div><!-- end content column -->
     </div><!-- end page layout wrapper -->
@@ -744,29 +845,33 @@
     <!-- Bottom tab navigation (mobile only) -->
     <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50 bnav-safe">
         <div class="flex">
-            <button id="bnav-flashcards" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('flashcards')">
-                <i class="bnav-icon fa-solid fa-layer-group text-xl text-teal-600 transition-colors"></i>
-                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-teal-600 transition-colors">Cards</span>
+            <button id="bnav-flashcards" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('flashcards')">
+                <i class="bnav-icon fa-solid fa-layer-group text-lg text-teal-600 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-teal-600 transition-colors">Cards</span>
             </button>
-            <button id="bnav-word-builder" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('word-builder')">
-                <i class="bnav-icon fa-solid fa-puzzle-piece text-xl text-gray-400 transition-colors"></i>
-                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Builder</span>
+            <button id="bnav-word-builder" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('word-builder')">
+                <i class="bnav-icon fa-solid fa-puzzle-piece text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Builder</span>
             </button>
-            <button id="bnav-chart-decrypter" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('chart-decrypter')">
-                <i class="bnav-icon fa-solid fa-file-medical text-xl text-gray-400 transition-colors"></i>
-                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Charts</span>
+            <button id="bnav-chart-decrypter" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('chart-decrypter')">
+                <i class="bnav-icon fa-solid fa-file-medical text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Charts</span>
             </button>
-            <button id="bnav-abbrev-decoder" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('abbrev-decoder')">
-                <i class="bnav-icon fa-solid fa-bolt text-xl text-gray-400 transition-colors"></i>
-                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Abbrevs</span>
+            <button id="bnav-abbrev-decoder" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('abbrev-decoder')">
+                <i class="bnav-icon fa-solid fa-bolt text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Abbrevs</span>
             </button>
-            <button id="bnav-pluralization" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('pluralization')">
-                <i class="bnav-icon fa-solid fa-spell-check text-xl text-gray-400 transition-colors"></i>
-                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Plurals</span>
+            <button id="bnav-pluralization" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('pluralization')">
+                <i class="bnav-icon fa-solid fa-spell-check text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Plurals</span>
             </button>
-            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2.5 min-w-0" onclick="switchTab('tutor')">
-                <i class="bnav-icon fa-solid fa-robot text-xl text-gray-400 transition-colors"></i>
-                <span class="bnav-label text-[10px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
+            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('tutor')">
+                <i class="bnav-icon fa-solid fa-robot text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
+            </button>
+            <button id="bnav-dictionary" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('dictionary')">
+                <i class="bnav-icon fa-solid fa-book-open text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Lexicon</span>
             </button>
         </div>
     </nav>
@@ -778,6 +883,65 @@
             Content is generated by AI. For educational purposes only. Not professional medical advice.
         </p>
     </footer>
+
+    <!-- FEATURE H: DICTIONARY ENTRY MODAL -->
+    <div id="dict-entry-modal" class="hidden fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div id="dict-modal-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto fade-in">
+            <div class="sticky top-0 bg-white/95 backdrop-blur-sm px-6 pt-5 pb-4 border-b border-gray-100 flex items-start justify-between">
+                <div class="flex-1 min-w-0 pr-4">
+                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <span id="dict-modal-type-chip" class="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100">prefix</span>
+                        <span id="dict-modal-system-chip" class="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full bg-gray-50 text-gray-600 border border-gray-100">System</span>
+                    </div>
+                    <h3 id="dict-modal-term" class="text-3xl font-extrabold text-gray-900 tracking-tight">term</h3>
+                </div>
+                <button id="dict-modal-close" class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors flex-shrink-0">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div class="px-6 pb-6 pt-4 space-y-5">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Meaning</p>
+                    <p id="dict-modal-meaning" class="text-2xl font-bold text-gray-800">meaning</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Mastery</span>
+                    <span id="dict-modal-mastery" class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-500">
+                        <span id="dict-modal-mastery-dot" class="w-2 h-2 rounded-full bg-gray-400 inline-block"></span>
+                        Not studied
+                    </span>
+                </div>
+                <div id="dict-modal-examples-section">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Clinical Examples</p>
+                    <div id="dict-modal-examples" class="flex flex-wrap gap-2"></div>
+                </div>
+                <div id="dict-modal-enrich-area">
+                    <button id="dict-modal-enrich-btn" class="w-full py-3 rounded-xl font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-sm transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        AI Enrich &mdash; Get mnemonic &amp; more examples
+                    </button>
+                    <div id="dict-modal-enrich-result" class="hidden mt-4 space-y-3">
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">AI Examples</p>
+                            <div id="dict-modal-ai-examples" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Memory Mnemonic</p>
+                            <div class="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3">
+                                <p id="dict-modal-mnemonic" class="text-sm font-medium text-violet-800 leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button id="dict-modal-study-btn" class="flex-1 py-3 rounded-xl font-bold text-white bg-teal-600 hover:bg-teal-700 text-sm shadow-lg shadow-teal-600/20 transition-all">
+                        <i class="fa-solid fa-layer-group mr-2"></i>Study in Flashcards
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- LEGAL CONSENT MODAL -->
     <div id="modal-legal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
@@ -904,11 +1068,46 @@
                 </div>
             </div>
 
+            <!-- Flashcard Grade Breakdown -->
+            <div class="bg-gray-50 rounded-2xl p-5 border border-gray-100 mb-8">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Flashcard Response Breakdown</p>
+                <div id="stats-fc-breakdown">
+                    <!-- Injected by renderStatsModal -->
+                </div>
+            </div>
+
             <!-- Badges -->
             <div>
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Achievement Badges</p>
                 <div id="stats-badges" class="flex flex-wrap gap-3">
                     <!-- Badges injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLASHCARD PRACTICE POPUP -->
+    <div id="modal-fc-practice" class="hidden fixed inset-0 z-[350] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-fc-practice-overlay"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 fade-in">
+            <div class="flex items-center justify-between mb-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Practice</p>
+                <button id="btn-fc-practice-close" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div class="flip-card cursor-pointer w-full" id="fc-practice-card" style="height:210px">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <span id="fc-practice-type" class="uppercase tracking-widest text-xs font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-full mb-5 border border-teal-100">Type</span>
+                        <h3 id="fc-practice-term" class="text-3xl font-extrabold text-gray-800 text-center mb-4 px-2">term</h3>
+                        <p class="text-teal-600/60 text-xs mt-auto font-medium"><i class="fa-solid fa-hand-pointer mr-1"></i>Click to reveal meaning</p>
+                    </div>
+                    <div class="flip-card-back">
+                        <span id="fc-practice-system" class="text-xs font-bold px-3 py-1 rounded-full border mb-3 text-teal-700 bg-teal-50 border-teal-200">System</span>
+                        <p class="text-xs font-bold text-teal-700/70 uppercase tracking-widest mb-3">Meaning</p>
+                        <p id="fc-practice-meaning" class="text-2xl font-extrabold text-gray-800 text-center px-4">meaning</p>
+                    </div>
                 </div>
             </div>
         </div>

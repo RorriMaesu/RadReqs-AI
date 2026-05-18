@@ -7,6 +7,7 @@
 // CONTENT ARRAYS
 // ==========================================
 let currentWbChallenge = null;
+let wbRecentAnswers     = [];   // deduplication ring-buffer (last 10 answers)
 const DAILY_NEW_LIMIT = 20;
 
 // ==========================================
@@ -288,9 +289,15 @@ let state = {
     lapses: {},      // id -> cumulative error count
     sessionCorrect: 0,
     sessionTotal: 0,
+    sessionScoredIds: new Set(), // tracks which card IDs have already been counted toward persistent stats this session
 
     // Feature G: AI Tutor
     chatHistory: [],
+
+    // Mini card chat (per-card after grading)
+    miniChatHistory: [],
+    miniChatIsEnd: false,
+    miniChatAbortCtrl: null,
 
     // Feature H: Theme
     darkMode: true,
@@ -309,7 +316,7 @@ let state = {
 let xpData           = { total: 0, level: 1, dailyXP: {}, dailyFcXP: {}, dailyActivities: {} };
 let achievementsData = { unlocked: [], unlockedDates: {} };
 let dailyQuestsData  = { date: '', quests: [] };
-let statsData        = { totalReviews: 0, totalCorrect: 0, wbChallenges: 0, wbCorrect: 0, cdAnswered: 0, cdCorrect: 0, adAnswered: 0, adCorrect: 0, plAnswered: 0, plCorrect: 0 };
+let statsData        = { totalReviews: 0, totalCorrect: 0, fcAgain: 0, fcHard: 0, fcGood: 0, fcEasy: 0, fcAgainTotal: 0, fcHardTotal: 0, fcGoodTotal: 0, fcEasyTotal: 0, fcGradeMap: {}, wbChallenges: 0, wbCorrect: 0, cdAnswered: 0, cdCorrect: 0, adAnswered: 0, adCorrect: 0, plAnswered: 0, plCorrect: 0 };
 // (extra closing brace removed — state obj now ends above)
 
 const SYSTEMS = ['All', 'Prefixes', 'Suffixes (Surgical)', 'Suffixes (Diagnostic)', 'Suffixes (Pathological)', 'Cardiovascular', 'Digestive', 'Respiratory', 'Nervous', 'Musculoskeletal', 'Integumentary', 'Endocrine', 'Urinary', 'Reproductive', 'Blood/Immune', 'Special Senses', 'Foundations', 'Abbreviations'];
@@ -946,6 +953,96 @@ function renderStatsModal() {
         }).join('');
     }
 
+    // Flashcard grade breakdown
+    const fcBreakdown = el('stats-fc-breakdown');
+    if (fcBreakdown) {
+        // First-encounter counts (each card counted once per session)
+        const again    = statsData.fcAgain || 0;
+        const hard     = statsData.fcHard  || 0;
+        const good     = statsData.fcGood  || 0;
+        const easy     = statsData.fcEasy  || 0;
+        // All-time button press totals (every single press)
+        const againT   = statsData.fcAgainTotal || 0;
+        const hardT    = statsData.fcHardTotal  || 0;
+        const goodT    = statsData.fcGoodTotal  || 0;
+        const easyT    = statsData.fcEasyTotal  || 0;
+        const pressTotal = againT + hardT + goodT + easyT;
+
+        if (pressTotal === 0) {
+            fcBreakdown.innerHTML = '<p class="text-sm text-gray-400 font-medium text-center py-3">No flashcard reviews yet — start a session to see your breakdown.</p>';
+        } else {
+            const pct = (n, t) => t > 0 ? Math.round((n / t) * 100) : 0;
+
+            const pressSegs = [
+                { label: 'Again', count: againT, p: pct(againT, pressTotal), bar: 'bg-rose-400',    chip: 'bg-rose-50 border-rose-100',       txt: 'text-rose-600'    },
+                { label: 'Hard',  count: hardT,  p: pct(hardT,  pressTotal), bar: 'bg-amber-400',   chip: 'bg-amber-50 border-amber-100',     txt: 'text-amber-600'   },
+                { label: 'Good',  count: goodT,  p: pct(goodT,  pressTotal), bar: 'bg-teal-400',    chip: 'bg-teal-50 border-teal-100',       txt: 'text-teal-600'    },
+                { label: 'Easy',  count: easyT,  p: pct(easyT,  pressTotal), bar: 'bg-emerald-400', chip: 'bg-emerald-50 border-emerald-100', txt: 'text-emerald-600' },
+            ];
+
+            const uniqueSegs = [
+                { label: 'Again', count: again, bg: 'bg-rose-100 text-rose-700'       },
+                { label: 'Hard',  count: hard,  bg: 'bg-amber-100 text-amber-700'     },
+                { label: 'Good',  count: good,  bg: 'bg-teal-100 text-teal-700'       },
+                { label: 'Easy',  count: easy,  bg: 'bg-emerald-100 text-emerald-700' },
+            ];
+
+            // Build sorted card lists from the most-recent-grade map
+            const gradeMap  = statsData.fcGradeMap || {};
+            const hardCards = [], goodCards = [], easyCards = [];
+            Object.entries(gradeMap).forEach(([id, g]) => {
+                const c = dictionary.find(d => d.id === id);
+                if (!c) return;
+                if (g === 1) hardCards.push(c);
+                else if (g === 2) goodCards.push(c);
+                else if (g === 3) easyCards.push(c);
+            });
+            hardCards.sort((a, b) => a.term.localeCompare(b.term));
+            goodCards.sort((a, b) => a.term.localeCompare(b.term));
+            easyCards.sort((a, b) => a.term.localeCompare(b.term));
+
+            const renderCardList = (cards, btnCls) => cards.length === 0
+                ? '<p class="text-xs text-gray-400 italic">None yet</p>'
+                : `<div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">${cards.map(c =>
+                    `<button onclick="openFcPracticePopup('${c.id}')" class="text-xs font-semibold px-2.5 py-1 rounded-full border ${btnCls} hover:opacity-75 transition-opacity">${c.term}</button>`
+                  ).join('')}</div>`;
+
+            fcBreakdown.innerHTML =
+                `<p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">All-Time Button Presses · ${pressTotal} total</p>
+                <div class="flex h-4 rounded-full overflow-hidden gap-px mb-3">
+                    ${pressSegs.map(s => s.count > 0 ? `<div class="${s.bar}" style="width:${s.p}%" title="${s.label}: ${s.count} (${s.p}%)"></div>` : '').join('')}
+                </div>
+                <div class="grid grid-cols-4 gap-2 mb-5">
+                    ${pressSegs.map(s => `<div class="flex flex-col items-center ${s.chip} border rounded-2xl py-3 px-1">
+                        <span class="text-lg font-extrabold ${s.txt}">${s.count}</span>
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide mt-0.5">${s.label}</span>
+                        <span class="text-[10px] text-gray-400 font-medium">${s.p}%</span>
+                    </div>`).join('')}
+                </div>
+                <div class="flex items-center gap-3 mb-5">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest shrink-0">Unique Cards</p>
+                    <div class="flex-1 h-px bg-gray-100"></div>
+                    <div class="flex gap-1.5">
+                        ${uniqueSegs.map(s => `<span class="text-[10px] font-bold px-2.5 py-1 rounded-full ${s.bg}">${s.label}&nbsp;${s.count}</span>`).join('')}
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-[11px] font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fa-solid fa-circle-exclamation mr-1"></i>Hard (${hardCards.length})</p>
+                        ${renderCardList(hardCards, 'bg-amber-50 border-amber-200 text-amber-700')}
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-teal-600 uppercase tracking-widest mb-2"><i class="fa-solid fa-check mr-1"></i>Good (${goodCards.length})</p>
+                        ${renderCardList(goodCards, 'bg-teal-50 border-teal-200 text-teal-700')}
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-emerald-600 uppercase tracking-widest mb-2"><i class="fa-solid fa-star mr-1"></i>Easy (${easyCards.length})</p>
+                        ${renderCardList(easyCards, 'bg-emerald-50 border-emerald-200 text-emerald-700')}
+                    </div>
+                </div>`;
+        }
+    }
+
     // Badge gallery
     const badges = el('stats-badges');
     if (badges) {
@@ -959,6 +1056,36 @@ function renderStatsModal() {
 }
 
 // ==========================================
+// FLASHCARD PRACTICE POPUP (from stats modal)
+// ==========================================
+let _statsScrollPos = 0; // saved scroll position of the stats modal body
+
+function openFcPracticePopup(cardId) {
+    const card = dictionary.find(c => c.id === cardId);
+    if (!card) return;
+    document.getElementById('fc-practice-type').textContent    = card.type;
+    document.getElementById('fc-practice-term').textContent    = card.term;
+    document.getElementById('fc-practice-meaning').textContent = card.meaning;
+    document.getElementById('fc-practice-system').textContent  = card.system;
+    document.getElementById('fc-practice-card').classList.remove('flipped');
+    // Save scroll position before hiding the stats modal
+    const statsBody = document.querySelector('#modal-stats .overflow-y-auto');
+    _statsScrollPos = statsBody ? statsBody.scrollTop : 0;
+    document.getElementById('modal-stats').classList.add('hidden');
+    document.getElementById('modal-fc-practice').classList.remove('hidden');
+}
+
+function closeFcPracticePopup() {
+    document.getElementById('modal-fc-practice').classList.add('hidden');
+    document.getElementById('modal-stats').classList.remove('hidden');
+    // Restore scroll position after the modal is visible
+    requestAnimationFrame(() => {
+        const statsBody = document.querySelector('#modal-stats .overflow-y-auto');
+        if (statsBody) statsBody.scrollTop = _statsScrollPos;
+    });
+}
+
+// ==========================================
 // EVENT LISTENERS & NAVIGATION
 // ==========================================
 function setupEventListeners() {
@@ -969,6 +1096,7 @@ function setupEventListeners() {
     document.getElementById('nav-abbrev-decoder').addEventListener('click', () => switchTab('abbrev-decoder'));
     document.getElementById('nav-pluralization').addEventListener('click', () => switchTab('pluralization'));
     document.getElementById('nav-tutor').addEventListener('click', () => { switchTab('tutor'); checkOllamaStatus(); });
+    document.getElementById('nav-dictionary').addEventListener('click', () => switchTab('dictionary'));
 
     // Top Filter (Mobile)
     const mobileFilter = document.getElementById('system-filter-mobile');
@@ -1136,6 +1264,26 @@ function setupEventListeners() {
     // Feature H: Dark mode
     document.getElementById('modal-dark-toggle').addEventListener('change', toggleDarkMode);
 
+    // Mini card chat
+    document.getElementById('fc-mini-chat-skip').addEventListener('click', advanceFromMiniChat);
+    document.getElementById('fc-mini-chat-send').addEventListener('click', sendMiniChatMessage);
+    document.getElementById('fc-mini-chat-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') sendMiniChatMessage();
+    });
+    document.getElementById('btn-dr-lex').addEventListener('click', () => {
+        const panel = document.getElementById('fc-mini-chat');
+        if (!panel.classList.contains('hidden')) { advanceFromMiniChat(); return; }
+        const card = state.flashcards[state.fcIndex];
+        if (card) openMiniChat(card);
+    });
+
+    // Flashcard practice popup
+    document.getElementById('fc-practice-card').addEventListener('click', () => {
+        document.getElementById('fc-practice-card').classList.toggle('flipped');
+    });
+    document.getElementById('btn-fc-practice-close').addEventListener('click', closeFcPracticePopup);
+    document.getElementById('modal-fc-practice-overlay').addEventListener('click', closeFcPracticePopup);
+
     // Unselect slots via click
     ['prefix', 'root1', 'root2', 'suffix'].forEach(type => {
         const slotEl = document.getElementById(`slot-${type}`);
@@ -1192,7 +1340,7 @@ function setupEventListeners() {
 
 function switchTab(tabId) {
     // Hide all panels and reset all nav buttons
-    ['flashcards', 'word-builder', 'chart-decrypter', 'abbrev-decoder', 'pluralization', 'tutor'].forEach(id => {
+    ['flashcards', 'word-builder', 'chart-decrypter', 'abbrev-decoder', 'pluralization', 'tutor', 'dictionary'].forEach(id => {
         const view = document.getElementById(`view-${id}`);
         if (view) view.classList.add('hidden-tab');
         
@@ -1230,6 +1378,10 @@ function switchTab(tabId) {
     // Feature G: Tutor Tab Auto-hydration
     if (tabId === 'tutor' && state.chatHistory.length === 0) {
         renderChatSuggestions();
+    }
+    // Feature H: Dictionary Tab Auto-init
+    if (tabId === 'dictionary') {
+        initDictionary();
     }
 }
 
@@ -1396,6 +1548,7 @@ function renderFlashcards() {
     state.fcIndex       = 0;
     state.sessionCorrect = 0;
     state.sessionTotal  = 0;
+    state.sessionScoredIds = new Set();
 
     // Hide summary, show card container
     document.getElementById('fc-session-summary').classList.add('hidden');
@@ -1441,6 +1594,7 @@ function updateFlashcardUI() {
 
     container.classList.remove('hidden');
     emptyState.classList.add('hidden');
+    resetMiniChat();
 
     const card = state.flashcards[state.fcIndex];
     const color = SYSTEM_COLORS[card.system] || '#64748b';
@@ -1609,7 +1763,12 @@ function handleReview(grade) {
     const wasMature  = card.interval >= 14;
 
     state.sessionTotal++;
-    updateStats('totalReviews', 1);
+    // Only count each card once per session toward persistent stats (don't count re-queue retries)
+    const isFirstEncounter = !state.sessionScoredIds.has(card.id);
+    if (isFirstEncounter) {
+        state.sessionScoredIds.add(card.id);
+        updateStats('totalReviews', 1);
+    }
 
     // Get the fuzzed new interval
     let newInterval = calculateFutureInterval(card, grade);
@@ -1643,18 +1802,20 @@ function handleReview(grade) {
         state.lapses[card.id] = card.errorCount;
         saveLapses();
         state.sessionConsecutiveCorrect = 0;
+        if (isFirstEncounter) updateStats('fcAgain', 1);
+        updateStats('fcAgainTotal', 1);
 
     } else if (grade === 1) {
         state.dueDates[card.id] = getNextDueDate(newInterval);
         newEase = Math.max(1.3, ease - 0.15);
         
-        state.sessionCorrect++;
-        state.sessionConsecutiveCorrect++;
+        state.sessionConsecutiveCorrect = 0;
         let xpBase = 8;
         if (wasMature) xpBase += 5;
         if (wasNew) xpBase += 3;
         awardXP(xpBase, 'flashcard');
-        updateStats('totalCorrect', 1);
+        if (isFirstEncounter) { updateStats('fcHard', 1); }
+        updateStats('fcHardTotal', 1);
         updateQuestProgress('fcReviewed', 1);
         if (wasOverdue) updateQuestProgress('overdueReviewed', 1);
         if (wasNew) updateQuestProgress('newLearned', 1);
@@ -1673,7 +1834,8 @@ function handleReview(grade) {
         if (wasMature) xpBase += 5;
         if (wasNew) xpBase += 3;
         awardXP(xpBase, 'flashcard');
-        updateStats('totalCorrect', 1);
+        if (isFirstEncounter) { updateStats('totalCorrect', 1); updateStats('fcGood', 1); }
+        updateStats('fcGoodTotal', 1);
         updateQuestProgress('fcReviewed', 1);
         if (wasOverdue) updateQuestProgress('overdueReviewed', 1);
         if (wasNew) updateQuestProgress('newLearned', 1);
@@ -1688,11 +1850,17 @@ function handleReview(grade) {
         if (wasMature) xpBase += 5;
         if (wasNew) xpBase += 3;
         awardXP(xpBase, 'flashcard');
-        updateStats('totalCorrect', 1);
+        if (isFirstEncounter) { updateStats('totalCorrect', 1); updateStats('fcEasy', 1); }
+        updateStats('fcEasyTotal', 1);
         updateQuestProgress('fcReviewed', 1);
         if (wasOverdue) updateQuestProgress('overdueReviewed', 1);
         if (wasNew) updateQuestProgress('newLearned', 1);
     }
+
+    // Always record the most recent grade per card for the breakdown lists
+    if (!statsData.fcGradeMap) statsData.fcGradeMap = {};
+    statsData.fcGradeMap[card.id] = grade;
+    saveStats();
 
     checkAchievements('flashcard_reviewed', {});
 
@@ -1717,11 +1885,168 @@ function handleReview(grade) {
     updateMasteryProgress();
 
     state.fcIndex++;
-    if (state.fcIndex >= state.flashcards.length) {
-        showSessionSummary();
+    resetMiniChat();
+    if (state.fcIndex >= state.flashcards.length) showSessionSummary();
+    else updateFlashcardUI();
+}
+
+// ==========================================
+// MINI CARD CHAT
+// ==========================================
+function resetMiniChat() {
+    if (state.miniChatAbortCtrl) { state.miniChatAbortCtrl.abort(); state.miniChatAbortCtrl = null; }
+    state.miniChatHistory = [];
+    const panel  = document.getElementById('fc-mini-chat');
+    const msgs   = document.getElementById('fc-mini-chat-messages');
+    const input  = document.getElementById('fc-mini-chat-input');
+    const sendBtn = document.getElementById('fc-mini-chat-send');
+    if (panel)   panel.classList.add('hidden');
+    if (msgs)    msgs.innerHTML = '';
+    if (input)   { input.value = ''; input.disabled = false; }
+    if (sendBtn) sendBtn.disabled = false;
+}
+
+function advanceFromMiniChat() {
+    resetMiniChat();
+}
+
+function appendMiniChatBubble(role, text) {
+    const msgs   = document.getElementById('fc-mini-chat-messages');
+    const wrap   = document.createElement('div');
+    const bubble = document.createElement('div');
+    if (role === 'typing') {
+        wrap.className   = 'flex justify-start';
+        bubble.className = 'text-sm text-gray-400 italic px-1 py-1';
+        bubble.innerHTML = '<i class="fa-solid fa-ellipsis fa-fade text-violet-400 mr-1"></i> Dr. Lex is thinking…';
+        wrap.appendChild(bubble);
+        msgs.appendChild(wrap);
+        msgs.scrollTop = msgs.scrollHeight;
+        return wrap;
+    } else if (role === 'user') {
+        wrap.className   = 'flex justify-end';
+        bubble.className = 'max-w-[85%] bg-violet-600 text-white px-3 py-2 rounded-2xl rounded-br-sm text-sm font-medium leading-relaxed';
     } else {
-        updateFlashcardUI();
+        wrap.className   = 'flex justify-start';
+        bubble.className = 'max-w-[90%] bg-gray-50 border border-gray-100 px-3 py-2 rounded-2xl rounded-bl-sm text-sm text-gray-800 font-medium leading-relaxed whitespace-pre-wrap';
     }
+    bubble.textContent = text;
+    wrap.appendChild(bubble);
+    msgs.appendChild(wrap);
+    msgs.scrollTop = msgs.scrollHeight;
+    return bubble;
+}
+
+async function openMiniChat(card, grade = null) {
+    resetMiniChat();
+    const panel  = document.getElementById('fc-mini-chat');
+    const msgs   = document.getElementById('fc-mini-chat-messages');
+    const status = document.getElementById('fc-mini-chat-status');
+    panel.classList.remove('hidden');
+    if (status) status.textContent = '· thinking…';
+
+    const systemPrompt = `You are Dr. Lex, a sharp and encouraging medical terminology tutor. The student wants to learn more about a medical term from their flashcard:\n- Term: "${card.term}" (${card.type})\n- Meaning: "${card.meaning}"\n- Body system: ${card.system}\n\nGive ONE focused, memorable insight about this specific term: a mnemonic, an etymology breakdown, or a vivid clinical example. 2-3 sentences max, flowing prose. End with a one-line invitation to ask a follow-up.`;
+
+    const typingBubble = appendMiniChatBubble('typing');
+    const ctrl = new AbortController();
+    state.miniChatAbortCtrl = ctrl;
+    let assistantText = '', bubbleEl = null, firstToken = true;
+
+    try {
+        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST', signal: ctrl.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: TUTOR_MODEL,
+                messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Go.' }],
+                stream: true,
+                options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 2048 }
+            })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            for (const line of decoder.decode(value, { stream: true }).split('\n').filter(Boolean)) {
+                let data; try { data = JSON.parse(line); } catch { continue; }
+                const token = data.message?.content;
+                if (token) {
+                    if (firstToken) { typingBubble.remove(); bubbleEl = appendMiniChatBubble('assistant', ''); if (status) status.textContent = ''; firstToken = false; }
+                    assistantText += token;
+                    bubbleEl.textContent = assistantText;
+                    msgs.scrollTop = msgs.scrollHeight;
+                }
+                if (data.done) break;
+            }
+        }
+        if (assistantText) state.miniChatHistory.push({ role: 'assistant', content: assistantText });
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            if (typingBubble.isConnected) typingBubble.remove();
+            appendMiniChatBubble('assistant', "Dr. Lex isn't available right now (Ollama may be offline). Hit Next Card to continue.");
+            if (status) status.textContent = '· offline';
+        }
+    }
+    state.miniChatAbortCtrl = null;
+    const input = document.getElementById('fc-mini-chat-input');
+    if (input) input.focus();
+}
+
+async function sendMiniChatMessage() {
+    const input   = document.getElementById('fc-mini-chat-input');
+    const sendBtn = document.getElementById('fc-mini-chat-send');
+    const msgs    = document.getElementById('fc-mini-chat-messages');
+    const userText = input.value.trim();
+    if (!userText || sendBtn.disabled) return;
+    appendMiniChatBubble('user', userText);
+    state.miniChatHistory.push({ role: 'user', content: userText });
+    input.value = ''; sendBtn.disabled = true; input.disabled = true;
+    const typingBubble = appendMiniChatBubble('typing');
+    const ctrl = new AbortController();
+    state.miniChatAbortCtrl = ctrl;
+    let assistantText = '', bubbleEl = null, firstToken = true;
+    try {
+        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+            method: 'POST', signal: ctrl.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: TUTOR_MODEL,
+                messages: [
+                    { role: 'system', content: 'You are Dr. Lex, a concise medical terminology tutor. Answer in 2-4 sentences.' },
+                    ...state.miniChatHistory
+                ],
+                stream: true,
+                options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 2048 }
+            })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            for (const line of decoder.decode(value, { stream: true }).split('\n').filter(Boolean)) {
+                let data; try { data = JSON.parse(line); } catch { continue; }
+                const token = data.message?.content;
+                if (token) {
+                    if (firstToken) { typingBubble.remove(); bubbleEl = appendMiniChatBubble('assistant', ''); firstToken = false; }
+                    assistantText += token;
+                    bubbleEl.textContent = assistantText;
+                    msgs.scrollTop = msgs.scrollHeight;
+                }
+                if (data.done) break;
+            }
+        }
+        if (assistantText) state.miniChatHistory.push({ role: 'assistant', content: assistantText });
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            if (typingBubble.isConnected) typingBubble.remove();
+            appendMiniChatBubble('assistant', 'Connection lost — is Ollama still running?');
+        }
+    }
+    state.miniChatAbortCtrl = null;
+    sendBtn.disabled = false; input.disabled = false; input.focus();
 }
 
 function showSessionSummary() {
@@ -1854,80 +2179,129 @@ function reviewMasteredCards() {
 // ==========================================
 // FEATURE B: WORD BUILDER
 // ==========================================
-function generateDynamicChallenge() {
+
+/** Fisher-Yates shuffle — O(n), uniform distribution. Mutates and returns arr. */
+function fisherYatesShuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/**
+ * Builds a grammatically correct target sentence from the chosen morphemes.
+ * Selects one of three templates based on suffix meaning:
+ *   - adjective-type  ("-ic", "-al", "-oid") → "Relating to the [root]"
+ *   - resembling-type ("-oid")                → "Resembling the [root]"
+ *   - specialist-type ("-ist", "-ician")      → "Specialist of the [root]"
+ *   - default noun-type                        → "[Suffix meaning] of the [root]"
+ * Prefix meaning is integrated as an adjectival prepend (quantitative prefixes)
+ * or a parenthetical append (positional/directional prefixes).
+ */
+function buildTargetSentence(prefix, root1, root2, suffix) {
+    const sm       = suffix.meaning.toLowerCase();
+    const rootPart = root2
+        ? `${root1.meaning} / ${root2.meaning}`
+        : root1.meaning;
+
+    let core;
+
+    if (/resembling/.test(sm)) {
+        core = `Resembling the ${rootPart}`;
+    } else if (/pertaining|relating|characterized|\blike\b|of or/.test(sm)) {
+        core = `Relating to the ${rootPart}`;
+    } else if (/one who|specialist|physician|practitioner/.test(sm)) {
+        core = `Specialist of the ${rootPart}`;
+    } else {
+        // Default noun-type: "Inflammation of the heart"
+        const sm0 = suffix.meaning.charAt(0).toUpperCase() + suffix.meaning.slice(1);
+        core = `${sm0} of the ${rootPart}`;
+    }
+
+    if (prefix) {
+        core += ` (${prefix.meaning})`;
+    }
+
+    return core.charAt(0).toUpperCase() + core.slice(1);
+}
+
+function generateDynamicChallenge(retryCount = 0) {
     let pool = dictionary.filter(t => t.type !== 'abbreviation');
     if (state.activeSystem !== 'All' && !state.activeSystem.startsWith('Suffixes') && state.activeSystem !== 'Prefixes') {
         pool = pool.filter(t => t.system === state.activeSystem || t.system.startsWith('Suffixes') || t.system === 'Prefixes');
     }
-    
-    const roots = pool.filter(t => t.type === 'root');
+
+    const roots    = pool.filter(t => t.type === 'root');
     const prefixes = pool.filter(t => t.type === 'prefix');
     const suffixes = pool.filter(t => t.type === 'suffix');
-    
+
     if (roots.length === 0 || suffixes.length === 0) {
         return generateFallbackChallenge();
     }
-    
+
     const isCompound = roots.length >= 2 && Math.random() < 0.3;
     const root1 = roots[Math.floor(Math.random() * roots.length)];
     let root2 = null;
-    
+
     if (isCompound) {
-        let root2Candidates = roots.filter(r => r.id !== root1.id);
+        const root2Candidates = roots.filter(r => r.id !== root1.id);
         if (root2Candidates.length > 0) {
             root2 = root2Candidates[Math.floor(Math.random() * root2Candidates.length)];
         }
     }
 
     const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-    
+
     let prefix = null;
     if (prefixes.length > 0 && Math.random() < 0.3) {
         prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
     }
-    
+
+    // Build answer string
     let answer = '';
-    let target = '';
-    let validIds = [];
-    
-    if (prefix) {
-        answer += prefix.clean;
-        target += prefix.meaning + ' ';
-        validIds.push(prefix.id);
-    }
-    
-    target += suffix.meaning + ' of the ' + root1.meaning;
-    
+    if (prefix) answer += prefix.clean;
+
     answer += root1.rootBase;
     if (root2) {
-        target += ' and ' + root2.meaning;
-        answer += root1.vowel + root2.rootBase; // Always use vowel between roots
+        // Always add combining vowel between roots
+        answer += root1.vowel;
+        answer += root2.rootBase;
         if (!/^[aeiou]/i.test(suffix.clean)) answer += root2.vowel;
-        validIds.push(root2.id);
     } else {
         if (!/^[aeiou]/i.test(suffix.clean)) answer += root1.vowel;
     }
-    
     answer += suffix.clean;
-    
+    answer = answer.toLowerCase();
+
+    // Deduplicate: retry up to 3 times if this word was built recently
+    if (retryCount < 3 && wbRecentAnswers.includes(answer)) {
+        return generateDynamicChallenge(retryCount + 1);
+    }
+    wbRecentAnswers.push(answer);
+    if (wbRecentAnswers.length > 10) wbRecentAnswers.shift();
+
+    // validIds in logical order: prefix, root1, root2, suffix
+    const validIds = [];
+    if (prefix) validIds.push(prefix.id);
     validIds.push(root1.id);
+    if (root2) validIds.push(root2.id);
     validIds.push(suffix.id);
-    
-    target = target.charAt(0).toUpperCase() + target.slice(1);
-    
-    return { target, validIds, answer: answer.toLowerCase() };
+
+    const target = buildTargetSentence(prefix, root1, root2, suffix);
+
+    return { target, validIds, answer };
 }
 
 function generateFallbackChallenge() {
-    const allRoots = dictionary.filter(t => t.type === 'root');
+    const allRoots    = dictionary.filter(t => t.type === 'root');
     const allSuffixes = dictionary.filter(t => t.type === 'suffix');
-    const root = allRoots[Math.floor(Math.random() * allRoots.length)];
+    const root   = allRoots[Math.floor(Math.random() * allRoots.length)];
     const suffix = allSuffixes[Math.floor(Math.random() * allSuffixes.length)];
     let answer = root.rootBase;
     if (!/^[aeiou]/i.test(suffix.clean)) answer += root.vowel;
     answer += suffix.clean;
-    let target = suffix.meaning + " of the " + root.meaning;
-    target = target.charAt(0).toUpperCase() + target.slice(1);
+    const target = buildTargetSentence(null, root, null, suffix);
     return { target, validIds: [root.id, suffix.id], answer: answer.toLowerCase() };
 }
 
@@ -1941,18 +2315,29 @@ function renderWordBuilder() {
     const bankEl = document.getElementById('wb-parts-bank');
     bankEl.innerHTML = '';
     
-    // Select required parts + distill distractors
+    // Required correct parts
     let parts = dictionary.filter(t => currentWbChallenge.validIds.includes(t.id));
     const distractorPool = dictionary.filter(t => !currentWbChallenge.validIds.includes(t.id) && t.type !== 'abbreviation');
-    const shuffledDistractors = distractorPool.sort(() => 0.5 - Math.random());
-    
-    const distractorsNeeded = Math.max(0, 8 - parts.length);
-    parts = parts.concat(shuffledDistractors.slice(0, distractorsNeeded));
-    
-    // Shuffle combined array for the UI grid
-    parts.sort(() => 0.5 - Math.random());
 
-    parts.forEach(part => {
+    // Type-balanced distractors: add same-type items as each correct part so the
+    // user cannot identify the answer simply by eliminating unique-type entries.
+    const correctTypes = {};
+    parts.forEach(p => { correctTypes[p.type] = (correctTypes[p.type] || 0) + 1; });
+    const usedIds  = new Set(currentWbChallenge.validIds);
+    const distractors = [];
+    ['prefix', 'root', 'suffix'].forEach(type => {
+        if (!correctTypes[type]) return;
+        const sameType = fisherYatesShuffle(distractorPool.filter(t => t.type === type && !usedIds.has(t.id)));
+        const take = Math.min(correctTypes[type] + 1, sameType.length);
+        sameType.slice(0, take).forEach(t => { distractors.push(t); usedIds.add(t.id); });
+    });
+
+    // Fill remaining slots up to 8 with uniformly-random items
+    const remaining   = fisherYatesShuffle(distractorPool.filter(t => !usedIds.has(t.id)));
+    const extraNeeded = Math.max(0, 8 - parts.length - distractors.length);
+    const allParts    = fisherYatesShuffle([...parts, ...distractors, ...remaining.slice(0, extraNeeded)]);
+
+    allParts.forEach(part => {
         const btn = document.createElement('button');
         btn.className = "px-5 py-2.5 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-sky-400 hover:bg-sky-50 font-bold text-gray-700 transition-colors";
         btn.textContent = part.term;
@@ -2033,7 +2418,9 @@ function updateWbPreview() {
         result += root1.rootBase;
         
         if (root2) {
-            result += root1.vowel + root2.rootBase; // Always use vowel between roots
+            // Always insert combining vowel between roots
+            result += root1.vowel;
+            result += root2.rootBase;
             
             if (suffix) {
                 const startsWithVowel = /^[aeiou]/i.test(suffix.clean);
@@ -2072,6 +2459,9 @@ function checkWbAnswer() {
     const currentWord = previewEl.textContent.toLowerCase();
     const challenge = currentWbChallenge;
     
+    // Count this challenge the first time it is checked (right or wrong)
+    if (state.wbAttempts === 0) updateStats('wbChallenges', 1);
+
     if (currentWord === challenge.answer.toLowerCase()) {
         // Success
         previewEl.className = "text-4xl font-extrabold text-green-600 tracking-tight h-12 flex items-center justify-center scale-110 transition-transform duration-300 drop-shadow-md";
@@ -2082,8 +2472,8 @@ function checkWbAnswer() {
         const xp = attempts === 0 ? 25 : attempts === 1 ? 15 : 8;
         awardXP(xp, 'word-builder');
         updateQuestProgress('wbCompleted', 1);
-        updateStats('wbChallenges', 1);
-        updateStats('wbCorrect', 1);
+        // Only count as correct if solved on the first attempt
+        if (attempts === 0) updateStats('wbCorrect', 1);
         checkAchievements('word_builder_correct', {});
     } else {
         state.wbAttempts++;
@@ -2235,6 +2625,9 @@ async function checkCdAnswer() {
     btn.innerHTML = originalBtnText;
     btn.disabled  = false;
 
+    // Count this challenge the first time it is checked (right or wrong)
+    if (state.cdAttempts === 0) updateStats('cdAnswered', 1);
+
     if (isCorrect) {
         // Count correct only if this is the first attempt
         if (state.cdAttempts === 0) state.cdCorrect++;
@@ -2242,8 +2635,8 @@ async function checkCdAnswer() {
         const xp = state.cdAttempts === 0 ? 35 : state.cdAttempts === 1 ? 20 : 10;
         awardXP(xp, 'chart-decrypter');
         updateQuestProgress('cdAnswered', 1);
-        updateStats('cdAnswered', 1);
-        updateStats('cdCorrect', 1);
+        // Only count as correct if solved on the first attempt
+        if (state.cdAttempts === 0) updateStats('cdCorrect', 1);
         checkAchievements('chart_correct', {});
 
         input.classList.remove('border-gray-200', 'border-rose-500', 'bg-rose-50', 'text-rose-800');
@@ -2501,12 +2894,15 @@ async function checkAdAnswer() {
     btn.innerHTML = originalBtnText;
     btn.disabled  = false;
 
+    // Count this challenge the first time it is checked (right or wrong)
+    if (state.adAttempts === 0) updateStats('adAnswered', 1);
+
     if (isCorrect) {
         const xp = state.adAttempts === 0 ? 20 : 10;
         awardXP(xp, 'abbrev-decoder');
         updateQuestProgress('adCompleted', 1);
-        updateStats('adAnswered', 1);
-        updateStats('adCorrect', 1);
+        // Only count as correct if solved on the first attempt
+        if (state.adAttempts === 0) updateStats('adCorrect', 1);
         checkAchievements('abbrev_correct', {});
 
         input.classList.remove('border-gray-200', 'bg-white', 'border-rose-500', 'bg-rose-50', 'text-rose-800');
@@ -2595,14 +2991,20 @@ function checkPluralAnswer() {
     const challenge = pluralChallengePool[state.plIndex];
     const feedback = document.getElementById('pl-feedback');
 
+    // Pluralization has no attempt counter, use a flag on the challenge pool item
+    if (!challenge._counted) {
+        challenge._counted = true;
+        updateStats('plAnswered', 1);
+    }
+
     if (userVal === challenge.pl.toLowerCase()) {
         state.plConsecutiveCorrect++;
         let xp = 10;
         if (state.plConsecutiveCorrect % 5 === 0) xp += 20;
         awardXP(xp, 'pluralization');
         updateQuestProgress('plCompleted', 1);
-        updateStats('plAnswered', 1);
-        updateStats('plCorrect', 1);
+        // Only count as correct on the first attempt (challenge not yet shown as wrong)
+        if (!challenge._wasWrong) updateStats('plCorrect', 1);
         checkAchievements('plural_correct', {});
 
         input.classList.remove('border-gray-200', 'bg-white', 'border-rose-500', 'bg-rose-50', 'text-rose-800');
@@ -2614,6 +3016,7 @@ function checkPluralAnswer() {
         document.getElementById('pl-btn-check').classList.add('hidden');
         document.getElementById('pl-btn-next').classList.remove('hidden');
     } else {
+        challenge._wasWrong = true;
         state.plConsecutiveCorrect = 0;
         input.classList.remove('border-gray-200', 'bg-white', 'border-green-500', 'bg-green-50', 'text-green-800');
         input.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-800', 'animate-shake');
@@ -2639,7 +3042,7 @@ function nextPluralChallenge() {
 // ==========================================
 // FEATURE G: AI TUTOR CHATBOT
 // ==========================================
-const TUTOR_MODEL = localStorage.getItem('syngnosia_tutor_model') || 'VladimirGav/gemma4-26b-16GB-VRAM:latest';
+const TUTOR_MODEL = localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
 const OLLAMA_URL  = 'http://localhost:11434';
 
 function buildTutorSystemPrompt() {
@@ -3082,4 +3485,630 @@ function triggerReportSuccessToast(isGeneral) {
         </div>`;
     container.appendChild(el);
     setTimeout(() => el.remove(), 4500);
+}
+
+// ==========================================
+// FEATURE H: LEXICON DICTIONARY
+// ==========================================
+const dictEnrichCache     = {};
+const dictSearchIndex     = [];     // pre-built: [{entry, norm, cleanNorm, rootNorm, phonetic, meaningWords[]}]
+const dictCorrectionCache = {};     // query → corrected string (session cache)
+let dictCurrentFilter  = 'all';
+let dictCurrentQuery   = '';
+let dictPageSize       = 50;
+let dictCurrentPage    = 1;
+let dictFilteredAll    = [];
+let dictSearchDebounce = null;
+let dictSpellDebounce  = null;
+let dictSpellAbortCtrl = null;
+let dictInitialized    = false;
+
+// --- Lexicon search helpers ---
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function normalizeSearchTerm(str) {
+    return str.toLowerCase()
+        .replace(/\/o\b/g, '')
+        .replace(/[-\/]/g, '')
+        .replace(/\s+/g, '')
+        .trim();
+}
+
+function phoneticNormalize(str) {
+    return str
+        .replace(/ph/g,     'f')   // phlebitis → flebitis
+        .replace(/ae|oe/g,  'e')   // haem → hem
+        .replace(/rh/g,     'r')   // rhin → rin
+        .replace(/c/g,      'k')   // cardi → kardi, cyte → kite
+        .replace(/z/g,      's')   // hepatizis → hepatisis
+        .replace(/y/g,      'i')   // myo → mio
+        .replace(/(.)\1+/g, '$1'); // hepattitis → hepatitis
+}
+
+function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m + 1}, (_, i) =>
+        Array.from({length: n + 1}, (_, j) => i === 0 ? j : j === 0 ? i : 0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = a[i-1] === b[j-1]
+                ? dp[i-1][j-1]
+                : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+}
+
+const DICT_SYNONYMS = {
+    heart:        ['cardi'],
+    cardiac:      ['cardi'],
+    kidney:       ['nephr', 'ren'],
+    renal:        ['nephr', 'ren'],
+    liver:        ['hepat'],
+    lung:         ['pneum', 'pulmon'],
+    lungs:        ['pneum', 'pulmon'],
+    blood:        ['hem', 'hemat', 'sangui'],
+    pain:         ['alg'],
+    skin:         ['derm'],
+    nerve:        ['neur'],
+    neural:       ['neur'],
+    bone:         ['oste'],
+    muscle:       ['my'],
+    eye:          ['ophthalm', 'ocul'],
+    ear:          ['ot'],
+    nose:         ['rhin'],
+    mouth:        ['stomat'],
+    stomach:      ['gastr'],
+    vein:         ['phleb', 'ven'],
+    artery:       ['arteri'],
+    tumor:        ['om'],
+    water:        ['hydr'],
+    sugar:        ['gluc', 'glyc'],
+    fat:          ['lip', 'adip'],
+    brain:        ['encephal', 'cerebr'],
+    urine:        ['ur', 'urin'],
+    bladder:      ['cyst'],
+    cell:         ['cyt'],
+    removal:      ['ectom'],
+    inflammation: ['it', 'itis'],
+    disease:      ['path'],
+    study:        ['log'],
+};
+
+function buildDictSearchIndex() {
+    dictSearchIndex.length = 0;
+    dictionary.forEach(entry => {
+        const norm      = normalizeSearchTerm(entry.term);
+        const cleanNorm = normalizeSearchTerm(entry.clean    || '');
+        const rootNorm  = normalizeSearchTerm(entry.rootBase || '');
+        const phonetic  = phoneticNormalize(norm);
+        const meaningWords = entry.meaning.toLowerCase().split(/\W+/).filter(Boolean);
+        dictSearchIndex.push({ entry, norm, cleanNorm, rootNorm, phonetic, meaningWords });
+    });
+}
+
+function fuzzyScoreEntry(idx, query, normQ, phoneticQ) {
+    const { entry, norm, cleanNorm, rootNorm, phonetic, meaningWords } = idx;
+    if (dictCurrentFilter !== 'all' && entry.type !== dictCurrentFilter) return 0;
+
+    const termLower    = entry.term.toLowerCase();
+    const meaningLower = entry.meaning.toLowerCase();
+
+    // 100: exact match
+    if (termLower === query || norm === normQ || cleanNorm === normQ || rootNorm === normQ) return 100;
+    // 90: starts-with
+    if (termLower.startsWith(query) || norm.startsWith(normQ) || cleanNorm.startsWith(normQ)) return 90;
+    // 75: term/root substring contains query
+    if (termLower.includes(query) || norm.includes(normQ) || cleanNorm.includes(normQ) || rootNorm.includes(normQ)) return 75;
+    // 68: DICT_SYNONYMS hit
+    const syns = DICT_SYNONYMS[query] || [];
+    if (syns.length && syns.some(s => norm.includes(s) || cleanNorm.includes(s) || rootNorm.includes(s))) return 68;
+    // 63: meaning contains query
+    if (meaningLower.includes(query)) return 63;
+    // Levenshtein — pre-filtered by ±3 length to avoid full O(m×n) for hopeless candidates
+    if (normQ.length >= 4 && Math.abs(norm.length - normQ.length) <= 3) {
+        const dist = levenshtein(norm, normQ);
+        if (dist === 1) return 55;
+        if (phonetic === phoneticQ) return 45;
+        if (dist === 2 && normQ.length >= 8) return 35;
+        if (dist === 2 && normQ.length >= 5) return 30;
+    } else if (normQ.length >= 4 && phonetic === phoneticQ) {
+        return 45;
+    }
+    return 0;
+}
+
+function initDictionary() {
+    if (dictInitialized) return;
+    dictInitialized = true;
+
+    buildDictSearchIndex();
+
+    // Mode toggle
+    document.getElementById('dict-mode-browse').addEventListener('click', () => {
+        document.getElementById('dict-browse').classList.remove('hidden');
+        document.getElementById('dict-decompose').classList.add('hidden');
+        document.getElementById('dict-mode-browse').className    = 'px-4 py-1.5 text-sm font-bold rounded-full bg-white text-teal-700 shadow shadow-gray-300/50 transition-all';
+        document.getElementById('dict-mode-decompose').className = 'px-4 py-1.5 text-sm font-bold rounded-full text-gray-500 hover:text-gray-700 transition-all';
+    });
+    document.getElementById('dict-mode-decompose').addEventListener('click', () => {
+        document.getElementById('dict-browse').classList.add('hidden');
+        document.getElementById('dict-decompose').classList.remove('hidden');
+        document.getElementById('dict-mode-decompose').className = 'px-4 py-1.5 text-sm font-bold rounded-full bg-white text-teal-700 shadow shadow-gray-300/50 transition-all';
+        document.getElementById('dict-mode-browse').className    = 'px-4 py-1.5 text-sm font-bold rounded-full text-gray-500 hover:text-gray-700 transition-all';
+    });
+
+    // Search input — Tier 1: 220ms debounce | Tier 2: 400ms after Tier 1 on zero results
+    document.getElementById('dict-search').addEventListener('input', (e) => {
+        clearTimeout(dictSearchDebounce);
+        clearTimeout(dictSpellDebounce);
+        if (dictSpellAbortCtrl) { dictSpellAbortCtrl.abort(); dictSpellAbortCtrl = null; }
+        clearSpellSuggestion();
+        document.getElementById('dict-search-spinner').classList.add('hidden');
+        dictSearchDebounce = setTimeout(() => {
+            dictCurrentQuery = e.target.value.trim().toLowerCase();
+            dictCurrentPage  = 1;
+            renderDictionaryResults();
+            // Tier 2: arm only on zero results with a substantial query
+            if (dictFilteredAll.length === 0 && dictCurrentQuery.length >= 3) {
+                document.getElementById('dict-results-grid').innerHTML =
+                    `<div class="col-span-2 text-center py-10 text-gray-400 font-medium">` +
+                    `No exact matches — <span class="text-teal-600 font-semibold">asking AI…</span></div>`;
+                document.getElementById('dict-search-spinner').classList.remove('hidden');
+                dictSpellAbortCtrl = new AbortController();
+                dictSpellDebounce  = setTimeout(async () => {
+                    const corrected = await correctDictSearchQuery(dictCurrentQuery);
+                    document.getElementById('dict-search-spinner').classList.add('hidden');
+                    if (corrected && corrected.toLowerCase() !== dictCurrentQuery) {
+                        const original   = dictCurrentQuery;
+                        dictCurrentQuery = corrected.toLowerCase();
+                        dictCurrentPage  = 1;
+                        renderDictionaryResults();
+                        if (dictFilteredAll.length > 0) showSpellSuggestion(original, corrected);
+                    } else {
+                        // Restore genuine no-results message
+                        renderDictionaryResults();
+                    }
+                    dictSpellAbortCtrl = null;
+                }, 400);
+            }
+        }, 220);
+    });
+
+    // Type filter pills
+    document.querySelectorAll('.dict-filter-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            dictCurrentFilter = btn.dataset.filter;
+            dictCurrentPage   = 1;
+            document.querySelectorAll('.dict-filter-pill').forEach(b => {
+                b.className = 'dict-filter-pill px-4 py-1.5 text-xs font-bold rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-all';
+            });
+            btn.className = 'dict-filter-pill px-4 py-1.5 text-xs font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all';
+            renderDictionaryResults();
+        });
+    });
+
+    // Show more
+    document.getElementById('dict-show-more').addEventListener('click', () => {
+        dictCurrentPage++;
+        renderDictionaryResults(true);
+    });
+
+    // Decompose
+    document.getElementById('dict-decompose-btn').addEventListener('click', () => {
+        const word = document.getElementById('dict-decompose-input').value.trim();
+        if (word) decomposeWord(word);
+    });
+    document.getElementById('dict-decompose-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const word = e.target.value.trim();
+            if (word) decomposeWord(word);
+        }
+    });
+
+    // Modal events
+    document.getElementById('dict-modal-close').addEventListener('click', closeDictionaryModal);
+    document.getElementById('dict-modal-backdrop').addEventListener('click', closeDictionaryModal);
+    document.getElementById('dict-modal-enrich-btn').addEventListener('click', () => {
+        const id = document.getElementById('dict-entry-modal').dataset.entryId;
+        if (id) enrichDictionaryEntry(id);
+    });
+    document.getElementById('dict-modal-study-btn').addEventListener('click', () => {
+        const id    = document.getElementById('dict-entry-modal').dataset.entryId;
+        const entry = dictionary.find(t => t.id === id);
+        closeDictionaryModal();
+        if (entry) {
+            setActiveSystem(entry.system);
+            switchTab('flashcards');
+        }
+    });
+
+    renderDictionaryResults();
+}
+
+function renderDictionaryResults(append = false) {
+    if (!append) {
+        if (!dictCurrentQuery) {
+            // Empty query: type filter only, alphabetical order — no scoring
+            dictFilteredAll = dictionary
+                .filter(t => dictCurrentFilter === 'all' || t.type === dictCurrentFilter)
+                .sort((a, b) => a.term.localeCompare(b.term));
+        } else {
+            // Active query: score every indexed entry, keep score > 0, sort descending
+            const normQ     = normalizeSearchTerm(dictCurrentQuery);
+            const phoneticQ = phoneticNormalize(normQ);
+            const scored    = [];
+            dictSearchIndex.forEach(idx => {
+                const score = fuzzyScoreEntry(idx, dictCurrentQuery, normQ, phoneticQ);
+                if (score > 0) scored.push({ entry: idx.entry, score });
+            });
+            scored.sort((a, b) => b.score - a.score);
+            dictFilteredAll = scored.map(s => s.entry);
+        }
+    }
+
+    const total    = dictFilteredAll.length;
+    const start    = append ? (dictCurrentPage - 1) * dictPageSize : 0;
+    const slice    = dictFilteredAll.slice(start, start + dictPageSize);
+    const grid     = document.getElementById('dict-results-grid');
+    const moreWrap = document.getElementById('dict-show-more-wrap');
+    const countEl  = document.getElementById('dict-result-count');
+
+    if (!append) grid.innerHTML = '';
+
+    if (total === 0) {
+        grid.innerHTML = `<div class="col-span-2 text-center py-12 text-gray-400 font-medium">No results for &#8220;<span class="font-bold text-gray-600">${escapeHtml(dictCurrentQuery)}</span>&#8221;</div>`;
+        moreWrap.classList.add('hidden');
+        countEl.textContent = '0 results';
+        return;
+    }
+
+    countEl.textContent = !dictCurrentQuery && total === dictionary.length
+        ? `All ${total} entries`
+        : `${total} result${total !== 1 ? 's' : ''}`;
+
+    const typeClasses = {
+        prefix: 'bg-sky-50 text-sky-700 border-sky-100',
+        root:   'bg-emerald-50 text-emerald-700 border-emerald-100',
+        suffix: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100'
+    };
+
+    slice.forEach(entry => {
+        const iv       = state.intervals[entry.id] || 0;
+        const dotColor = iv === 0 ? 'bg-gray-300' : iv <= 2 ? 'bg-amber-400' : iv <= 6 ? 'bg-blue-400' : 'bg-teal-500';
+        const dotTitle = iv === 0 ? 'Not studied' : iv <= 2 ? 'Learning' : iv <= 6 ? 'Familiar' : 'Mastered';
+        const typeCls  = typeClasses[entry.type] || 'bg-gray-50 text-gray-700 border-gray-100';
+
+        // Safe HTML with query highlighting
+        let termHtml    = escapeHtml(entry.term);
+        let meaningHtml = escapeHtml(entry.meaning);
+        if (dictCurrentQuery) {
+            const re = new RegExp(`(${escapeRegex(dictCurrentQuery)})`, 'gi');
+            termHtml    = termHtml.replace(re, '<mark class="bg-amber-100 text-amber-900 rounded px-0.5">$1</mark>');
+            meaningHtml = meaningHtml.replace(re, '<mark class="bg-amber-100 text-amber-900 rounded px-0.5">$1</mark>');
+        }
+
+        const card = document.createElement('button');
+        card.className = 'text-left bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-teal-300 transition-all cursor-pointer';
+        card.innerHTML = `
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <span class="font-extrabold text-gray-800 text-base leading-tight">${termHtml}</span>
+                <span class="w-2.5 h-2.5 rounded-full ${dotColor} shrink-0 mt-1" title="${dotTitle}"></span>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mb-2">
+                <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${typeCls}">${escapeHtml(entry.type)}</span>
+                <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border bg-gray-50 text-gray-500 border-gray-100">${escapeHtml(entry.system)}</span>
+            </div>
+            <p class="text-sm text-gray-600 font-medium leading-snug">${meaningHtml}</p>`;
+        card.addEventListener('click', () => openDictionaryEntry(entry.id));
+        grid.appendChild(card);
+    });
+
+    moreWrap.classList.toggle('hidden', Math.min(dictCurrentPage * dictPageSize, total) >= total);
+}
+
+function openDictionaryEntry(id) {
+    const entry = dictionary.find(t => t.id === id);
+    if (!entry) return;
+
+    const modal = document.getElementById('dict-entry-modal');
+    modal.dataset.entryId = id;
+
+    // Term
+    document.getElementById('dict-modal-term').textContent = entry.term;
+
+    // Type chip
+    const typeClasses = {
+        prefix: 'bg-sky-50 text-sky-700 border-sky-100',
+        root:   'bg-emerald-50 text-emerald-700 border-emerald-100',
+        suffix: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100'
+    };
+    const typeChip = document.getElementById('dict-modal-type-chip');
+    typeChip.textContent = entry.type;
+    typeChip.className = `text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${typeClasses[entry.type] || 'bg-gray-50 text-gray-500 border-gray-100'}`;
+
+    // System chip with SYSTEM_COLORS
+    const sysColor = SYSTEM_COLORS[entry.system] || '#6b7280';
+    const sysChip  = document.getElementById('dict-modal-system-chip');
+    sysChip.textContent   = entry.system;
+    sysChip.style.cssText = `background:${sysColor}22;color:${sysColor};border:1px solid ${sysColor}44`;
+
+    // Meaning
+    document.getElementById('dict-modal-meaning').textContent = entry.meaning;
+
+    // Mastery status
+    const iv         = state.intervals[entry.id] || 0;
+    const dotCls     = iv === 0 ? 'bg-gray-400' : iv <= 2 ? 'bg-amber-400' : iv <= 6 ? 'bg-blue-400' : 'bg-teal-500';
+    const masteryTxt = iv === 0 ? 'Not studied' : iv <= 2 ? 'Learning' : iv <= 6 ? 'Familiar' : 'Mastered';
+    document.getElementById('dict-modal-mastery').innerHTML =
+        `<span class="w-2 h-2 rounded-full ${dotCls} inline-block mr-1.5"></span>${masteryTxt}`;
+
+    // Static examples from EXAMPLES lookup table
+    const exArr = EXAMPLES[entry.term] || EXAMPLES[entry.clean] || EXAMPLES[entry.rootBase] || [];
+    const exSec = document.getElementById('dict-modal-examples-section');
+    const exBox = document.getElementById('dict-modal-examples');
+    if (exArr.length > 0) {
+        exSec.classList.remove('hidden');
+        exBox.innerHTML = exArr.map(ex =>
+            `<span class="text-sm font-semibold px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">${ex}</span>`
+        ).join('');
+    } else {
+        exSec.classList.add('hidden');
+    }
+
+    // Enrich area — show cached or fresh button
+    const enrichBtn    = document.getElementById('dict-modal-enrich-btn');
+    const enrichResult = document.getElementById('dict-modal-enrich-result');
+    if (dictEnrichCache[id]) {
+        enrichBtn.classList.add('hidden');
+        enrichResult.classList.remove('hidden');
+        document.getElementById('dict-modal-ai-examples').innerHTML = (dictEnrichCache[id].examples || []).map(ex =>
+            `<span class="text-sm font-semibold px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100">${ex}</span>`
+        ).join('');
+        document.getElementById('dict-modal-mnemonic').textContent = dictEnrichCache[id].mnemonic || '\u2014';
+    } else {
+        enrichBtn.classList.remove('hidden');
+        enrichBtn.disabled = false;
+        enrichBtn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> AI Enrich \u2014 Get mnemonic &amp; more examples`;
+        enrichResult.classList.add('hidden');
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeDictionaryModal() {
+    document.getElementById('dict-entry-modal').classList.add('hidden');
+}
+
+function findInDictionary(morpheme) {
+    if (!morpheme) return null;
+    const m = morpheme.toLowerCase().trim();
+    // 1. Exact term match
+    let hit = dictionary.find(t => t.term.toLowerCase() === m);
+    if (hit) return hit;
+    // 2. Normalised match — strip leading/trailing punctuation and combining vowel
+    const norm = m.replace(/^[-\/]+|[-\/]+$/g, '').replace(/\/o$/, '');
+    return dictionary.find(t => {
+        const tNorm = t.term.toLowerCase().replace(/^[-\/]+|[-\/]+$/g, '').replace(/\/o$/, '');
+        const clean = (t.clean    || '').toLowerCase();
+        const root  = (t.rootBase || '').toLowerCase();
+        return tNorm === norm || clean === norm || root === norm;
+    }) || null;
+}
+
+async function decomposeWord(word) {
+    const btn           = document.getElementById('dict-decompose-btn');
+    const output        = document.getElementById('dict-decompose-output');
+    const offlineBanner = document.getElementById('dict-offline-banner');
+
+    btn.disabled  = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Analyzing\u2026</span>`;
+    output.innerHTML = '';
+    offlineBanner.classList.add('hidden');
+
+    const prompt = `You are a medical terminology expert. Decompose this medical word into its morpheme components using standard combining form notation.
+Word: "${word}"
+Return ONLY valid JSON with no extra text: {"prefix": "string or null", "roots": ["array of combining forms"], "suffix": "string or null", "assembled_meaning": "plain English meaning built from the parts"}
+Use notation like "cardi/o", "my/o", "hyper-", "-itis", "-megaly". Use null for absent prefix/suffix and [] for absent roots.`;
+
+    try {
+        const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: TUTOR_MODEL,
+                prompt,
+                stream: false,
+                format: 'json',
+                options: { num_ctx: 768, num_predict: 200 }
+            })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data    = await response.json();
+        const jsonStr = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed  = JSON.parse(jsonStr);
+        renderDecompositionResult(word, parsed);
+    } catch (err) {
+        console.warn('Decomposition failed:', err);
+        offlineBanner.classList.remove('hidden');
+        output.innerHTML = `<div class="text-center py-8 text-gray-400 font-medium">Could not analyze "<span class="font-semibold text-gray-600">${word}</span>". Make sure Ollama is running.</div>`;
+    } finally {
+        btn.disabled  = false;
+        btn.innerHTML = `<i class="fa-solid fa-magnifying-glass-plus"></i> <span>Analyze</span>`;
+    }
+}
+
+function renderDecompositionResult(word, parsed) {
+    const output = document.getElementById('dict-decompose-output');
+    const typeClasses = {
+        prefix: 'bg-sky-50 text-sky-700 border-sky-100',
+        root:   'bg-emerald-50 text-emerald-700 border-emerald-100',
+        suffix: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-100'
+    };
+
+    const morphemes = [];
+    if (parsed.prefix) morphemes.push({ label: 'Prefix', value: parsed.prefix, type: 'prefix' });
+    (parsed.roots || []).forEach(r => morphemes.push({ label: 'Root', value: r, type: 'root' }));
+    if (parsed.suffix) morphemes.push({ label: 'Suffix', value: parsed.suffix, type: 'suffix' });
+
+    const morphemeHTML = morphemes.map(m => {
+        const match = findInDictionary(m.value);
+        const cls   = typeClasses[m.type] || 'bg-gray-50 text-gray-500 border-gray-100';
+        if (match) {
+            return `<button class="text-left w-full bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-teal-300 transition-all" onclick="openDictionaryEntry('${match.id}')">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${cls}">${m.label}</span>
+                    <span class="text-xs font-bold text-teal-600 flex items-center gap-1"><i class="fa-solid fa-link text-[9px]"></i> in Lexicon</span>
+                </div>
+                <p class="font-extrabold text-gray-800 text-base">${m.value}</p>
+                <p class="text-sm text-gray-500 font-medium">${match.meaning}</p>
+            </button>`;
+        }
+        return `<div class="bg-white border border-dashed border-gray-200 rounded-2xl p-4 opacity-70">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full border ${cls}">${m.label}</span>
+                <span class="text-xs text-gray-400 font-medium">not in local dictionary</span>
+            </div>
+            <p class="font-extrabold text-gray-800 text-base">${m.value}</p>
+        </div>`;
+    }).join('');
+
+    output.innerHTML = `
+        <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Analyzed Word</p>
+            <p class="text-2xl font-extrabold text-gray-800 mb-3">${word}</p>
+            <div class="bg-teal-50 border border-teal-100 rounded-xl px-4 py-3">
+                <p class="text-xs font-bold text-teal-600 uppercase tracking-widest mb-1">Assembled Meaning</p>
+                <p class="text-base font-semibold text-teal-900">${parsed.assembled_meaning || '\u2014'}</p>
+            </div>
+        </div>
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 mt-1 mb-1">Morpheme Breakdown</p>
+        <div class="space-y-3">${morphemeHTML || '<p class="text-gray-400 text-sm text-center py-6">No morphemes identified.</p>'}</div>`;
+}
+
+async function enrichDictionaryEntry(id) {
+    const entry = dictionary.find(t => t.id === id);
+    if (!entry) return;
+
+    const btn = document.getElementById('dict-modal-enrich-btn');
+    btn.disabled  = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Enriching with Gemma4\u2026`;
+
+    const prompt = `Medical term: "${entry.term}" (${entry.type}, meaning: "${entry.meaning}")
+Provide: 1) exactly two real clinical words that prominently use this morpheme, 2) one concise memory mnemonic for students.
+Return ONLY valid JSON: {"examples": ["clinicalword1", "clinicalword2"], "mnemonic": "one concise memory tip"}`;
+
+    try {
+        const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: TUTOR_MODEL,
+                prompt,
+                stream: false,
+                format: 'json',
+                options: { num_ctx: 512, num_predict: 150 }
+            })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data    = await response.json();
+        const jsonStr = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed  = JSON.parse(jsonStr);
+
+        dictEnrichCache[id] = parsed;
+        document.getElementById('dict-modal-ai-examples').innerHTML = (parsed.examples || []).map(ex =>
+            `<span class="text-sm font-semibold px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 border border-violet-100">${ex}</span>`
+        ).join('');
+        document.getElementById('dict-modal-mnemonic').textContent = parsed.mnemonic || '\u2014';
+
+        btn.classList.add('hidden');
+        document.getElementById('dict-modal-enrich-result').classList.remove('hidden');
+    } catch (err) {
+        console.warn('Enrichment failed:', err);
+        btn.disabled  = false;
+        btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> Enrichment failed \u2014 is Ollama running?`;
+    }
+}
+
+async function correctDictSearchQuery(query) {
+    if (Object.prototype.hasOwnProperty.call(dictCorrectionCache, query)) {
+        return dictCorrectionCache[query];
+    }
+    const normQ = normalizeSearchTerm(query);
+    // Top-5 near-miss candidates by Levenshtein (even if fuzzyScore = 0)
+    const candidates = dictSearchIndex
+        .map(idx => ({ term: idx.entry.term, dist: levenshtein(idx.norm, normQ) }))
+        .sort((a, b) => a.dist - b.dist)
+        .slice(0, 5)
+        .map(c => c.term);
+
+    const prompt =
+        `You are a medical terminology spell-checker. The user searched for: "${query}"\n` +
+        `The closest terms in our dictionary are: ${candidates.join(', ')}\n` +
+        `Which of these did the user most likely mean? Reply ONLY with valid JSON: ` +
+        `{"corrected": "exact term from the list, or null if none is a close match"}`;
+
+    const bodyStr = JSON.stringify({
+        model: TUTOR_MODEL, prompt, stream: false, format: 'json',
+        options: { num_ctx: 512, num_predict: 40 }
+    });
+
+    async function attempt(signal) {
+        const r = await fetch(`${OLLAMA_URL}/api/generate`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            signal, body: bodyStr
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const d = await r.json();
+        const p = JSON.parse(d.response);
+        return (p.corrected && String(p.corrected).trim()) || null;
+    }
+
+    try {
+        const signal = dictSpellAbortCtrl ? dictSpellAbortCtrl.signal : undefined;
+        const result = await attempt(signal);
+        dictCorrectionCache[query] = result;
+        return result;
+    } catch (err) {
+        if (err.name === 'AbortError') return null;
+        // One silent retry without abort signal
+        try {
+            const result = await attempt(undefined);
+            dictCorrectionCache[query] = result;
+            return result;
+        } catch {
+            dictCorrectionCache[query] = null;
+            return null;
+        }
+    }
+}
+
+function showSpellSuggestion(original, corrected) {
+    const el      = document.getElementById('dict-spell-suggestion');
+    const textEl  = document.getElementById('dict-spell-text');
+    const undoBtn = document.getElementById('dict-spell-undo');
+    const dismiss = document.getElementById('dict-spell-dismiss');
+
+    textEl.innerHTML  = `Showing results for <strong class="font-extrabold text-amber-900">${escapeHtml(corrected)}</strong>`;
+    undoBtn.textContent = `search \u201c${original}\u201d instead`;
+    undoBtn.onclick = () => {
+        clearSpellSuggestion();
+        dictCurrentQuery = original;
+        document.getElementById('dict-search').value = original;
+        dictCurrentPage  = 1;
+        renderDictionaryResults();
+    };
+    dismiss.onclick = clearSpellSuggestion;
+    el.classList.remove('hidden');
+}
+
+function clearSpellSuggestion() {
+    document.getElementById('dict-spell-suggestion').classList.add('hidden');
 }

@@ -1731,7 +1731,7 @@ const dictionary = [
         "id": "gen_193",
         "term": "xanth-",
         "type": "prefix",
-        "meaning": "red redness",
+        "meaning": "yellow",
         "system": "Prefixes",
         "interval": 0,
         "clean": "xanth"
@@ -3027,7 +3027,7 @@ const dictionary = [
         "id": "gen_337",
         "term": "amni-",
         "type": "prefix",
-        "meaning": "amniocentesis",
+        "meaning": "amnion",
         "system": "Prefixes",
         "interval": 0,
         "clean": "amni"
@@ -3216,7 +3216,7 @@ const dictionary = [
         "id": "gen_358",
         "term": "test-",
         "type": "prefix",
-        "meaning": "testis testicle",
+        "meaning": "testis, testicle",
         "system": "Prefixes",
         "interval": 0,
         "clean": "test"
@@ -4566,7 +4566,7 @@ const dictionary = [
         "id": "gen_508",
         "term": "-blast",
         "type": "suffix",
-        "meaning": "immature",
+        "meaning": "immature germ cell",
         "system": "Suffixes",
         "interval": 0,
         "clean": "blast"
@@ -4584,7 +4584,7 @@ const dictionary = [
         "id": "gen_510",
         "term": "-centesis",
         "type": "suffix",
-        "meaning": "surgical puncture with needle to aspirate fluid",
+        "meaning": "surgical fluid aspiration",
         "system": "Suffixes",
         "interval": 0,
         "clean": "centesis"
@@ -4602,7 +4602,7 @@ const dictionary = [
         "id": "gen_512",
         "term": "-continence",
         "type": "suffix",
-        "meaning": "to stop",
+        "meaning": "retention, stopping",
         "system": "Suffixes",
         "interval": 0,
         "clean": "continence"
@@ -4647,7 +4647,7 @@ const dictionary = [
         "id": "gen_517",
         "term": "-drome",
         "type": "suffix",
-        "meaning": "run running",
+        "meaning": "running course",
         "system": "Suffixes",
         "interval": 0,
         "clean": "drome"
@@ -4674,7 +4674,7 @@ const dictionary = [
         "id": "gen_520",
         "term": "-emia",
         "type": "suffix",
-        "meaning": "a blood condition",
+        "meaning": "blood condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "emia"
@@ -4692,7 +4692,7 @@ const dictionary = [
         "id": "gen_522",
         "term": "-gen",
         "type": "suffix",
-        "meaning": "producing",
+        "meaning": "production",
         "system": "Suffixes",
         "interval": 0,
         "clean": "gen"
@@ -4728,7 +4728,7 @@ const dictionary = [
         "id": "gen_526",
         "term": "-gram",
         "type": "suffix",
-        "meaning": "picture or finished record",
+        "meaning": "recorded image",
         "system": "Suffixes",
         "interval": 0,
         "clean": "gram"
@@ -4737,7 +4737,7 @@ const dictionary = [
         "id": "gen_527",
         "term": "-graph",
         "type": "suffix",
-        "meaning": "instrument used to record",
+        "meaning": "recording instrument",
         "system": "Suffixes",
         "interval": 0,
         "clean": "graph"
@@ -4773,7 +4773,7 @@ const dictionary = [
         "id": "gen_531",
         "term": "-ism",
         "type": "suffix",
-        "meaning": "state of or condition",
+        "meaning": "condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ism"
@@ -4800,7 +4800,7 @@ const dictionary = [
         "id": "gen_534",
         "term": "-lysis",
         "type": "suffix",
-        "meaning": "loosening separating",
+        "meaning": "dissolution, breakdown",
         "system": "Suffixes",
         "interval": 0,
         "clean": "lysis"
@@ -4836,7 +4836,7 @@ const dictionary = [
         "id": "gen_538",
         "term": "-metrist",
         "type": "suffix",
-        "meaning": "specialist in the measurement of",
+        "meaning": "measurement specialist",
         "system": "Suffixes",
         "interval": 0,
         "clean": "metrist"
@@ -4854,7 +4854,7 @@ const dictionary = [
         "id": "gen_540",
         "term": "-ology",
         "type": "suffix",
-        "meaning": "study of",
+        "meaning": "study",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ology"
@@ -4872,7 +4872,7 @@ const dictionary = [
         "id": "gen_542",
         "term": "-opia",
         "type": "suffix",
-        "meaning": "vision (condition)",
+        "meaning": "vision condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "opia"
@@ -4881,7 +4881,7 @@ const dictionary = [
         "id": "gen_543",
         "term": "-opsy",
         "type": "suffix",
-        "meaning": "view of viewing",
+        "meaning": "visual examination, biopsy",
         "system": "Suffixes",
         "interval": 0,
         "clean": "opsy"
@@ -4908,7 +4908,7 @@ const dictionary = [
         "id": "gen_546",
         "term": "-orrhea",
         "type": "suffix",
-        "meaning": "flow excessive discharge",
+        "meaning": "excessive discharge",
         "system": "Suffixes",
         "interval": 0,
         "clean": "orrhea"
@@ -4926,7 +4926,7 @@ const dictionary = [
         "id": "gen_548",
         "term": "-oscopy",
         "type": "suffix",
-        "meaning": "visual examination of internal cavity using a scope",
+        "meaning": "endoscopic examination",
         "system": "Suffixes",
         "interval": 0,
         "clean": "oscopy"
@@ -4962,7 +4962,7 @@ const dictionary = [
         "id": "gen_552",
         "term": "-para",
         "type": "suffix",
-        "meaning": "to bear live birth",
+        "meaning": "childbearing",
         "system": "Suffixes",
         "interval": 0,
         "clean": "para"
@@ -5025,7 +5025,7 @@ const dictionary = [
         "id": "gen_559",
         "term": "-phoresis",
         "type": "suffix",
-        "meaning": "carrying/transmission",
+        "meaning": "transmission, transfer",
         "system": "Suffixes",
         "interval": 0,
         "clean": "phoresis"
@@ -5079,7 +5079,7 @@ const dictionary = [
         "id": "gen_565",
         "term": "-ptosis",
         "type": "suffix",
-        "meaning": "drooping sagging prolapse",
+        "meaning": "prolapse, drooping",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ptosis"
@@ -5088,7 +5088,7 @@ const dictionary = [
         "id": "gen_566",
         "term": "-rrhagia",
         "type": "suffix",
-        "meaning": "burst forth excessive flow",
+        "meaning": "excessive hemorrhage",
         "system": "Suffixes",
         "interval": 0,
         "clean": "rrhagia"
@@ -5133,7 +5133,7 @@ const dictionary = [
         "id": "gen_571",
         "term": "-scope",
         "type": "suffix",
-        "meaning": "instrument used to visually examine",
+        "meaning": "visual examination instrument",
         "system": "Suffixes",
         "interval": 0,
         "clean": "scope"
@@ -5151,7 +5151,7 @@ const dictionary = [
         "id": "gen_573",
         "term": "-stasis",
         "type": "suffix",
-        "meaning": "stop or control",
+        "meaning": "stopping, control",
         "system": "Suffixes",
         "interval": 0,
         "clean": "stasis"
@@ -5214,7 +5214,7 @@ const dictionary = [
         "id": "gen_580",
         "term": "-tropia",
         "type": "suffix",
-        "meaning": "to turn",
+        "meaning": "turning, deviation",
         "system": "Suffixes",
         "interval": 0,
         "clean": "tropia"
@@ -5223,7 +5223,7 @@ const dictionary = [
         "id": "gen_581",
         "term": "-uria",
         "type": "suffix",
-        "meaning": "urination urine",
+        "meaning": "urine condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "uria"
@@ -5232,7 +5232,7 @@ const dictionary = [
         "id": "gen_582",
         "term": "-genic",
         "type": "suffix",
-        "meaning": "produced by",
+        "meaning": "pertaining to origin",
         "system": "Suffixes",
         "interval": 0,
         "clean": "genic"
@@ -5241,7 +5241,7 @@ const dictionary = [
         "id": "gen_583",
         "term": "-ologist",
         "type": "suffix",
-        "meaning": "one who studies specialist",
+        "meaning": "one who studies",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ologist"
@@ -5250,7 +5250,7 @@ const dictionary = [
         "id": "gen_584",
         "term": "-phobia",
         "type": "suffix",
-        "meaning": "morbid fear of or intolerance",
+        "meaning": "morbid fear or intolerance",
         "system": "Suffixes",
         "interval": 0,
         "clean": "phobia"
@@ -5259,7 +5259,7 @@ const dictionary = [
         "id": "gen_585",
         "term": "-dynia",
         "type": "suffix",
-        "meaning": "pain discomfort",
+        "meaning": "pain",
         "system": "Suffixes",
         "interval": 0,
         "clean": "dynia"
@@ -5268,7 +5268,7 @@ const dictionary = [
         "id": "gen_586",
         "term": "-cele",
         "type": "suffix",
-        "meaning": "protrusion (hernia)",
+        "meaning": "hernia, protrusion",
         "system": "Suffixes",
         "interval": 0,
         "clean": "cele"
@@ -5331,7 +5331,7 @@ const dictionary = [
         "id": "gen_593",
         "term": "-ist",
         "type": "suffix",
-        "meaning": "person agent",
+        "meaning": "one who practices",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ist"
@@ -5340,7 +5340,7 @@ const dictionary = [
         "id": "gen_594",
         "term": "-esis",
         "type": "suffix",
-        "meaning": "condition of",
+        "meaning": "condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "esis"
@@ -5349,7 +5349,7 @@ const dictionary = [
         "id": "gen_595",
         "term": "-ity",
         "type": "suffix",
-        "meaning": "state of",
+        "meaning": "state",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ity"
@@ -5358,7 +5358,7 @@ const dictionary = [
         "id": "gen_596",
         "term": "-osis",
         "type": "suffix",
-        "meaning": "condition of",
+        "meaning": "condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "osis"
@@ -5367,7 +5367,7 @@ const dictionary = [
         "id": "gen_597",
         "term": "-sis",
         "type": "suffix",
-        "meaning": "state of",
+        "meaning": "state",
         "system": "Suffixes",
         "interval": 0,
         "clean": "sis"
@@ -5376,7 +5376,7 @@ const dictionary = [
         "id": "gen_598",
         "term": "-tion",
         "type": "suffix",
-        "meaning": "condition of",
+        "meaning": "condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "tion"
@@ -5403,7 +5403,7 @@ const dictionary = [
         "id": "gen_601",
         "term": "-meter",
         "type": "suffix",
-        "meaning": "instrument used to measure",
+        "meaning": "measuring instrument",
         "system": "Suffixes",
         "interval": 0,
         "clean": "meter"
@@ -5421,7 +5421,7 @@ const dictionary = [
         "id": "gen_603",
         "term": "-penia",
         "type": "suffix",
-        "meaning": "lack of or deficiency",
+        "meaning": "deficiency",
         "system": "Suffixes",
         "interval": 0,
         "clean": "penia"
@@ -5448,7 +5448,7 @@ const dictionary = [
         "id": "gen_606",
         "term": "-plasia",
         "type": "suffix",
-        "meaning": "formation development",
+        "meaning": "abnormal cell growth",
         "system": "Suffixes",
         "interval": 0,
         "clean": "plasia"
@@ -5475,7 +5475,7 @@ const dictionary = [
         "id": "gen_609",
         "term": "-spasm",
         "type": "suffix",
-        "meaning": "sudden or involuntary",
+        "meaning": "involuntary muscle contraction",
         "system": "Suffixes",
         "interval": 0,
         "clean": "spasm"
@@ -5547,7 +5547,7 @@ const dictionary = [
         "id": "gen_617",
         "term": "-ad",
         "type": "suffix",
-        "meaning": "toward, in the direction of",
+        "meaning": "directional movement",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ad"
@@ -5556,7 +5556,7 @@ const dictionary = [
         "id": "gen_618",
         "term": "-aemia",
         "type": "suffix",
-        "meaning": "(UK) blood condition",
+        "meaning": "blood condition",
         "system": "Suffixes",
         "interval": 0,
         "clean": "aemia"
@@ -5595,7 +5595,7 @@ const dictionary = [
         "meaning": "killing, destroying",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "cidal/cide"
+        "clean": "cide"
     },
     {
         "id": "gen_623",
@@ -5613,16 +5613,16 @@ const dictionary = [
         "meaning": "brain",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "encephal/encephalo-"
+        "clean": "encephalo"
     },
     {
         "id": "gen_625",
         "term": "-esophageal/esophago-",
         "type": "suffix",
-        "meaning": "(US) gullet",
+        "meaning": "esophagus, gullet",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "esophageal/esophago-"
+        "clean": "esophageal"
     },
     {
         "id": "gen_626",
@@ -5631,7 +5631,7 @@ const dictionary = [
         "meaning": "milk",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "galact/galacto-"
+        "clean": "galacto"
     },
     {
         "id": "gen_627",
@@ -5640,7 +5640,7 @@ const dictionary = [
         "meaning": "condition",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "ia/iasis"
+        "clean": "ia"
     },
     {
         "id": "gen_628",
@@ -5682,7 +5682,7 @@ const dictionary = [
         "id": "gen_632",
         "term": "-ics",
         "type": "suffix",
-        "meaning": "organized knowledge, treatment",
+        "meaning": "medical specialty",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ics"
@@ -5691,7 +5691,7 @@ const dictionary = [
         "id": "gen_633",
         "term": "-ismus",
         "type": "suffix",
-        "meaning": "spasm, contraction",
+        "meaning": "involuntary spasm",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ismus"
@@ -5709,7 +5709,7 @@ const dictionary = [
         "id": "gen_635",
         "term": "-ium",
         "type": "suffix",
-        "meaning": "structure, tissue",
+        "meaning": "structural tissue",
         "system": "Suffixes",
         "interval": 0,
         "clean": "ium"
@@ -5721,7 +5721,7 @@ const dictionary = [
         "meaning": "seizure",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "lepsis/lepsy"
+        "clean": "lepsy"
     },
     {
         "id": "gen_637",
@@ -5736,7 +5736,7 @@ const dictionary = [
         "id": "gen_638",
         "term": "-logy",
         "type": "suffix",
-        "meaning": "study of",
+        "meaning": "study",
         "system": "Suffixes",
         "interval": 0,
         "clean": "logy"
@@ -5745,16 +5745,16 @@ const dictionary = [
         "id": "gen_639",
         "term": "-oesophageal/oesophago-",
         "type": "suffix",
-        "meaning": "(UK) gullet",
+        "meaning": "oesophagus, gullet",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "oesophageal/oesophago-"
+        "clean": "oesophageal"
     },
     {
         "id": "gen_640",
         "term": "-omata",
         "type": "suffix",
-        "meaning": "plural of -oma",
+        "meaning": "tumors (plural)",
         "system": "Suffixes",
         "interval": 0,
         "clean": "omata"
@@ -5775,13 +5775,13 @@ const dictionary = [
         "meaning": "attraction for",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "phil/philia"
+        "clean": "philia"
     },
     {
         "id": "gen_643",
         "term": "-staxis",
         "type": "suffix",
-        "meaning": "dripping, trickling",
+        "meaning": "dripping",
         "system": "Suffixes",
         "interval": 0,
         "clean": "staxis"
@@ -5790,10 +5790,10 @@ const dictionary = [
         "id": "gen_644",
         "term": "-tension/\u2013tensive",
         "type": "suffix",
-        "meaning": "pressure (of blood)",
+        "meaning": "blood pressure",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "tension/\u2013tensive"
+        "clean": "tension"
     },
     {
         "id": "gen_645",
@@ -5829,13 +5829,13 @@ const dictionary = [
         "meaning": "small",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "ula/ule"
+        "clean": "ula"
     },
     {
         "id": "gen_649",
         "term": "-y",
         "type": "suffix",
-        "meaning": "condition or process of",
+        "meaning": "condition or process",
         "system": "Suffixes",
         "interval": 0,
         "clean": "y"
@@ -5844,16 +5844,16 @@ const dictionary = [
         "id": "gen_650",
         "term": "-z-",
         "type": "suffix",
-        "meaning": "sleep",
+        "meaning": "sleep (informal symbol)",
         "system": "Suffixes",
         "interval": 0,
-        "clean": "z-"
+        "clean": "z"
     },
     {
         "id": "gen_651",
         "term": "-phasia",
         "type": "suffix",
-        "meaning": "speech, speaking",
+        "meaning": "speech disorder",
         "system": "Suffixes",
         "interval": 0,
         "clean": "phasia"
@@ -5862,7 +5862,7 @@ const dictionary = [
         "id": "gen_652",
         "term": "-phylaxis",
         "type": "suffix",
-        "meaning": "protection, prevention",
+        "meaning": "immune protection",
         "system": "Suffixes",
         "interval": 0,
         "clean": "phylaxis"
@@ -5880,7 +5880,7 @@ const dictionary = [
         "id": "gen_654",
         "term": "-clast",
         "type": "suffix",
-        "meaning": "one that breaks, breaking",
+        "meaning": "one who breaks down",
         "system": "Suffixes",
         "interval": 0,
         "clean": "clast"
@@ -5889,7 +5889,7 @@ const dictionary = [
         "id": "gen_655",
         "term": "-crit",
         "type": "suffix",
-        "meaning": "to separate",
+        "meaning": "separation",
         "system": "Suffixes",
         "interval": 0,
         "clean": "crit"
@@ -5898,7 +5898,7 @@ const dictionary = [
         "id": "gen_656",
         "term": "-kinesia",
         "type": "suffix",
-        "meaning": "movement, motion",
+        "meaning": "movement",
         "system": "Suffixes",
         "interval": 0,
         "clean": "kinesia"
@@ -5907,7 +5907,7 @@ const dictionary = [
         "id": "gen_657",
         "term": "-kinesis",
         "type": "suffix",
-        "meaning": "movement, motion",
+        "meaning": "movement",
         "system": "Suffixes",
         "interval": 0,
         "clean": "kinesis"
@@ -5916,7 +5916,7 @@ const dictionary = [
         "id": "gen_658",
         "term": "-mania",
         "type": "suffix",
-        "meaning": "obsessive preoccupation, madness",
+        "meaning": "obsessive compulsion",
         "system": "Suffixes",
         "interval": 0,
         "clean": "mania"
@@ -5984,7 +5984,7 @@ const dictionary = [
         "id": "gen_665",
         "term": "arteriol/o",
         "type": "root",
-        "meaning": "artery",
+        "meaning": "arteriole",
         "system": "Cardiovascular",
         "interval": 0,
         "rootBase": "arteriol",
@@ -5994,7 +5994,7 @@ const dictionary = [
         "id": "gen_666",
         "term": "arteri/o",
         "type": "root",
-        "meaning": "arteriole",
+        "meaning": "artery",
         "system": "Cardiovascular",
         "interval": 0,
         "rootBase": "arteri",
@@ -6065,7 +6065,7 @@ const dictionary = [
         "term": "carcin/o",
         "type": "root",
         "meaning": "cancer",
-        "system": "Special Senses",
+        "system": "Foundations",
         "interval": 0,
         "rootBase": "carcin",
         "vowel": "o"
@@ -6244,7 +6244,7 @@ const dictionary = [
         "id": "gen_691",
         "term": "cyt/o",
         "type": "root",
-        "meaning": "cell twice",
+        "meaning": "cell",
         "system": "Foundations",
         "interval": 0,
         "rootBase": "cyt",
@@ -6514,7 +6514,7 @@ const dictionary = [
         "id": "gen_718",
         "term": "hydr/o",
         "type": "root",
-        "meaning": "sweat",
+        "meaning": "water",
         "system": "Foundations",
         "interval": 0,
         "rootBase": "hydr",
@@ -6532,22 +6532,22 @@ const dictionary = [
     },
     {
         "id": "gen_720",
-        "term": "homo/o",
+        "term": "hom/o",
         "type": "root",
         "meaning": "same",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "homo",
+        "rootBase": "hom",
         "vowel": "o"
     },
     {
         "id": "gen_721",
-        "term": "hystero/o",
+        "term": "hyster/o",
         "type": "root",
         "meaning": "uterus",
         "system": "Reproductive",
         "interval": 0,
-        "rootBase": "hystero",
+        "rootBase": "hyster",
         "vowel": "o"
     },
     {
@@ -6815,7 +6815,7 @@ const dictionary = [
         "term": "melan/o",
         "type": "root",
         "meaning": "black",
-        "system": "Special Senses",
+        "system": "Integumentary",
         "interval": 0,
         "rootBase": "melan",
         "vowel": "o"
@@ -6882,12 +6882,12 @@ const dictionary = [
     },
     {
         "id": "gen_755",
-        "term": "necro/o",
+        "term": "necr/o",
         "type": "root",
         "meaning": "death",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "necro",
+        "rootBase": "necr",
         "vowel": "o"
     },
     {
@@ -7374,7 +7374,7 @@ const dictionary = [
         "id": "gen_804",
         "term": "vas/o",
         "type": "root",
-        "meaning": "deferens",
+        "meaning": "vas deferens",
         "system": "Cardiovascular",
         "interval": 0,
         "rootBase": "vas",
@@ -7414,7 +7414,7 @@ const dictionary = [
         "id": "gen_808",
         "term": "xanth/o",
         "type": "root",
-        "meaning": "red redness",
+        "meaning": "yellow",
         "system": "Foundations",
         "interval": 0,
         "rootBase": "xanth",
@@ -7422,12 +7422,12 @@ const dictionary = [
     },
     {
         "id": "gen_809",
-        "term": "xero/o",
+        "term": "xer/o",
         "type": "root",
         "meaning": "dry",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "xero",
+        "rootBase": "xer",
         "vowel": "o"
     },
     {
@@ -8092,22 +8092,22 @@ const dictionary = [
     },
     {
         "id": "gen_876",
-        "term": "auto/o",
+        "term": "aut/o",
         "type": "root",
         "meaning": "self",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "auto",
+        "rootBase": "aut",
         "vowel": "o"
     },
     {
         "id": "gen_877",
-        "term": "bio/o",
+        "term": "bi/o",
         "type": "root",
         "meaning": "life",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "bio",
+        "rootBase": "bi",
         "vowel": "o"
     },
     {
@@ -8302,12 +8302,12 @@ const dictionary = [
     },
     {
         "id": "gen_897",
-        "term": "iso/o",
+        "term": "is/o",
         "type": "root",
         "meaning": "equal",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "iso",
+        "rootBase": "is",
         "vowel": "o"
     },
     {
@@ -8535,7 +8535,7 @@ const dictionary = [
         "term": "kary/o",
         "type": "root",
         "meaning": "nucleus",
-        "system": "Special Senses",
+        "system": "Foundations",
         "interval": 0,
         "rootBase": "kary",
         "vowel": "o"
@@ -8595,7 +8595,7 @@ const dictionary = [
         "term": "nucle/o",
         "type": "root",
         "meaning": "nucleus",
-        "system": "Special Senses",
+        "system": "Foundations",
         "interval": 0,
         "rootBase": "nucle",
         "vowel": "o"
@@ -8852,12 +8852,12 @@ const dictionary = [
     },
     {
         "id": "gen_952",
-        "term": "acro/o",
+        "term": "acr/o",
         "type": "root",
         "meaning": "extremities height",
         "system": "Musculoskeletal",
         "interval": 0,
-        "rootBase": "acro",
+        "rootBase": "acr",
         "vowel": "o"
     },
     {
@@ -8934,7 +8934,7 @@ const dictionary = [
         "id": "gen_960",
         "term": "amni/o",
         "type": "root",
-        "meaning": "amniocentesis",
+        "meaning": "amnion",
         "system": "Reproductive",
         "interval": 0,
         "rootBase": "amni",
@@ -8942,12 +8942,12 @@ const dictionary = [
     },
     {
         "id": "gen_961",
-        "term": "cervix/o",
+        "term": "cervic/o",
         "type": "root",
         "meaning": "neck",
         "system": "Reproductive",
         "interval": 0,
-        "rootBase": "cervix",
+        "rootBase": "cervic",
         "vowel": "o"
     },
     {
@@ -9022,13 +9022,13 @@ const dictionary = [
     },
     {
         "id": "gen_969",
-        "term": "multi/o",
+        "term": "mult/i",
         "type": "root",
         "meaning": "many",
         "system": "Foundations",
         "interval": 0,
-        "rootBase": "multi",
-        "vowel": "o"
+        "rootBase": "mult",
+        "vowel": "i"
     },
     {
         "id": "gen_970",
@@ -9124,7 +9124,7 @@ const dictionary = [
         "id": "gen_979",
         "term": "pseud/o",
         "type": "root",
-        "meaning": "FALSE",
+        "meaning": "false",
         "system": "Foundations",
         "interval": 0,
         "rootBase": "pseud",
@@ -9184,7 +9184,7 @@ const dictionary = [
         "id": "gen_985",
         "term": "test/o",
         "type": "root",
-        "meaning": "testis testicle",
+        "meaning": "testis, testicle",
         "system": "Reproductive",
         "interval": 0,
         "rootBase": "test",
@@ -9282,12 +9282,12 @@ const dictionary = [
     },
     {
         "id": "gen_995",
-        "term": "echo/o",
+        "term": "ech/o",
         "type": "root",
         "meaning": "sound",
         "system": "Special Senses",
         "interval": 0,
-        "rootBase": "echo",
+        "rootBase": "ech",
         "vowel": "o"
     },
     {
