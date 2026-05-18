@@ -23,7 +23,7 @@
 ## 🌟 Features
 
 ### 1. The RadReqs Hub
-A sleek, modern central landing page providing access to the complete prerequisite and core curriculum required for radiology professionals. The Hub features a beautiful dark-mode aesthetic with frosted-glass navigation.
+A sleek, modern central landing page providing access to the complete prerequisite and core curriculum required for radiology professionals. The entire suite features fully integrated **Light and Dark Mode** options with beautiful, frosted-glass navigation and fluid theme switching.
 
 ### 2. Medical Terminology (Active Module)
 The foundational module for clinical language mastery.
