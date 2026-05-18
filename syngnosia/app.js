@@ -998,8 +998,80 @@ function setupEventListeners() {
     document.getElementById('fc-btn-review-mastered').addEventListener('click', reviewMasteredCards);
 
     // Feature A: Legal Consent and Reporting Errors
+    const btnGeneralFeedback = document.getElementById('btn-general-feedback');
+    if (btnGeneralFeedback) btnGeneralFeedback.addEventListener('click', openGeneralFeedbackModal);
+
     const btnReport = document.getElementById('btn-report-card');
-    if (btnReport) btnReport.addEventListener('click', openReportModal);
+    if (btnReport) btnReport.addEventListener('click', (e) => openReportModal(e, undefined, undefined, 'Flashcards'));
+
+    const btnReportWb = document.getElementById('btn-report-wb');
+    if (btnReportWb) {
+        btnReportWb.addEventListener('click', (e) => {
+            if (currentWbChallenge) {
+                const previewEl = document.getElementById('wb-preview');
+                const currentWord = previewEl ? previewEl.textContent.toLowerCase() : '';
+                openReportModal(
+                    e,
+                    currentWbChallenge.target,
+                    `Constructed Answer: "${currentWord}" (Target Answer: "${currentWbChallenge.answer}")`,
+                    'Word Builder'
+                );
+            }
+        });
+    }
+
+    const btnReportCd = document.getElementById('btn-report-cd');
+    if (btnReportCd) {
+        btnReportCd.addEventListener('click', (e) => {
+            const challenge = chartSentences[state.cdOrder[state.cdIndex]];
+            if (challenge) {
+                const plainText = challenge.text.replace(/<[^>]*>?/gm, '');
+                const feedbackVal = document.getElementById('cd-feedback').textContent;
+                const inputVal = document.getElementById('cd-input').value.trim();
+                openReportModal(
+                    e,
+                    `Clinical Note: "${plainText}" (Active Bold Term: "${challenge.answer}")`,
+                    `User Translation: "${inputVal}" | Grading Feedback: "${feedbackVal}"`,
+                    'Chart Decrypter'
+                );
+            }
+        });
+    }
+
+    const btnReportAd = document.getElementById('btn-report-ad');
+    if (btnReportAd) {
+        btnReportAd.addEventListener('click', (e) => {
+            const challenge = abbrevPool[state.adIndex];
+            if (challenge) {
+                const feedbackVal = document.getElementById('ad-feedback').textContent;
+                const inputVal = document.getElementById('ad-input').value.trim();
+                openReportModal(
+                    e,
+                    `Abbreviation: "${challenge.term}" (Expected Meaning: "${challenge.meaning}")`,
+                    `User Decoder Guess: "${inputVal}" | Grading Feedback: "${feedbackVal}"`,
+                    'Abbreviation Decoder'
+                );
+            }
+        });
+    }
+
+    const btnReportPl = document.getElementById('btn-report-pl');
+    if (btnReportPl) {
+        btnReportPl.addEventListener('click', (e) => {
+            const challenge = pluralChallengePool[state.plIndex];
+            if (challenge) {
+                const feedbackVal = document.getElementById('pl-feedback').textContent;
+                const inputVal = document.getElementById('pl-input').value.trim();
+                openReportModal(
+                    e,
+                    `Singular Suffix: "${challenge.sing}" (Rule: "${challenge.rule}" | Target Plural: "${challenge.pl}")`,
+                    `User Plural Input: "${inputVal}" | Feedback: "${feedbackVal}"`,
+                    'Pluralization Engine'
+                );
+            }
+        });
+    }
+
     const btnLegalAccept = document.getElementById('btn-legal-accept');
     if (btnLegalAccept) btnLegalAccept.addEventListener('click', acceptLegalConsent);
     const btnSubmitReport = document.getElementById('btn-submit-report');
@@ -1891,6 +1963,9 @@ function renderWordBuilder() {
     document.getElementById('wb-btn-check').classList.remove('hidden');
     document.getElementById('wb-btn-next').classList.add('hidden');
     
+    const reportBtn = document.getElementById('btn-report-wb');
+    if (reportBtn) reportBtn.classList.add('hidden');
+    
     // Reset preview styles
     document.getElementById('wb-preview').className = "text-4xl font-extrabold text-sky-700 tracking-tight h-12 flex items-center justify-center transition-all duration-300";
 }
@@ -2015,6 +2090,9 @@ function checkWbAnswer() {
         previewEl.classList.add('text-rose-500', 'animate-shake');
         setTimeout(() => previewEl.classList.remove('text-rose-500', 'animate-shake'), 400);
     }
+
+    const reportBtn = document.getElementById('btn-report-wb');
+    if (reportBtn) reportBtn.classList.remove('hidden');
 }
 
 function nextWbChallenge() {
@@ -2046,6 +2124,10 @@ function renderChartDecrypter() {
     document.getElementById('cd-btn-check').classList.remove('hidden');
     document.getElementById('cd-btn-reveal').classList.add('hidden');
     document.getElementById('cd-btn-next').classList.add('hidden');
+    
+    const reportBtn = document.getElementById('btn-report-cd');
+    if (reportBtn) reportBtn.classList.add('hidden');
+    
     input.focus();
 }
 
@@ -2190,6 +2272,9 @@ async function checkCdAnswer() {
             document.getElementById('cd-btn-reveal').classList.remove('hidden');
         }
     }
+
+    const reportBtn = document.getElementById('btn-report-cd');
+    if (reportBtn) reportBtn.classList.remove('hidden');
 }
 
 function revealCdAnswer() {
@@ -2209,6 +2294,9 @@ function revealCdAnswer() {
     document.getElementById('cd-btn-check').classList.add('hidden');
     document.getElementById('cd-btn-reveal').classList.add('hidden');
     document.getElementById('cd-btn-next').classList.remove('hidden');
+
+    const reportBtn = document.getElementById('btn-report-cd');
+    if (reportBtn) reportBtn.classList.remove('hidden');
 }
 
 function nextCdChallenge() {
@@ -2376,6 +2464,9 @@ function renderAbbrevDecoder() {
     document.getElementById('ad-feedback').classList.add('hidden');
     document.getElementById('ad-btn-check').classList.remove('hidden');
     document.getElementById('ad-btn-next').classList.add('hidden');
+    
+    const reportBtn = document.getElementById('btn-report-ad');
+    if (reportBtn) reportBtn.classList.add('hidden');
 }
 
 async function checkAdAnswer() {
@@ -2438,6 +2529,9 @@ async function checkAdAnswer() {
         feedback.textContent = feedbackMsg;
         feedback.className   = 'mt-4 text-sm font-bold text-rose-500 block';
     }
+
+    const reportBtn = document.getElementById('btn-report-ad');
+    if (reportBtn) reportBtn.classList.remove('hidden');
 }
 
 function nextAdChallenge() {
@@ -2490,6 +2584,9 @@ function renderPluralization() {
     document.getElementById('pl-feedback').classList.add('hidden');
     document.getElementById('pl-btn-check').classList.remove('hidden');
     document.getElementById('pl-btn-next').classList.add('hidden');
+    
+    const reportBtn = document.getElementById('btn-report-pl');
+    if (reportBtn) reportBtn.classList.add('hidden');
 }
 
 function checkPluralAnswer() {
@@ -2526,6 +2623,9 @@ function checkPluralAnswer() {
         feedback.textContent = `Incorrect. The correct plural is: ${challenge.pl}`;
         feedback.className = "mt-2 text-sm font-bold text-rose-500 block";
     }
+
+    const reportBtn = document.getElementById('btn-report-pl');
+    if (reportBtn) reportBtn.classList.remove('hidden');
 }
 
 function nextPluralChallenge() {
@@ -2606,8 +2706,23 @@ function appendChatBubble(role, text) {
         wrap.className   = 'flex justify-end';
         bubble.className = 'max-w-[80%] bg-violet-600 text-white px-4 py-3 rounded-3xl rounded-br-lg text-sm font-medium leading-relaxed';
     } else {
-        wrap.className   = 'flex justify-start';
+        wrap.className   = 'flex justify-start relative group';
         bubble.className = 'max-w-[85%] bg-white border border-gray-100 shadow-sm px-4 py-3 rounded-3xl rounded-bl-lg text-sm font-medium leading-relaxed text-gray-800 whitespace-pre-wrap';
+        
+        const flagBtn = document.createElement('button');
+        flagBtn.className = 'absolute -right-7 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-full bg-white border border-gray-150 text-gray-300 hover:text-rose-500 hover:bg-rose-50 flex items-center justify-center shadow-sm cursor-pointer z-10';
+        flagBtn.title = 'Report AI Response Error';
+        flagBtn.innerHTML = '<i class="fa-solid fa-flag text-[9px]"></i>';
+        flagBtn.onclick = (e) => {
+            const currentBubbleText = bubble.textContent;
+            let prompt = "N/A";
+            const index = state.chatHistory.findIndex(h => h.content === currentBubbleText);
+            if (index > 0 && state.chatHistory[index-1].role === 'user') {
+                prompt = state.chatHistory[index-1].content;
+            }
+            openReportModal(e, `Prompt: "${prompt}"`, currentBubbleText, 'AI Tutor Chat');
+        };
+        wrap.appendChild(flagBtn);
     }
     bubble.textContent = text;
     wrap.appendChild(bubble);
@@ -2830,18 +2945,67 @@ function acceptLegalConsent() {
     if (modal) modal.classList.add('hidden');
 }
 
-function openReportModal(e) {
-    if (e) e.stopPropagation(); // prevent card flip when clicking flag on flashcard back
+function openReportModal(e, term, meaning, moduleName) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation(); // prevent card flip when clicking flag on flashcard back
     
-    // Auto-fill context of the current flashcard
-    if (state.flashcards && state.flashcards.length > 0 && state.fcIndex < state.flashcards.length) {
-        const card = state.flashcards[state.fcIndex];
-        const termInput = document.getElementById('report-term');
-        const meaningInput = document.getElementById('report-meaning');
-        
-        if (termInput) termInput.value = card.term;
-        if (meaningInput) meaningInput.value = card.meaning;
+    state.activeReportModule = moduleName || 'Flashcards';
+    
+    // Configure layout for Contextual Report
+    const titleEl = document.getElementById('report-modal-title');
+    const iconEl = document.getElementById('report-modal-icon');
+    const contextFields = document.getElementById('report-context-fields');
+    const typeDropdown = document.getElementById('report-type');
+    
+    if (titleEl) titleEl.textContent = "Report AI Error";
+    if (iconEl) iconEl.innerHTML = `<i class="fa-solid fa-flag text-rose-500 text-sm"></i>`;
+    if (contextFields) contextFields.classList.remove('hidden');
+    if (typeDropdown) typeDropdown.value = "hallucination";
+    
+    // Auto-fill context
+    const termInput = document.getElementById('report-term');
+    const meaningInput = document.getElementById('report-meaning');
+    
+    if (termInput) {
+        if (term !== undefined) termInput.value = term;
+        else if (state.flashcards && state.flashcards.length > 0 && state.fcIndex < state.flashcards.length) {
+            termInput.value = state.flashcards[state.fcIndex].term;
+        } else {
+            termInput.value = "N/A";
+        }
     }
+    
+    if (meaningInput) {
+        if (meaning !== undefined) meaningInput.value = meaning;
+        else if (state.flashcards && state.flashcards.length > 0 && state.fcIndex < state.flashcards.length) {
+            meaningInput.value = state.flashcards[state.fcIndex].meaning;
+        } else {
+            meaningInput.value = "N/A";
+        }
+    }
+    
+    const modal = document.getElementById('modal-report');
+    if (modal) modal.classList.remove('hidden');
+}
+
+function openGeneralFeedbackModal() {
+    state.activeReportModule = 'General Feedback';
+    
+    // Configure layout for General Suggestion
+    const titleEl = document.getElementById('report-modal-title');
+    const iconEl = document.getElementById('report-modal-icon');
+    const contextFields = document.getElementById('report-context-fields');
+    const typeDropdown = document.getElementById('report-type');
+    
+    if (titleEl) titleEl.textContent = "Submit Suggestion";
+    if (iconEl) iconEl.innerHTML = `<i class="fa-solid fa-lightbulb text-amber-500 text-sm"></i>`;
+    if (contextFields) contextFields.classList.add('hidden');
+    if (typeDropdown) typeDropdown.value = "suggestion";
+    
+    // Set fallback read-only inputs
+    const termInput = document.getElementById('report-term');
+    const meaningInput = document.getElementById('report-meaning');
+    if (termInput) termInput.value = "General / Non-card specific";
+    if (meaningInput) meaningInput.value = "N/A";
     
     const modal = document.getElementById('modal-report');
     if (modal) modal.classList.remove('hidden');
@@ -2874,6 +3038,7 @@ async function submitReport() {
                 "Accept": "application/json"
             },
             body: JSON.stringify({
+                module: state.activeReportModule || 'Flashcards',
                 term: term,
                 aiMeaning: meaning,
                 issueType: type,
@@ -2882,8 +3047,9 @@ async function submitReport() {
         });
         
         if (response.ok) {
+            const isGeneral = (state.activeReportModule === 'General Feedback');
             closeReportModal();
-            triggerReportSuccessToast();
+            triggerReportSuccessToast(isGeneral);
         } else {
             alert("Oops! There was a problem submitting your report. Please try again.");
         }
@@ -2896,18 +3062,23 @@ async function submitReport() {
     }
 }
 
-function triggerReportSuccessToast() {
+function triggerReportSuccessToast(isGeneral) {
     const container = document.getElementById('achievement-toast-container');
     if (!container) return;
     const el = document.createElement('div');
-    el.className = 'achievement-toast pointer-events-auto bg-white border border-gray-200 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-xs';
+    el.className = 'achievement-toast pointer-events-auto bg-white border border-gray-200 rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 max-w-xs animate-slide-up';
+    
+    const titleText = isGeneral ? "Feedback Sent!" : "Report Sent!";
+    const descText = isGeneral ? "Thank you for your valuable feedback!" : "Thank you for improving the app!";
+    const iconHTML = isGeneral 
+        ? `<div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#f59e0b22;border:2px solid #f59e0b44"><i class="fa-solid fa-lightbulb text-lg" style="color:#f59e0b"></i></div>`
+        : `<div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#10b98122;border:2px solid #10b98144"><i class="fa-solid fa-circle-check text-lg" style="color:#10b981"></i></div>`;
+
     el.innerHTML = `
-        <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#10b98122;border:2px solid #10b98144">
-            <i class="fa-solid fa-circle-check text-lg" style="color:#10b981"></i>
-        </div>
+        ${iconHTML}
         <div class="min-w-0 flex-1">
-            <p class="text-xs font-bold text-gray-800">Report Sent!</p>
-            <p class="text-[11px] text-gray-500 leading-snug">Thank you for improving the app!</p>
+            <p class="text-xs font-bold text-gray-800">${titleText}</p>
+            <p class="text-[11px] text-gray-500 leading-snug">${descText}</p>
         </div>`;
     container.appendChild(el);
     setTimeout(() => el.remove(), 4500);
