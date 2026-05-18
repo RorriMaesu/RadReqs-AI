@@ -58,7 +58,7 @@ However, for **Dr. Lex** (the AI Tutor) to work, it runs completely free and pri
 2. **Download the 1-Click Launchers:** 
    - **[⬇️ Download Dr. Lex Launchers (.zip)](https://github.com/RorriMaesu/RadReqs-AI/raw/main/assets/Dr_Lex_Launchers.zip)**
 3. **Run the Script:** Open the downloaded `.zip` file and double-click the launcher for your operating system (`Start_Dr_Lex.bat` for Windows, or `Start_Dr_Lex.command` for Mac).
-   - **Windows Users:** If a dialog appears asking to "Extract all" or "Run", simply click **Run**. 
+   - **Windows Users:** If a dialog appears asking to "Extract all" or "Run", simply click **Run**. If Windows SmartScreen displays a blue 'Windows protected your PC' warning, click **More info** and then **Run anyway**.
    - **Mac Users:** You may need to right-click -> Open if you get a permissions warning.
 
 The script will automatically configure browser security permissions (CORS), download Dr. Lex's brain (this takes a few minutes the first time), and instantly launch the website for you to start studying!
