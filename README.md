@@ -64,7 +64,14 @@ A specialized mathematical engine designed to enforce safety and accuracy in cli
 - **Algebraic Logic:** Master formula rearrangement with an interactive, foolproof "variable chip" puzzle UI.
 - **Spatial Geometry:** A dynamic simulator to practice the Inverse Square Law using an interactive Source-to-Image Distance (SID) slider.
 
-### 5. Gamification Engine
+### 5. Psychology & Patient Care Simulator (New Module)
+An expert-level training module for navigating complex clinical, behavioral, and medical emergencies.
+- **Chart Auditor:** Rigorously test your ability to spot hidden clinical contraindications, procedural hazards, and safety red flags within 29 complex patient charts.
+- **Jargon Filter:** Master clinical communication by translating terrifying medical terminology into comforting, patient-safe explanations across 25 high-fidelity scenarios.
+- **Timed Crisis De-escalation:** A high-stakes, 24-scenario gauntlet where you must manage severe emergencies (e.g., contrast anaphylaxis, combative patients, sensory overload) using timed tactical empathy and immediate decision-making.
+- **EHR Legal Auditor:** Learn the critical difference between subjective complaining and objective, defensible charting with a built-in expert guide and AI feedback loop.
+
+### 6. Gamification Engine
 Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
 - **XP & Leveling System:** Progress from *Pre-Med Student* all the way to *Legacy Master*.
 - **Streak Tracking & Shields:** Maintain daily study streaks, unlock comeback achievements, and earn streak shields to protect your progress.
@@ -78,7 +85,7 @@ Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicte
   </tr>
 </table>
 
-### 6. Fully Responsive Mobile UI
+### 7. Fully Responsive Mobile UI
 Study anywhere, perfectly optimized for your phone.
 
 <table width="100%">
@@ -88,7 +95,7 @@ Study anywhere, perfectly optimized for your phone.
   </tr>
 </table>
 
-### 7. Comprehensive Curriculum Roadmap
+### 8. Comprehensive Curriculum Roadmap
 Placeholders are beautifully integrated for future module expansion, creating a complete pathway:
 - Anatomy & Physiology
 - General Physics
