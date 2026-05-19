@@ -107,11 +107,32 @@ window.PsychTutor = (() => {
         ];
         
         try {
-            const response = await fetch("http://localhost:11434/api/chat", {
+            let targetModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
+            let response = await fetch("http://localhost:11434/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b", messages: payload, stream: true })
+                body: JSON.stringify({ model: targetModel, messages: payload, stream: true })
             });
+            
+            // Auto-detect installed model if 404 (Model not found)
+            if (response.status === 404) {
+                const tagsRes = await fetch("http://localhost:11434/api/tags");
+                if (tagsRes.ok) {
+                    const tagsData = await tagsRes.json();
+                    if (tagsData.models && tagsData.models.length > 0) {
+                        const fallback = tagsData.models.find(m => m.name.includes('gemma')) || tagsData.models[0];
+                        targetModel = fallback.name;
+                        localStorage.setItem("psych_llm", targetModel);
+                        // Retry with the detected model
+                        response = await fetch("http://localhost:11434/api/chat", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ model: targetModel, messages: payload, stream: true })
+                        });
+                    }
+                }
+            }
+
             if (!response.ok) throw new Error("HTTP error");
             typingWrap.remove();
 

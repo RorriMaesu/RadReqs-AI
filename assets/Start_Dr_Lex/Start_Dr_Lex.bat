@@ -1,0 +1,63 @@
+@echo off
+setlocal enabledelayedexpansion
+echo ==============================================
+echo Activating Dr. Lex (RadReqs-AI Tutor)
+echo ==============================================
+echo.
+echo Setting secure browser connection permissions (CORS)...
+set OLLAMA_ORIGINS=*
+setx OLLAMA_ORIGINS "*" >nul 2>&1
+
+echo Starting Ollama background service...
+taskkill /f /im ollama.exe >nul 2>&1
+taskkill /f /im "ollama app.exe" >nul 2>&1
+timeout /t 2 /nobreak >nul
+start "" "ollama app.exe"
+timeout /t 2 /nobreak >nul
+
+echo Detecting Hardware...
+set "MODEL=gemma4:e2b"
+set "VRAM_MB=0"
+
+for /f "tokens=1" %%a in ('nvidia-smi --query-gpu^=memory.total --format^=csv^,noheader 2^>nul') do (
+    set "VRAM_MB=%%a"
+)
+
+if !VRAM_MB! GTR 0 (
+    echo Detected NVIDIA GPU with !VRAM_MB! MB VRAM.
+    if !VRAM_MB! GEQ 14000 (
+        set "MODEL=VladimirGav/gemma4-26b-16GB-VRAM:latest"
+    ) else if !VRAM_MB! GEQ 10000 (
+        set "MODEL=gemma4:e4b"
+    ) else (
+        set "MODEL=gemma4:e2b"
+    )
+) else (
+    echo NVIDIA GPU not found. Checking System RAM...
+    for /f "usebackq tokens=*" %%a in (`powershell -NoProfile -Command "Write-Output ([math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1MB))" 2^>nul`) do (
+        set "RAM_MB=%%a"
+    )
+    if "!RAM_MB!"=="" set "RAM_MB=0"
+    echo Detected !RAM_MB! MB System RAM.
+    
+    if !RAM_MB! GEQ 24000 (
+        set "MODEL=VladimirGav/gemma4-26b-16GB-VRAM:latest"
+    ) else if !RAM_MB! GEQ 16000 (
+        set "MODEL=gemma4:e4b"
+    ) else (
+        set "MODEL=gemma4:e2b"
+    )
+)
+
+echo.
+echo ==============================================
+echo Selected Model: !MODEL!
+echo ==============================================
+echo.
+
+echo Opening RadReqs-AI...
+start "" "https://RorriMaesu.github.io/RadReqs-AI/?model=!MODEL!"
+
+echo Downloading AI Model (this may take a few minutes the first time)...
+echo The terminal will automatically close when finished.
+ollama pull !MODEL!

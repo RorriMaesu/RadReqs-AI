@@ -62,8 +62,9 @@ function updateDashboard() {
  */
 async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
     try {
-        const payload = {
-            model: localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b",
+        let targetModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
+        let payload = {
+            model: targetModel,
             prompt: `${systemPrompt}\n\nStudent Input: "${userInput}"`,
             stream: false,
             options: {
@@ -73,11 +74,30 @@ async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
         };
         if (jsonFormat) payload.format = 'json';
 
-        const response = await fetch('http://localhost:11434/api/generate', {
+        let response = await fetch('http://localhost:11434/api/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        
+        if (response.status === 404) {
+            const tagsRes = await fetch("http://localhost:11434/api/tags");
+            if (tagsRes.ok) {
+                const tagsData = await tagsRes.json();
+                if (tagsData.models && tagsData.models.length > 0) {
+                    const fallback = tagsData.models.find(m => m.name.includes('gemma')) || tagsData.models[0];
+                    targetModel = fallback.name;
+                    localStorage.setItem("psych_llm", targetModel);
+                    payload.model = targetModel;
+                    response = await fetch('http://localhost:11434/api/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+            }
+        }
+        
         if (!response.ok) throw new Error('Network response not ok');
         const data = await response.json();
         return data.response;
