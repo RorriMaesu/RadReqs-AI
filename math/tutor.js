@@ -69,10 +69,35 @@ window.MathTutor = (() => {
         return bubble;
     }
 
-    async function streamOllama(msgsEl, chatHistory) {
+    function appendMainBubble(msgsEl, role, text) {
+        const wrap = document.createElement("div");
+        const bubble = document.createElement("div");
+        
+        if (role === "user") {
+            wrap.className = "flex justify-end";
+            bubble.className = "max-w-[85%] bg-violet-600 text-white px-4 py-3 rounded-2xl rounded-tr-sm text-sm font-medium shadow-sm";
+            bubble.innerHTML = renderMath(parseMD(text));
+        } else {
+            wrap.className = "flex justify-start";
+            bubble.className = "max-w-[90%] bg-white px-4 py-3 rounded-2xl rounded-tl-sm text-sm font-medium text-gray-800 border border-gray-100 shadow-sm";
+            if(text) bubble.innerHTML = renderMath(parseMD(text));
+        }
+        wrap.appendChild(bubble);
+        msgsEl.appendChild(wrap);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+        return bubble;
+    }
+
+    async function streamOllama(msgsEl, chatHistory, isMain = false) {
+        const appendBubble = isMain ? appendMainBubble : appendInlineBubble;
+        
         const typingWrap = document.createElement("div");
         typingWrap.className = "flex justify-start inline-typing";
-        typingWrap.innerHTML = `<div class="bg-gray-100 px-3 py-2 rounded-2xl flex items-center space-x-1 border border-gray-200 mt-1"><div class="w-1.5 h-1.5 bg-clinical-blue rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-clinical-blue rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1.5 h-1.5 bg-clinical-blue rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div>`;
+        if (isMain) {
+            typingWrap.innerHTML = `<div class="bg-white px-4 py-3 rounded-2xl flex items-center space-x-1 border border-gray-100 shadow-sm mt-1"><div class="w-2 h-2 bg-violet-400 rounded-full animate-bounce"></div><div class="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-2 h-2 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div>`;
+        } else {
+            typingWrap.innerHTML = `<div class="bg-gray-100 px-3 py-2 rounded-2xl flex items-center space-x-1 border border-gray-200 mt-1"><div class="w-1.5 h-1.5 bg-clinical-blue rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-clinical-blue rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1.5 h-1.5 bg-clinical-blue rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div>`;
+        }
         msgsEl.appendChild(typingWrap);
         msgsEl.scrollTop = msgsEl.scrollHeight;
 
@@ -105,7 +130,7 @@ window.MathTutor = (() => {
                         const data = JSON.parse(line);
                         if (data.message?.content) {
                             if (firstToken) {
-                                bubble = appendInlineBubble(msgsEl, "assistant", "");
+                                bubble = appendBubble(msgsEl, "assistant", "");
                                 firstToken = false;
                             }
                             assistantText += data.message.content;
@@ -119,7 +144,7 @@ window.MathTutor = (() => {
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {
             typingWrap.remove();
-            appendInlineBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
+            appendBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
         }
     }
 
@@ -166,6 +191,63 @@ window.MathTutor = (() => {
             appendInlineBubble(msgsEl, "user", initialPrompt);
             history.push({ role: "user", content: initialPrompt });
             streamOllama(msgsEl, history);
+        },
+        
+        initMainChat: () => {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-btn-send');
+            const clearBtn = document.getElementById('chat-btn-clear');
+            const msgsEl = document.getElementById('chat-messages');
+            const emptyState = document.getElementById('chat-empty-state');
+            
+            if (!input || !sendBtn || !msgsEl) return;
+            
+            let history = [];
+            
+            const handleSend = () => {
+                const text = input.value.trim();
+                if (!text) return;
+                
+                if (emptyState) emptyState.style.display = 'none';
+                
+                appendMainBubble(msgsEl, "user", text);
+                history.push({ role: "user", content: text });
+                input.value = "";
+                input.style.height = 'auto'; // Reset height
+                
+                streamOllama(msgsEl, history, true);
+            };
+            
+            sendBtn.addEventListener('click', handleSend);
+            
+            input.addEventListener('keypress', (e) => { 
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend(); 
+                }
+            });
+            
+            input.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+            
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    history = [];
+                    msgsEl.innerHTML = '';
+                    if (emptyState) {
+                        emptyState.style.display = 'flex';
+                        msgsEl.appendChild(emptyState);
+                    }
+                });
+            }
         }
     };
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.MathTutor && window.MathTutor.initMainChat) {
+        window.MathTutor.initMainChat();
+    }
+});
