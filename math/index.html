@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Math Engine</title>
+    <script>
+        (function() {
+            var pref = localStorage.getItem('math_darkmode');
+            if (pref === null || pref === 'true') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX for beautifully rendering LLM math output -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    
+    <!-- Marked.js for full markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hidden-tab { display: none !important; }
+        .fade-in { animation: fadeIn 0.35s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+        .dark body { background-color: #0f1117; }
+        .dark .bg-white { background-color: #1a1d27; }
+        .dark .bg-gray-50 { background-color: #13151e; }
+        .dark .bg-gray-100 { background-color: #1e2130; }
+        .dark .bg-gray-200\/80 { background-color: rgba(20, 23, 38, 0.9); }
+        .dark .text-gray-800 { color: #e2e8f0; }
+        .dark .text-gray-700 { color: #cbd5e1; }
+        .dark .text-gray-600 { color: #94a3b8; }
+        .dark .text-gray-500 { color: #94a3b8; }
+        .dark .text-gray-400 { color: #64748b; }
+        .dark .border-gray-100 { border-color: #252836; }
+        .dark .border-gray-200 { border-color: #363a52; }
+        .dark .border-gray-300 { border-color: #4a4e6b; }
+        .dark .bg-blue-50 { background-color: rgba(14, 165, 233, 0.1); }
+        .dark .border-blue-200 { border-color: rgba(14, 165, 233, 0.3); }
+        .dark .border-blue-100 { border-color: rgba(14, 165, 233, 0.2); }
+        .dark .text-blue-800 { color: #bae6fd; }
+        .dark .text-blue-700 { color: #7dd3fc; }
+        .dark .bg-slate-800 { background-color: #1e293b; }
+        .dark .bg-slate-900\/90 { background-color: rgba(15, 23, 42, 0.9); }
+        .dark .hover\:bg-gray-50:hover { background-color: #1e2130; }
+        .dark .hover\:bg-gray-100:hover { background-color: #252836; }
+        .dark .glass-panel {
+            background: rgba(22, 25, 40, 0.96);
+            border-bottom-color: rgba(45, 50, 80, 0.5);
+        }
+        .dark input,
+        .dark select {
+            background-color: #1e2130;
+            color: #e2e8f0;
+            border-color: #363a52;
+        }
+
+        /* AI Tutor specific (violet) */
+        .dark .bg-violet-50 { background-color: rgba(109, 40, 217, 0.14); }
+        .dark .hover\:bg-violet-100:hover { background-color: rgba(109, 40, 217, 0.25); }
+        .dark .border-violet-100 { border-color: rgba(139, 92, 246, 0.25); }
+        .dark .text-violet-600 { color: #a78bfa; }
+        .dark .text-violet-800 { color: #c4b5fd; }
+        .dark .text-violet-400 { color: #8b5cf6; }
+
+        .bnav-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col selection:bg-blue-200 selection:text-blue-900 relative">
+    
+    <header class="glass-panel sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="../index.html" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors shadow-sm" title="Back to Hub">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </a>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-blue-600 flex items-center gap-2 tracking-tight shrink-0">
+                    <i class="fa-solid fa-calculator"></i>
+                    Clinical Math Engine
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div class="hidden sm:flex bg-gray-100 rounded-lg p-1 border border-gray-200 shadow-inner mr-2">
+                    <button id="track-diagnostic" class="px-3 py-1.5 rounded-md bg-white text-blue-600 shadow-sm font-semibold transition-all flex items-center text-xs">
+                        <i class="fa-solid fa-x-ray mr-1.5"></i>Diagnostic
+                    </button>
+                    <button id="track-therapeutic" class="px-3 py-1.5 rounded-md text-gray-500 hover:text-blue-600 hover:bg-gray-50 transition-all flex items-center text-xs">
+                        <i class="fa-solid fa-radiation mr-1.5"></i>Therapeutic
+                    </button>
+                </div>
+
+
+                <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center shadow-sm transition-colors shrink-0">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 flex-grow w-full pb-24 lg:pb-10 pt-4 lg:pt-6">
+        
+        <!-- Desktop tab navigation (lg only) -->
+        <div class="hidden lg:flex px-0 pb-6 justify-center">
+            <div class="inline-flex bg-gray-200/80 backdrop-blur-sm rounded-full p-1 shadow-inner gap-1" role="group">
+                <button id="nav-numeracy" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateMathTab('numeracy')">Numeracy</button>
+                <button id="nav-validator" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateMathTab('validator')">Safety Validator</button>
+                <button id="nav-algebra" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateMathTab('algebra')">Algebraic Logic</button>
+                <button id="nav-spatial" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateMathTab('spatial')">Spatial Geometry</button>
+                <button id="nav-tutor" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateMathTab('tutor')">AI Tutor</button>
+            </div>
+        </div>
+
+        <section id="view-main" class="fade-in">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6 fade-in">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="module-header-title" class="text-2xl sm:text-3xl font-extrabold text-gray-800 flex items-center">
+                            <i class="fa-solid fa-scale-balanced mr-3 text-blue-500"></i>
+                            Clinical Numeracy & Units
+                        </h2>
+                        <p id="module-header-desc" class="text-gray-600 mt-2">Convert between SI and Legacy units for clinical practice.</p>
+                    </div>
+                    <button id="toggle-guide-btn" class="text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors border border-blue-200 shadow-sm flex items-center shrink-0">
+                        <i class="fa-solid fa-book-open mr-2 text-blue-500"></i> <span class="hidden sm:inline">Expert Guide</span>
+                    </button>
+                </div>
+                
+                <!-- Expert Guide Container (Hidden by default) -->
+                <div id="expert-guide-container" class="hidden bg-gray-800 rounded-2xl p-6 mb-6 shadow-inner border border-gray-700 transition-all duration-300 text-gray-200">
+                    <div id="expert-guide-content"></div>
+                </div>
+                
+                <div id="simulation-container" class="space-y-6">
+                    <!-- Example Problem Area -->
+                    <div class="p-6 bg-blue-50/50 border border-blue-100 rounded-2xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                        <p class="text-lg font-medium text-gray-800 mb-6">Convert the following absorbed dose from SI to Legacy units:</p>
+                        
+                        <div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-2xl sm:text-3xl font-mono py-8 bg-white rounded-xl shadow-sm border border-gray-200">
+                            <div class="flex flex-col items-center">
+                                <div class="bg-gray-100 px-4 py-2 rounded-lg border border-gray-200">
+                                    <span class="font-bold text-blue-700">0.5</span>
+                                </div>
+                                <span class="text-sm text-gray-500 font-sans mt-2 font-semibold">Gy (Gray)</span>
+                            </div>
+                            
+                            <div class="text-gray-400"><i class="fa-solid fa-arrow-right"></i></div>
+                            
+                            <div class="flex flex-col items-center">
+                                <div class="bg-blue-50 px-4 py-2 rounded-lg border-2 border-blue-500 shadow-inner flex items-center">
+                                    <input type="text" class="w-24 sm:w-32 bg-transparent focus:outline-none text-center font-bold text-blue-800" placeholder="?" autofocus>
+                                </div>
+                                <span class="text-sm text-gray-500 font-sans mt-2 font-semibold">Rad</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex items-start bg-rose-50 p-4 rounded-xl border border-rose-100">
+                            <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="text-sm font-bold text-rose-800">Clinical Safety Constraints Active</h4>
+                                <p class="text-xs text-rose-600 mt-1">Leading zeros required (0.5). Trailing zeros are safety violations (5.0).</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all flex items-center">
+                            Submit Value <i class="fa-solid fa-check ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Placeholder Sections Removed -->
+
+        <section id="view-tutor" class="hidden-tab fade-in">
+            <!-- Header -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-500">
+                            <i class="fa-solid fa-robot text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-extrabold text-gray-800">Math Tutor</h2>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span id="chat-status-dot" class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
+                                <span id="chat-status-text" class="text-xs font-medium text-gray-400">Checking local AI...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="chat-btn-clear" title="Clear conversation" class="text-xs font-bold text-gray-400 hover:text-rose-500 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-full hover:bg-rose-50">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden sm:inline">Clear</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Messages -->
+            <div id="chat-messages" class="overflow-y-auto space-y-4 mb-4 px-1" style="min-height:300px;max-height:55vh">
+                <div id="chat-empty-state" class="flex flex-col items-center justify-center text-center py-8">
+                    <div class="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center mb-4 border border-violet-100">
+                        <i class="fa-solid fa-robot text-2xl text-violet-400"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium mb-5 text-sm">Ask me to explain any clinical unit conversion or mathematical concept!</p>
+                </div>
+            </div>
+        
+            <!-- Input area -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-3 sm:p-4">
+                <div class="flex items-end gap-3">
+                    <textarea id="chat-input" rows="1" placeholder="Why are trailing zeros dangerous in clinical notes?" class="flex-1 bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all resize-none leading-relaxed"></textarea>
+                    <button id="chat-btn-send" class="w-12 h-12 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-2 px-1">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Digital Scratchpad / Calculator with Lockout -->
+    <!-- Positioned fixed instead of absolute so it stays on screen, but with z-index to stay above mobile nav -->
+    <div id="calculator-widget" class="fixed bottom-24 lg:bottom-8 right-4 lg:right-8 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden transition-all duration-300 z-50">
+        <div id="calculator-header" class="bg-slate-800 text-white px-4 py-3 flex justify-between items-center cursor-move border-b border-gray-700">
+            <span class="font-semibold text-sm tracking-wide flex items-center"><i class="fa-solid fa-calculator mr-2 text-blue-400"></i>Clinical Scratchpad</span>
+            <button id="calculator-minimize" class="text-gray-400 hover:text-white transition-colors"><i class="fa-solid fa-minus"></i></button>
+        </div>
+        
+        <!-- Calculator Lockout Overlay -->
+        <div id="calc-lockout" class="absolute inset-0 top-[49px] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-6 z-10 text-center rounded-b-2xl">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center mb-3 border border-rose-500/30">
+                <i class="fa-solid fa-lock text-rose-400 text-xl"></i>
+            </div>
+            <h3 class="text-white font-bold mb-1">Gut-Instinct Estimation</h3>
+            <p class="text-gray-300 text-xs mb-5">Select expected outcome range before accessing calculator:</p>
+            
+            <div class="grid grid-cols-2 gap-3 w-full mb-5" id="lockout-options">
+                <button class="lockout-btn bg-slate-800 hover:bg-slate-700 text-white text-sm py-2 rounded-lg border border-slate-600 hover:border-blue-500 transition-all shadow-sm">&lt; 10</button>
+                <button class="lockout-btn bg-slate-800 hover:bg-slate-700 text-white text-sm py-2 rounded-lg border border-slate-600 hover:border-blue-500 transition-all shadow-sm">10 - 50</button>
+                <button class="lockout-btn bg-slate-800 hover:bg-slate-700 text-white text-sm py-2 rounded-lg border border-slate-600 hover:border-blue-500 transition-all shadow-sm">50 - 100</button>
+                <button class="lockout-btn bg-slate-800 hover:bg-slate-700 text-white text-sm py-2 rounded-lg border border-slate-600 hover:border-blue-500 transition-all shadow-sm">&gt; 100</button>
+            </div>
+            
+            <div class="bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700/50">
+                <p class="text-rose-300 text-xs font-mono flex items-center">
+                    <i class="fa-regular fa-clock mr-2"></i> Auto-unlock in: <span id="lockout-timer" class="font-bold ml-1 text-white">5</span>s
+                </p>
+            </div>
+        </div>
+
+        <div id="calculator-body" class="p-4 sm:p-5 flex-1 bg-gray-50">
+            <div class="bg-white border border-gray-200 rounded-xl p-3 mb-4 shadow-inner flex justify-between items-center">
+                <button id="calc-clear" class="text-rose-400 hover:text-rose-600 font-bold text-sm px-2">C</button>
+                <input id="calculator-display" type="text" class="w-full text-right font-mono text-2xl bg-transparent focus:outline-none text-gray-800" disabled value="0">
+            </div>
+            <div class="grid grid-cols-4 gap-2" id="calculator-buttons">
+                <!-- Buttons -->
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="7">7</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="8">8</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="9">9</button>
+                <button class="calc-op bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-bold shadow-sm transition-colors" data-val="/">÷</button>
+                
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="4">4</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="5">5</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="6">6</button>
+                <button class="calc-op bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-bold shadow-sm transition-colors" data-val="*">×</button>
+                
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="1">1</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="2">2</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="3">3</button>
+                <button class="calc-op bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-bold shadow-sm transition-colors" data-val="-">-</button>
+                
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val="0">0</button>
+                <button class="calc-btn bg-white hover:bg-gray-100 p-3 rounded-lg font-bold text-gray-700 border border-gray-200 shadow-sm transition-colors" data-val=".">.</button>
+                <button id="calc-eq" class="bg-emerald-500 hover:bg-emerald-600 text-white p-3 rounded-lg font-bold shadow-sm transition-colors">=</button>
+                <button class="calc-op bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-bold shadow-sm transition-colors" data-val="+">+</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom tab navigation (mobile only) -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-40 bnav-safe">
+        <div class="flex overflow-x-auto no-scrollbar">
+            <button id="bnav-numeracy" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateMathTab('numeracy')">
+                <i class="bnav-icon fa-solid fa-scale-balanced text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Numeracy</span>
+            </button>
+            <button id="bnav-validator" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateMathTab('validator')">
+                <i class="bnav-icon fa-solid fa-triangle-exclamation text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Validator</span>
+            </button>
+            <button id="bnav-algebra" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateMathTab('algebra')">
+                <i class="bnav-icon fa-solid fa-equals text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Algebra</span>
+            </button>
+            <button id="bnav-spatial" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateMathTab('spatial')">
+                <i class="bnav-icon fa-solid fa-cubes text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Spatial</span>
+            </button>
+            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateMathTab('tutor')">
+                <i class="bnav-icon fa-solid fa-robot text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Inline Tutor Template -->
+    <template id="inline-tutor-template">
+        <div class="inline-tutor-widget w-full fade-in z-10 relative mt-4">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-robot text-[10px] text-white"></i>
+                        </div>
+                        <span class="text-xs font-bold text-violet-800">MathTutor</span>
+                        <span class="tutor-status text-[10px] text-violet-400 font-medium"></span>
+                    </div>
+                    <button class="tutor-close w-7 h-7 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors" title="Close">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+                <div class="tutor-messages px-4 py-3 space-y-3 max-h-44 overflow-y-auto"></div>
+                <div class="border-t border-gray-100 p-3 flex gap-2">
+                    <input type="text" placeholder="Ask for a hint..." class="tutor-input flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 transition-colors" />
+                    <button class="tutor-send w-9 h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors shadow-sm shrink-0">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+    <script src="tutor.js"></script>
+</body>
+</html>

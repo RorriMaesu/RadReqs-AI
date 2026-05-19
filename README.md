@@ -57,7 +57,14 @@ An interactive chemistry practice module focused on prereq mastery for CH 104Z-s
 - **Core Skill Practice:** Includes molar mass, dimensional analysis, stoichiometry, significant figures, and nomenclature drills.
 - **Prof. Beaker (AI Tutor):** Context-aware chemistry coaching powered by your local Ollama model.
 
-### 4. Gamification Engine
+### 4. Clinical Mathematics (New Module)
+A specialized mathematical engine designed to enforce safety and accuracy in clinical dosimetry calculations.
+- **Numeracy & Units:** Practice converting between legacy units (Rad, Rem, Curie) and SI units (Gy, Sv, Bq).
+- **Safety Validator:** Catch and correct dangerous formatting errors like trailing zeros (`5.0`), naked decimals (`5.`), and missing leading zeros (`.5`).
+- **Algebraic Logic:** Master formula rearrangement with an interactive, foolproof "variable chip" puzzle UI.
+- **Spatial Geometry:** A dynamic simulator to practice the Inverse Square Law using an interactive Source-to-Image Distance (SID) slider.
+
+### 5. Gamification Engine
 Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
 - **XP & Leveling System:** Progress from *Pre-Med Student* all the way to *Legacy Master*.
 - **Streak Tracking & Shields:** Maintain daily study streaks, unlock comeback achievements, and earn streak shields to protect your progress.
@@ -71,7 +78,7 @@ Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicte
   </tr>
 </table>
 
-### 5. Fully Responsive Mobile UI
+### 6. Fully Responsive Mobile UI
 Study anywhere, perfectly optimized for your phone.
 
 <table width="100%">
@@ -81,10 +88,10 @@ Study anywhere, perfectly optimized for your phone.
   </tr>
 </table>
 
-### 6. Comprehensive Curriculum Roadmap
+### 7. Comprehensive Curriculum Roadmap
 Placeholders are beautifully integrated for future module expansion, creating a complete pathway:
 - Anatomy & Physiology
-- General Physics & Mathematics Core
+- General Physics
 - Radiographic Positioning & Image Production
 - Radiation Protection & Radiobiology
 - Radiation Physics & Dosimetry

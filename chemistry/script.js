@@ -1041,11 +1041,15 @@ function bindStoichActions() {
             }
             promptText += `how many grams of ${p1} can be produced theoretically?`;
             
+            let molarMassesStr = `Molar Masses: ${r1}=${r1Mass.toFixed(2)} g/mol, ${p1}=${p1Mass.toFixed(2)} g/mol`;
+            if (r2) molarMassesStr += `, ${r2}=${getMolarMass(r2).toFixed(2)} g/mol`;
+
             currentRxn.activeScenario = {
                 prompt: promptText,
                 correctAnswer: exact,
                 unit: `g ${p1}`,
-                sigFigs: expectedSigFigs
+                sigFigs: expectedSigFigs,
+                molarMasses: molarMassesStr
             };
             
             scenarioContainer.classList.remove("hidden");
@@ -1054,6 +1058,18 @@ function bindStoichActions() {
         } else {
             statusDiv.textContent = "Not balanced yet. Check coefficients.";
             statusDiv.className = "mt-4 text-center text-sm font-bold text-rose-600";
+            
+            // Add Chatbot Hook for Balancing Error
+            if (window.ChemTutor) {
+                let eqStrUser = currentRxn.reactants.map((r, i) => `${inputs[i].value}${r}`).join(" + ") + " -> " + 
+                                currentRxn.products.map((p, i) => `${inputs[currentRxn.reactants.length + i].value}${p}`).join(" + ");
+                                
+                window.ChemTutor.invoke(
+                    `I am trying to balance a chemical equation, but my attempt is incorrect. I tried: ${eqStrUser}. Walk me through how to count the atoms on both sides and balance this correctly.`, 
+                    statusDiv, 
+                    `The user is practicing balancing chemical equations. Their incorrect attempt is: ${eqStrUser}. Guide them step-by-step on how to balance it.`
+                );
+            }
         }
     });
 
@@ -1073,6 +1089,10 @@ function bindStoichActions() {
         const reqSigFigs = currentRxn.activeScenario.sigFigs;
         const userSigFigs = getSigFigs(strVal);
         
+        // Reconstruct the balanced equation string for the tutor context
+        let eqStr = currentRxn.reactants.map((r, i) => `${currentRxn.coefficients[i]}${r}`).join(" + ") + " -> " + 
+                    currentRxn.products.map((p, i) => `${currentRxn.coefficients[currentRxn.reactants.length + i]}${p}`).join(" + ");
+
         // 2% tolerance for math rounding 
         const isMatch = Math.abs((userVal - exact) / exact) <= 0.02;
         
@@ -1083,10 +1103,28 @@ function bindStoichActions() {
             } else {
                 setStatus(output, `Mathematically correct, but check your Significant Figures! You provided ${userSigFigs} sig figs, but ${reqSigFigs} are required.`, "warn");
                 recordCompetencyAttempt("stoich-setup", false);
+                
+                // Add Chatbot Hook for Sig Fig Error
+                if (window.ChemTutor) {
+                    window.ChemTutor.invoke(
+                        `I am solving a stoichiometry problem. My calculation of ${userVal} was mathematically correct, but I used ${userSigFigs} significant figures instead of ${reqSigFigs}. Explain how to determine the correct significant figures for this problem.`, 
+                        output, 
+                        `The user is practicing Stoichiometry. Problem: "${currentRxn.activeScenario.prompt}". Correct answer is ${exact}. They got the math right but the sig figs wrong. Expected sig figs: ${reqSigFigs}. ${currentRxn.activeScenario.molarMasses}`
+                    );
+                }
             }
         } else {
             setStatus(output, `Incorrect. Please double check molar masses, limiting reactants, and mole ratios. Recalculate and try again.`, "error");
             recordCompetencyAttempt("stoich-setup", false);
+            
+            // Add Chatbot Hook for Math/Logic Error
+            if (window.ChemTutor) {
+                window.ChemTutor.invoke(
+                    `I am solving a stoichiometry problem: "${currentRxn.activeScenario.prompt}". I calculated ${userVal} but it is incorrect. Walk me through the steps to solve this: identifying the balanced equation, finding the limiting reactant (if applicable), and converting to the final yield.`, 
+                    output, 
+                    `The user is practicing Stoichiometry. The balanced equation is ${eqStr}. ${currentRxn.activeScenario.molarMasses}. Problem: "${currentRxn.activeScenario.prompt}". The correct theoretical yield is ${exact} ${currentRxn.activeScenario.unit}. Guide them step-by-step to reach this answer.`
+                );
+            }
         }
     });
 }
@@ -1155,7 +1193,7 @@ function bindSigFigActions() {
             // Handle padding if needed, but standard toString is okay for this simple drill
         }
         
-        currentSession = { expectedString };
+        currentSession = { expectedString, rawVal: exactValue };
     });
 
     btnCheck.addEventListener("click", () => {
