@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intro to Chemistry</title>
+    <script>
+        (function() {
+            var pref = localStorage.getItem('chemistry_darkmode');
+            if (pref === null || pref === 'true') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <link rel="stylesheet" href="../assets/css/tailwind.css">
+    <link rel="icon" href="data:,">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX for beautifully rendering LLM math output -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .hidden-tab { display: none !important; }
+        .fade-in { animation: fadeIn 0.35s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+        }
+        .dark body { background-color: #0f1117; }
+        .dark .bg-white { background-color: #1a1d27; }
+        .dark .bg-gray-50 { background-color: #13151e; }
+        .dark .bg-gray-100 { background-color: #1e2130; }
+        .dark .bg-gray-200\/80 { background-color: rgba(20, 23, 38, 0.9); }
+        .dark .text-gray-800 { color: #e2e8f0; }
+        .dark .text-gray-700 { color: #cbd5e1; }
+        .dark .text-gray-600 { color: #94a3b8; }
+        .dark .text-gray-500 { color: #94a3b8; }
+        .dark .text-gray-400 { color: #64748b; }
+        .dark .border-gray-100 { border-color: #252836; }
+        .dark .border-gray-200 { border-color: #363a52; }
+        .dark .border-gray-300 { border-color: #4a4e6b; }
+        .dark .bg-amber-50 { background-color: #451a03; }
+        .dark .border-amber-200 { border-color: #b45309; }
+        .dark .text-amber-800 { color: #fde68a; }
+        .dark .text-amber-700 { color: #fcd34d; }
+        .dark .text-rose-700 { color: #fda4af; }
+        .dark .text-green-700 { color: #86efac; }
+        .dark .hover\:bg-gray-50:hover { background-color: #1e2130; }
+        .dark .hover\:bg-gray-100:hover { background-color: #252836; }
+        .dark .hover\:text-gray-900:hover { color: #f1f5f9; }
+        .dark .glass-panel {
+            background: rgba(22, 25, 40, 0.96);
+            border-bottom-color: rgba(45, 50, 80, 0.5);
+        }
+        .dark input,
+        .dark select {
+            background-color: #1e2130;
+            color: #e2e8f0;
+            border-color: #363a52;
+        }
+
+        /* Flashcard 3D Flip Styles */
+        .flip-card {
+            perspective: 1000px;
+            width: 100%;
+            height: 280px;
+        }
+        @media (min-width: 640px) {
+            .flip-card { height: 320px; }
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+        }
+        .flip-card-front {
+            background-color: white;
+            border: 2px solid #e5e7eb;
+        }
+        .dark .flip-card-front {
+            background-color: #1a1d27;
+            border-color: #363a52;
+        }
+        .flip-card-back {
+            background-color: #fffbeb; /* amber-50 */
+            border: 2px solid #f59e0b; /* amber-500 */
+            transform: rotateY(180deg);
+        }
+        .dark .flip-card-back {
+            background-color: #451a03; /* amber-950 */
+            border-color: #b45309; /* amber-600 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col selection:bg-amber-200 selection:text-amber-900">
+    <header class="glass-panel sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <a href="../index.html" class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors shadow-sm" title="Back to Hub">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </a>
+                <h1 class="text-xl sm:text-2xl font-extrabold text-amber-600 flex items-center gap-2 tracking-tight shrink-0">
+                    <i class="fa-solid fa-flask-vial"></i>
+                    Intro to Chemistry
+                </h1>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center shadow-sm transition-colors shrink-0">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 flex-grow w-full pb-24 lg:pb-10 pt-4 lg:pt-6">
+        
+        <!-- Desktop tab navigation (lg only) -->
+        <div class="hidden lg:flex px-0 pb-6 justify-center">
+            <div class="inline-flex bg-gray-200/80 backdrop-blur-sm rounded-full p-1 shadow-inner gap-1" role="group">
+                <button id="nav-dashboard" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('dashboard')">Dashboard</button>
+                <button id="nav-lab" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('lab')">Lab Skills</button>
+                <button id="nav-molar" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('molar')">Molar Mass</button>
+                <button id="nav-dimensions" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('dimensions')">Analysis</button>
+                <button id="nav-stoich" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('stoich')">Stoichiometry</button>
+                <button id="nav-sigfigs" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('sigfigs')">Sig Figs</button>
+                <button id="nav-nomenclature" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('nomenclature')">Nomenclature</button>
+                <button id="nav-tutor" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('tutor')">AI Tutor</button>
+            </div>
+        </div>
+
+        <section id="view-dashboard" class="fade-in">
+            <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6 fade-in">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-3">CH 104Z Skills Lab</h2>
+            <p class="text-gray-600 leading-relaxed">Practice stoichiometry, dimensional analysis, and lab precision using the same workflow style as your terminology trainer.</p>
+            <div id="learning-status" class="mt-4 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-gray-700">
+                Complete your diagnostic to receive a recommended learning track.
+            </div>
+            <div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p class="text-amber-700 font-bold">Avogadro</p>
+                    <p class="text-gray-700" id="constant-avogadro">6.022e23 particles/mol</p>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p class="text-amber-700 font-bold">Gas Constant (atm)</p>
+                    <p class="text-gray-700" id="constant-r-atm">0.08206 L*atm/(mol*K)</p>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p class="text-amber-700 font-bold">Gas Constant (kPa)</p>
+                    <p class="text-gray-700" id="constant-r-kpa">8.314 L*kPa/(mol*K)</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6 fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-800">Step 1: Entry Diagnostic</h3>
+                <span id="diagnostic-progress" class="text-xs font-semibold text-gray-500">Not started</span>
+            </div>
+            <div id="diagnostic-intro" class="text-sm text-gray-600">
+                Answer the quick diagnostic to place into Foundation, Core, or Challenge track.
+            </div>
+            <div id="diagnostic-question-wrap" class="hidden mt-4">
+                <p id="diagnostic-question" class="text-sm font-semibold text-gray-800 mb-3"></p>
+                <div id="diagnostic-choices" class="space-y-2"></div>
+            </div>
+            <div id="diagnostic-result" class="hidden mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800"></div>
+            <div class="mt-4 flex gap-2">
+                <button id="btn-start-diagnostic" class="px-4 py-2 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors">Start Diagnostic</button>
+                <button id="btn-next-diagnostic" class="hidden px-4 py-2 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Next</button>
+            </div>
+        </section>
+
+        <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6 fade-in">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Step 2: Competency Map</h3>
+            <div id="competency-map" class="space-y-3"></div>
+        </section>
+        </section>
+
+        <section id="view-nomenclature" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-xl font-bold">Nomenclature Flashcards</h3>
+                <select id="fc-category-select" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2">
+                </select>
+            </div>
+            <p class="text-gray-600 mb-5">Memorize polyatomic ions and chemical compounds.</p>
+            
+            <div class="flex flex-col items-center justify-center max-w-md mx-auto w-full">
+                <!-- 3D Flip Card Container -->
+                <div id="fc-card" class="flip-card cursor-pointer select-none group">
+                    <div class="flip-card-inner">
+                        <!-- Front Face -->
+                        <div class="flip-card-front group-hover:border-amber-300 transition-colors">
+                            <div class="mt-auto"></div>
+                            <span id="fc-front" class="text-5xl font-black text-gray-800 text-center px-4">Start</span>
+                            <span id="fc-hint" class="text-amber-600/60 text-sm mt-auto flex items-center gap-2 font-medium bg-amber-50/50 px-4 py-2 rounded-full"><i class="fa-solid fa-hand-pointer"></i> Click to Flip</span>
+                        </div>
+                        <!-- Back Face -->
+                        <div class="flip-card-back relative p-6">
+                            <span class="text-xs text-amber-500 absolute top-4 font-semibold uppercase tracking-wider">Answer</span>
+                            <span id="fc-front-repeat" class="text-sm font-medium text-amber-700/70 mb-1 mt-4"></span>
+                            <span id="fc-back" class="text-3xl sm:text-4xl font-bold text-amber-800 text-center px-4 mb-2"></span>
+                            <div id="fc-rule" class="text-sm italic text-amber-700/80 mt-auto bg-amber-50 rounded-lg p-3 w-full border border-amber-100 hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4-Button SM-2 Controls -->
+                <div id="fc-controls" class="mt-6 opacity-0 pointer-events-none transition-all duration-300 translate-y-4 w-full">
+                    <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                        <button id="btn-fc-again" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
+                            <span id="fc-int-again" class="text-[10px] font-bold text-rose-400 mb-0.5">&lt; 1m</span>
+                            <i class="fa-solid fa-rotate-left text-lg"></i>
+                            <span class="text-sm">Again</span>
+                            <span class="text-[10px] text-rose-400/80 font-normal hidden sm:block">1</span>
+                        </button>
+                        <button id="btn-fc-hard" class="bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
+                            <span id="fc-int-hard" class="text-[10px] font-bold text-orange-400 mb-0.5">1d</span>
+                            <i class="fa-solid fa-circle-exclamation text-lg"></i>
+                            <span class="text-sm">Hard</span>
+                            <span class="text-[10px] text-orange-400/80 font-normal hidden sm:block">2</span>
+                        </button>
+                        <button id="btn-fc-good" class="bg-amber-500 border-2 border-amber-600 text-white hover:bg-amber-600 font-bold py-3 px-1 rounded-2xl transition-all shadow-md shadow-amber-500/20 flex flex-col items-center gap-0.5">
+                            <span id="fc-int-good" class="text-[10px] font-bold text-amber-200 mb-0.5">2d</span>
+                            <i class="fa-solid fa-check text-lg"></i>
+                            <span class="text-sm">Good</span>
+                            <span class="text-[10px] text-amber-200/80 font-normal hidden sm:block">3</span>
+                        </button>
+                        <button id="btn-fc-easy" class="bg-white border-2 border-green-200 text-green-600 hover:bg-green-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
+                            <span id="fc-int-easy" class="text-[10px] font-bold text-green-400 mb-0.5">4d</span>
+                            <i class="fa-solid fa-star text-lg"></i>
+                            <span class="text-sm">Easy</span>
+                            <span class="text-[10px] text-green-400/80 font-normal hidden sm:block">4</span>
+                        </button>
+                    </div>
+                    <!-- Ask Tutor Button -->
+                    <div class="mt-2.5 flex justify-center">
+                        <button id="btn-ask-tutor" class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors">
+                            <i class="fa-solid fa-robot text-[10px]"></i> Ask Tutor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mini Chat Widget Placeholder -->
+                <div id="fc-mini-chat-container"></div>
+            </div>
+        </section>
+
+        <!-- Inline Tutor Template -->
+        <template id="inline-tutor-template">
+            <div class="inline-tutor-widget w-full fade-in z-10 relative mt-4">
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-robot text-[10px] text-white"></i>
+                            </div>
+                            <span class="text-xs font-bold text-violet-800">ChemTutor</span>
+                            <span class="tutor-status text-[10px] text-violet-400 font-medium"></span>
+                        </div>
+                        <button class="tutor-close w-7 h-7 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors" title="Close">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                    <div class="tutor-messages px-4 py-3 space-y-3 max-h-44 overflow-y-auto"></div>
+                    <div class="border-t border-gray-100 p-3 flex gap-2">
+                        <input type="text" placeholder="Ask for a hint..." class="tutor-input flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 transition-colors" />
+                        <button class="tutor-send w-9 h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors shadow-sm shrink-0">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <section id="view-tutor" class="hidden-tab fade-in">
+            <!-- Header -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-500">
+                            <i class="fa-solid fa-robot text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-extrabold text-gray-800">Chemistry Tutor</h2>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span id="chat-status-dot" class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
+                                <span id="chat-status-text" class="text-xs font-medium text-gray-400">Checking local AI...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="chat-btn-clear" title="Clear conversation" class="text-xs font-bold text-gray-400 hover:text-rose-500 flex items-center gap-1.5 transition-colors px-3 py-1.5 rounded-full hover:bg-rose-50">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden sm:inline">Clear</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Messages -->
+            <div id="chat-messages" class="overflow-y-auto space-y-4 mb-4 px-1" style="min-height:300px;max-height:55vh">
+                <div id="chat-empty-state" class="flex flex-col items-center justify-center text-center py-8">
+                    <div class="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center mb-4 border border-violet-100">
+                        <i class="fa-solid fa-robot text-2xl text-violet-400"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium mb-5 text-sm">Ask me to explain any stoichiometry setup or polyatomic rule!</p>
+                </div>
+            </div>
+        
+            <!-- Input area -->
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-3 sm:p-4">
+                <div class="flex items-end gap-3">
+                    <textarea id="chat-input" rows="1" placeholder="What does the (II) in Iron(II) Oxide mean?" class="flex-1 bg-gray-50 border-2 border-gray-200 rounded-2xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all resize-none leading-relaxed"></textarea>
+                    <button id="chat-btn-send" class="w-12 h-12 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center shadow-lg shadow-violet-600/30 transition-all flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-paper-plane text-sm"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-2 px-1">Enter to send &nbsp;&middot;&nbsp; Shift+Enter for new line</p>
+            </div>
+        </section>
+
+        <section id="view-molar" class="fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <h3 class="text-xl font-bold mb-2">Molar Mass Calculator</h3>
+            <p class="text-gray-600 mb-5">Enter a formula such as H2O, CO2, Ca(NO3)2, NaCl, or C2H5NO2.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <input id="formula-input" type="text" class="sm:col-span-2 border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Chemical formula">
+                <button id="btn-calc-mass" class="py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Start Guided Solve</button>
+            </div>
+            
+            <div id="molar-steps" class="hidden mt-4 space-y-4">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="p-3 font-semibold text-gray-700">Element</th>
+                                <th class="p-3 font-semibold text-gray-700">Quantity</th>
+                                <th class="p-3 font-semibold text-gray-700">Atomic Mass</th>
+                                <th class="p-3 font-semibold text-gray-700">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="molar-step-container"></tbody>
+                    </table>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-xl flex items-center justify-between border border-gray-200 mt-2">
+                    <span class="font-semibold text-gray-700">Total Molar Mass:</span>
+                    <div class="flex gap-2">
+                        <input id="molar-step-input" type="text" class="border border-gray-200 rounded-lg px-3 py-1 text-sm w-24 text-right" placeholder="0.00" disabled>
+                        <span class="text-gray-500 py-1">g/mol</span>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button id="btn-molar-step-check" class="px-5 py-2 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors text-sm">Check Step</button>
+                </div>
+            </div>
+
+            <div id="molar-output" class="mt-4 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-700">Awaiting input.</div>
+            <div class="mt-4">
+                <p class="text-xs text-gray-500 mb-2 font-semibold uppercase tracking-wider">Included elements</p>
+                <div id="element-chip-list" class="flex flex-wrap gap-2"></div>
+            </div>
+        </section>
+
+        <section id="view-dimensions" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <h3 class="text-xl font-bold mb-2">Dimensional Analysis Builder</h3>
+            <p class="text-gray-600 mb-5">Convert units by building a factor-label chain. Cross-cancel units to reach the target.</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_1fr] gap-3 mb-4 items-center">
+                <input id="da-value" type="number" step="any" class="border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Start Value">
+                <select id="da-from" class="border border-gray-200 rounded-xl px-4 py-3 text-sm"></select>
+                <span class="font-bold text-gray-400 text-center uppercase text-xs tracking-wider">TARGET &rarr;</span>
+                <select id="da-to" class="border border-gray-200 rounded-xl px-4 py-3 text-sm"></select>
+            </div>
+
+            <div class="flex gap-2 mb-4">
+                <select id="da-factor-bank" class="flex-grow border border-gray-200 rounded-xl px-4 py-3 text-sm">
+                    <option value="" disabled selected>Select a conversion factor...</option>
+                </select>
+                <button id="btn-add-factor" class="px-5 py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm">Add Factor</button>
+            </div>
+
+            <div class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 min-h-[120px] mb-4 overflow-x-auto flex items-center gap-3" id="da-chain">
+                <span class="text-sm text-gray-400 italic" id="da-chain-empty">Conversion chain will appear here...</span>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button id="btn-reset-da" class="px-4 py-2 rounded-xl font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors text-sm">Reset Chain</button>
+                <button id="btn-check-da" class="px-6 py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Evaluate Chain</button>
+            </div>
+
+            <div id="da-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-700"></div>
+        </section>
+
+        <section id="view-stoich" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <h3 class="text-xl font-bold mb-2">Reaction & Stoichiometry</h3>
+            <p class="text-gray-600 mb-5">Balance the equation then solve the resulting limiting/yield scenario.</p>
+            
+            <div id="stoich-balancer-container" class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="font-bold text-gray-800 text-sm uppercase tracking-wide">1. Balance the Equation</h4>
+                    <button id="btn-load-reaction" class="text-amber-600 text-sm font-bold hover:underline">New Reaction &rarr;</button>
+                </div>
+                <div id="stoich-equation" class="flex flex-wrap items-center justify-center gap-3 text-lg font-bold">
+                    <span class="text-gray-400 italic text-sm">Load a reaction to begin...</span>
+                </div>
+                <div id="stoich-balance-status" class="mt-4 text-center text-sm font-bold hidden"></div>
+                <div class="flex justify-center mt-4">
+                    <button id="btn-check-balance" class="hidden px-6 py-2 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Check Balance</button>
+                </div>
+            </div>
+            
+            <div id="stoich-scenario-container" class="hidden bg-white border border-amber-200 rounded-xl p-5 mb-4">
+                <h4 class="font-bold text-amber-800 mb-2 text-sm uppercase tracking-wide">2. Solve the Problem</h4>
+                <p id="stoich-prompt" class="text-gray-800 font-medium mb-4 text-sm"></p>
+                <div class="flex gap-2 w-full max-w-sm">
+                    <input id="stoich-reading" type="text" class="flex-grow border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Your Answer (e.g. 15.0 g)">
+                    <button id="btn-check-stoich" class="py-3 px-6 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Submit</button>
+                </div>
+                <div id="stoich-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm text-gray-700"></div>
+            </div>
+        </section>
+
+        <section id="view-lab" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <h3 class="text-xl font-bold mb-2">Lab Precision Trainer</h3>
+            <p class="text-gray-600 mb-5">Instruments have different graduation markings. You must record all certain digits plus exactly one estimated digit.</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 mb-4">
+                <select id="lab-equipment" class="border border-gray-200 rounded-xl px-4 py-3 text-sm"></select>
+                <button id="btn-generate-scenario" class="py-3 px-6 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm">Generate Scenario</button>
+            </div>
+
+            <div id="lab-scenario-container" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-5 mb-4 relative overflow-hidden">
+                <div class="absolute right-0 top-0 opacity-10 pointer-events-none">
+                    <i class="fa-solid fa-microscope text-6xl transform rotate-12 -translate-y-2 translate-x-4"></i>
+                </div>
+                <h4 class="font-bold text-amber-800 mb-2 text-sm uppercase tracking-wide">Visual Observation</h4>
+                
+                <!-- SVG Canvas for Instrument -->
+                <div id="lab-visualizer" class="w-full flex justify-center items-center bg-white border border-amber-100 rounded-lg p-2 sm:p-4 mb-5 shadow-inner relative" style="min-height: 250px;">
+                    <span id="visualizer-placeholder" class="text-gray-400 text-sm italic">Generating instrument view...</span>
+                </div>
+                
+                <h4 class="font-bold text-amber-800 mb-2 mt-2 text-sm uppercase tracking-wide">Scaffolded Analysis</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5" id="lab-scaffold-form">
+                    <div class="bg-white/60 p-3 rounded-lg border border-amber-100">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">1. Value of 1 marking</label>
+                        <input id="lab-step1" type="text" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-center" placeholder="e.g. 0.1">
+                    </div>
+                    <div class="bg-white/60 p-3 rounded-lg border border-amber-100">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">2. Certain Digits</label>
+                        <input id="lab-step2" type="text" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-center" placeholder="e.g. 15.0">
+                    </div>
+                    <div class="bg-white/60 p-3 rounded-lg border border-amber-100">
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">3. Estimated Digit</label>
+                        <input id="lab-step3" type="text" class="w-full border border-gray-200 rounded-md px-3 py-2 text-sm font-mono text-center" placeholder="e.g. 3">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 w-full mt-3 pt-3 border-t border-amber-200/50">
+                    <label class="hidden sm:flex items-center text-sm font-bold text-amber-900 mr-2 whitespace-nowrap">Final Reading:</label>
+                    <input id="lab-reading" type="text" class="flex-grow border-2 border-amber-300 rounded-xl px-4 py-3 text-sm font-mono tracking-wider font-bold text-gray-800" placeholder="e.g. 15.03">
+                    <button id="btn-check-reading" class="py-3 px-6 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Record</button>
+                </div>
+            </div>
+
+            <div id="lab-output" class="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-700">Choose an instrument to begin.</div>
+        </section>
+
+        <section id="view-sigfigs" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <h3 class="text-xl font-bold mb-2">Significant Figures Math Trainer</h3>
+            <p class="text-gray-600 mb-5">Calculate the answer and construct the final string using proper Sig Fig rounding rules.</p>
+            <!-- Expert Educator Sig Fig Tutorial -->
+            <details class="bg-blue-50 dark:bg-slate-800 border border-blue-200 dark:border-slate-700 rounded-xl mb-6 overflow-hidden group transition-colors">
+                <summary class="px-5 py-4 cursor-pointer font-bold text-blue-800 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors flex justify-between items-center select-none">
+                    <span>💡 Expert Guide: The "Truth in Measurement" (Sig Figs)</span>
+                    <span class="text-blue-500 dark:text-blue-400 group-open:rotate-180 transition-transform duration-200">▼</span>
+                </summary>
+                <div class="px-5 pb-5 pt-2 text-sm text-gray-700 dark:text-gray-300 space-y-5">
+                    <div>
+                        <h4 class="font-bold text-blue-900 dark:text-blue-200 border-b border-blue-200 dark:border-slate-700 pb-1 mb-2">0. Why do we care about Sig Figs?</h4>
+                        <p>In math class, 5 = 5.000. But in chemistry, numbers are tied to physical equipment. If you write <strong>5g</strong>, you used a cheap kitchen scale. If you write <strong>5.000g</strong>, you used a $10,000 analytical balance.</p>
+                        <p class="mt-2 text-blue-800 dark:text-blue-300 font-semibold bg-blue-100/50 dark:bg-slate-700/50 p-2 rounded">Significant Figures are how we prove the precision of our equipment. If you calculate an answer to 8 decimal places using data from a cheap scale, you are lying about your precision. Sig Figs prevent that lie.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-blue-900 dark:text-blue-200 border-b border-blue-200 dark:border-slate-700 pb-1 mb-2">1. Counting Zeros (The Atlantic / Pacific Trick)</h4>
+                        <p class="mb-2">Imagine a map of the US. Ask yourself: Is a decimal point <strong>Present</strong> or <strong>Absent</strong>?</p>
+                        <ul class="list-disc pl-5 space-y-2">
+                            <li><strong>P</strong>acific (<strong>P</strong>resent): Start counting from the <strong>Left</strong> (Pacific Ocean) at the first non-zero number. Keep counting to the very end. <br>
+                                <em class="text-gray-500 dark:text-gray-400">Ex: <strong>0.00530</strong> (Start at 5 &rarr; 3 sig figs)</em><br>
+                                <em class="text-gray-500 dark:text-gray-400">Ex: <strong>3400.</strong> (Decimal is present! Start at 3 &rarr; 4 sig figs)</em>
+                            </li>
+                            <li><strong>A</strong>tlantic (<strong>A</strong>bsent): Start counting from the <strong>Right</strong> (Atlantic Ocean) at the first non-zero number. Keep counting to the left. <br>
+                                <em class="text-gray-500 dark:text-gray-400">Ex: <strong>3400</strong> (Start at 4 &rarr; 2 sig figs)</em>
+                            </li>
+                        </ul>
+                        <p class="mt-2 text-xs font-bold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 p-2 rounded">Cheat Code: For scientific notation, only look at the front number. 4.50 &times; 10&sup3; has 3 sig figs.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-blue-900 dark:text-blue-200 border-b border-blue-200 dark:border-slate-700 pb-1 mb-2">2. Multiplication &amp; Division (Count TOTAL Sig Figs)</h4>
+                        <p>Your answer must have the <strong>same number of SIG FIGS</strong> as the measurement with the <em>fewest</em> total sig figs.</p>
+                        <p class="mt-1"><em class="text-gray-500 dark:text-gray-400">Ex: 4.56 (3 SF) &times; 1.4 (2 SF) = 6.384</em></p>
+                        <p class="mt-1 font-bold text-indigo-700 dark:text-indigo-400">&rarr; Action: Round to 2 SF &rarr; 6.4</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-blue-900 dark:text-blue-200 border-b border-blue-200 dark:border-slate-700 pb-1 mb-2">3. Addition &amp; Subtraction (Count DECIMAL PLACES)</h4>
+                        <p>Your answer must have the <strong>same number of DECIMAL PLACES</strong> as the measurement with the <em>fewest</em> decimal places (the "weakest link" in precision).</p>
+                        <p class="mt-1"><em class="text-gray-500 dark:text-gray-400">Ex: 12.11 (2 DP) + 18.0 (1 DP) = 30.11</em></p>
+                        <p class="mt-1 font-bold text-indigo-700 dark:text-indigo-400">&rarr; Action: Round to 1 DP &rarr; 30.1</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-red-700 dark:text-red-400 border-b border-red-200 dark:border-red-900/50 pb-1 mb-2">4. ⚠️ The Two Golden Rules of College Chem ⚠️</h4>
+                        <ul class="list-disc pl-5 space-y-2">
+                            <li><strong>Exact Numbers:</strong> Counting physical objects (e.g., "3 beakers") or exact definitions (e.g., "1000 mL = 1 L") have <em>infinite precision</em>. Ignore them when figuring out how to round your final answer.</li>
+                            <li><strong>Multi-Step Math:</strong> NEVER round in the middle of a problem! Keep all the ugly digits in your calculator and apply the rounding rules <em>only</em> to your final answer.</li>
+                        </ul>
+                    </div>
+                </div>
+            </details>            
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-4 text-center relative">
+                <button id="btn-generate-sigfig" class="absolute top-4 right-4 text-amber-600 text-xs font-bold hover:underline">New Problem &rarr;</button>
+                <div id="sigfig-problem" class="text-2xl font-black text-gray-800 tracking-wide mt-4 mb-6">Click "New Problem"</div>
+                <div class="flex flex-col items-center gap-2 max-w-xs mx-auto">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Rounded Answer</label>
+                    <input id="sigfig-answer" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-3 text-center text-lg font-bold" placeholder="e.g. 1.23">
+                </div>
+                <button id="btn-check-sigfig" class="mt-6 px-8 py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Submit Final Answer</button>
+            </div>
+            <div id="sigfig-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm text-gray-700"></div>
+        </section>
+    </main>
+
+    <footer class="max-w-7xl mx-auto mt-4 mb-8 border-t border-gray-100 pt-6 px-4 text-center">
+        <p class="text-xs text-gray-400 font-medium">
+            <i class="fa-solid fa-flask text-amber-500 mr-1"></i>
+            Educational chemistry practice module for prereq readiness.
+        </p>
+    </footer>
+
+    <!-- Bottom tab navigation (mobile only) -->
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50 bnav-safe">
+        <div class="flex overflow-x-auto no-scrollbar">
+            <button id="bnav-dashboard" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateChemTab('dashboard')">
+                <i class="bnav-icon fa-solid fa-house text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Home</span>
+            </button>
+            <button id="bnav-lab" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateChemTab('lab')">
+                <i class="bnav-icon fa-solid fa-scale-balanced text-lg text-amber-600 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-amber-600 transition-colors">Lab</span>
+            </button>
+            <button id="bnav-molar" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateChemTab('molar')">
+                <i class="bnav-icon fa-solid fa-cubes text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Molar</span>
+            </button>
+            <button id="bnav-dimensions" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('dimensions')">
+                <i class="bnav-icon fa-solid fa-ruler-combined text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Analysis</span>
+            </button>
+            <button id="bnav-stoich" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('stoich')">
+                <i class="bnav-icon fa-solid fa-flask text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Stoich</span>
+            </button>
+            <button id="bnav-sigfigs" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('sigfigs')">
+                <i class="bnav-icon fa-solid fa-bullseye text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Sig Figs</span>
+            </button>
+            <button id="bnav-nomenclature" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('nomenclature')">
+                <i class="bnav-icon fa-solid fa-layer-group text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Nomenclature</span>
+            </button>
+            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('tutor')">
+                <i class="bnav-icon fa-solid fa-robot text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
+            </button>
+        </div>
+    </nav>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

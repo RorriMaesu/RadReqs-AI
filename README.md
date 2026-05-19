@@ -50,7 +50,14 @@ The foundational module for clinical language mastery.
   </tr>
 </table>
 
-### 3. Gamification Engine
+### 3. Intro to Chemistry (New Module)
+An interactive chemistry practice module focused on prereq mastery for CH 104Z-style coursework.
+- **Entry Diagnostic + Learning Tracks:** Places learners into Foundation, Core, or Challenge track.
+- **Lab Precision Trainer:** Practices analog/digital instrument reading, meniscus interpretation, and precision rules.
+- **Core Skill Practice:** Includes molar mass, dimensional analysis, stoichiometry, significant figures, and nomenclature drills.
+- **Prof. Beaker (AI Tutor):** Context-aware chemistry coaching powered by your local Ollama model.
+
+### 4. Gamification Engine
 Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
 - **XP & Leveling System:** Progress from *Pre-Med Student* all the way to *Legacy Master*.
 - **Streak Tracking & Shields:** Maintain daily study streaks, unlock comeback achievements, and earn streak shields to protect your progress.
@@ -64,7 +71,7 @@ Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicte
   </tr>
 </table>
 
-### 4. Fully Responsive Mobile UI
+### 5. Fully Responsive Mobile UI
 Study anywhere, perfectly optimized for your phone.
 
 <table width="100%">
@@ -74,7 +81,7 @@ Study anywhere, perfectly optimized for your phone.
   </tr>
 </table>
 
-### 5. Comprehensive Curriculum Roadmap
+### 6. Comprehensive Curriculum Roadmap
 Placeholders are beautifully integrated for future module expansion, creating a complete pathway:
 - Anatomy & Physiology
 - General Physics & Mathematics Core

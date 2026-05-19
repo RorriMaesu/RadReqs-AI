@@ -850,7 +850,57 @@
 
         </section>
 
-            </main>
+            <template id="inline-tutor-template">
+            <div class="inline-tutor-widget w-full fade-in z-10 relative mt-4">
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-robot text-[10px] text-white"></i>
+                            </div>
+                            <span class="text-xs font-bold text-violet-800">ChemTutor</span>
+                            <span class="tutor-status text-[10px] text-violet-400 font-medium"></span>
+                        </div>
+                        <button class="tutor-close w-7 h-7 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors" title="Close">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                    <div class="tutor-messages px-4 py-3 space-y-3 max-h-44 overflow-y-auto"></div>
+                    <div class="border-t border-gray-100 p-3 flex gap-2">
+                        <input type="text" placeholder="Ask for a hint..." class="tutor-input flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 transition-colors" />
+                        <button class="tutor-send w-9 h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors shadow-sm shrink-0">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    <template id="inline-tutor-template">
+            <div class="inline-tutor-widget w-full fade-in z-10 relative mt-4">
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-robot text-[10px] text-white"></i>
+                            </div>
+                            <span class="text-xs font-bold text-violet-800">ChemTutor</span>
+                            <span class="tutor-status text-[10px] text-violet-400 font-medium"></span>
+                        </div>
+                        <button class="tutor-close w-7 h-7 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 hover:bg-violet-100 transition-colors" title="Close">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                    <div class="tutor-messages px-4 py-3 space-y-3 max-h-44 overflow-y-auto"></div>
+                    <div class="border-t border-gray-100 p-3 flex gap-2">
+                        <input type="text" placeholder="Ask for a hint..." class="tutor-input flex-1 text-sm px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/30 transition-colors" />
+                        <button class="tutor-send w-9 h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors shadow-sm shrink-0">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </main>
         </div><!-- end content column -->
     </div><!-- end page layout wrapper -->
 

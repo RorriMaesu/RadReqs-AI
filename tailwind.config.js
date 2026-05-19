@@ -5,7 +5,8 @@ module.exports = {
     "./index.html",
     "./syngnosia/index.html",
     "./syngnosia/app.js",
-    "./syngnosia/data.js"
+    "./syngnosia/data.js",
+    "./chemistry/**/*.{html,js}"
   ],
   theme: {
     extend: {
