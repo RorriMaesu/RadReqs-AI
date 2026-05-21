@@ -33,6 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Handle coursework sandbox handshake parameters
     handleCourseworkSandboxHandshake();
+
+    // Initialize global tooltips for interactive chemical formulas
+    initGlobalTooltip();
 });
 
 function getDefaultLearningState() {
@@ -138,25 +141,68 @@ function bindTutorActions() {
 4. Keep your responses concise (2-4 sentences max). Use markdown lists if helpful.`;
 
     const parseMD = (text) => {
+        if (typeof text !== 'string') return '';
+
+        // Escape HTML tags to prevent XSS
         let html = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        // Math blocks $$ ... $$
-        html = html.replace(/\$\$([\s\S]*?)\$\$/g, '<div class="text-center font-mono my-2 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 py-1 rounded">$1</div>');
-        // Inline math $ ... $
-        html = html.replace(/\$([^\n]+?)\$/g, '<span class="font-mono text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded">$1</span>');
+
+        // Extract code blocks and inline code to protect them
+        const codeBlocks = [];
+        
+        // Match code blocks: ``` ... ```
+        html = html.replace(/```(?:javascript|js|chemistry|html|css)?\n([\s\S]*?)\n```/g, (match, code) => {
+            const id = `__CODE_BLOCK_${codeBlocks.length}__`;
+            codeBlocks.push(`<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg my-2 overflow-x-auto font-mono text-xs">${code}</pre>`);
+            return id;
+        });
+
+        // Match inline backticks: `...`
+        html = html.replace(/`([^`\n]+?)`/g, (match, code) => {
+            const id = `__CODE_BLOCK_${codeBlocks.length}__`;
+            codeBlocks.push(`<code class="bg-gray-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-1 py-0.5 rounded font-mono text-xs">${code}</code>`);
+            return id;
+        });
+
+        // Run consolidated math and LaTeX cleanup on the remaining text
+        if (window.CLINICAL_TUTOR && typeof window.CLINICAL_TUTOR.cleanMathAndLaTeX === 'function') {
+            html = window.CLINICAL_TUTOR.cleanMathAndLaTeX(html);
+        } else {
+            // Fallback simple clean
+            html = html.replace(/\\mathrm\{([^{}]+)\}/g, '$1')
+                       .replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
+                       .replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>')
+                       .replace(/([A-Za-z0-9)])_([0-9]+)/g, '$1<sub>$2</sub>')
+                       .replace(/([A-Za-z0-9)])\^([0-9+\-]+)/g, '$1<sup>$2</sup>')
+                       .replace(/\$\$/g, '')
+                       .replace(/\$/g, '');
+        }
+
         // Headers
         html = html.replace(/^####\s+(.*)$/gm, '<h4 class="font-bold text-gray-800 dark:text-gray-200 mt-3 mb-1">$1</h4>');
         html = html.replace(/^###\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
+        
         // Bold
         html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Italics (negative lookbehind/lookahead for proper emphasis handling)
+        
+        // Italics
         html = html.replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+        
         // Lists
         html = html.replace(/^[\*\-]\s+(.*)$/gm, '<li class="ml-5 list-disc marker:text-indigo-500">$1</li>');
+        
         // Newlines
         html = html.replace(/\n/g, '<br>');
+        
         // Cleanup excessive breaks around block elements
         html = html.replace(/<\/(h3|h4|div|li)><br>/g, '</$1>');
         html = html.replace(/<br><li/g, '<li');
+        html = html.replace(/(<br>\s*){2,}/g, '<br><br>');
+
+        // Restore protected code blocks
+        codeBlocks.forEach((codeHtml, index) => {
+            html = html.replace(`__CODE_BLOCK_${index}__`, codeHtml);
+        });
+
         return html;
     };
 
@@ -995,6 +1041,46 @@ function bindConversionActions() {
 
 let labSession = null;
 
+function isEquationBalanced(rxn, userCoefficients) {
+    if (!userCoefficients || userCoefficients.length !== rxn.reactants.length + rxn.products.length) {
+        return false;
+    }
+    for (let c of userCoefficients) {
+        if (isNaN(c) || c <= 0) return false;
+    }
+
+    const reactantCounts = {};
+    for (let i = 0; i < rxn.reactants.length; i++) {
+        const formula = rxn.reactants[i];
+        const coeff = userCoefficients[i];
+        const res = parseFormula(formula);
+        if (!res.ok) return false;
+        res.elements.forEach(el => {
+            reactantCounts[el.symbol] = (reactantCounts[el.symbol] || 0) + el.count * coeff;
+        });
+    }
+
+    const productCounts = {};
+    for (let i = 0; i < rxn.products.length; i++) {
+        const formula = rxn.products[i];
+        const coeff = userCoefficients[rxn.reactants.length + i];
+        const res = parseFormula(formula);
+        if (!res.ok) return false;
+        res.elements.forEach(el => {
+            productCounts[el.symbol] = (productCounts[el.symbol] || 0) + el.count * coeff;
+        });
+    }
+
+    const allElements = new Set([...Object.keys(reactantCounts), ...Object.keys(productCounts)]);
+    for (let sym of allElements) {
+        if ((reactantCounts[sym] || 0) !== (productCounts[sym] || 0)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function bindStoichActions() {
     const btnLoad = document.getElementById("btn-load-reaction");
     const equationContainer = document.getElementById("stoich-equation");
@@ -1013,7 +1099,7 @@ function bindStoichActions() {
 
     btnLoad.addEventListener("click", () => {
         const rxns = window.ChemData.stoichiometry.reactions;
-        currentRxn = rxns[Math.floor(Math.random() * rxns.length)];
+        currentRxn = JSON.parse(JSON.stringify(rxns[Math.floor(Math.random() * rxns.length)]));
         
         equationContainer.innerHTML = "";
         inputs = [];
@@ -1031,10 +1117,16 @@ function bindStoichActions() {
                 inp.min = "1";
                 inp.value = "1";
                 inp.className = "w-12 text-center border-b-2 border-gray-300 bg-transparent py-1 outline-none focus:border-amber-500 font-bold";
+                
+                // Clear validation colors on change
+                inp.addEventListener("input", () => {
+                    inp.classList.remove("text-rose-600", "text-green-600");
+                });
+
                 inputs.push(inp);
                 
                 const span = document.createElement("span");
-                span.textContent = mol;
+                span.innerHTML = renderInteractiveFormula(mol);
                 
                 wrap.appendChild(inp);
                 wrap.appendChild(span);
@@ -1061,19 +1153,30 @@ function bindStoichActions() {
         if (!currentRxn) return;
         
         statusDiv.classList.remove("hidden");
-        let allCorrect = true;
+        
+        const userCoeffs = inputs.map(inp => parseInt(inp.value, 10));
+        const allPositive = userCoeffs.every(c => !isNaN(c) && c > 0);
+        
+        let allCorrect = false;
+        if (allPositive) {
+            allCorrect = isEquationBalanced(currentRxn, userCoeffs);
+        }
+
         inputs.forEach((inp, idx) => {
-            if (parseInt(inp.value, 10) !== currentRxn.coefficients[idx]) {
-                allCorrect = false;
-                inp.classList.add("text-rose-600");
-            } else {
+            if (allCorrect) {
                 inp.classList.remove("text-rose-600");
                 inp.classList.add("text-green-600");
                 inp.disabled = true;
+            } else {
+                inp.classList.remove("text-green-600");
+                inp.classList.add("text-rose-600");
             }
         });
 
         if (allCorrect) {
+            // Save the user's balanced coefficients back into the current reaction object in memory
+            currentRxn.coefficients = userCoeffs;
+
             statusDiv.textContent = "Equation Balanced!";
             statusDiv.className = "mt-4 text-center text-sm font-bold text-green-600";
             btnCheckBalance.classList.add("hidden");
@@ -1126,12 +1229,17 @@ function bindStoichActions() {
                 correctAnswer: exact,
                 unit: `g ${p1}`,
                 sigFigs: expectedSigFigs,
-                molarMasses: molarMassesStr
+                molarMasses: molarMassesStr,
+                m1: m1,
+                m2: m2
             };
             
             scenarioContainer.classList.remove("hidden");
             promptEl.textContent = currentRxn.activeScenario.prompt;
             readingInput.value = "";
+            if (typeof initScratchpad === "function") {
+                initScratchpad(currentRxn, currentRxn.activeScenario);
+            }
         } else {
             statusDiv.textContent = "Not balanced yet. Check coefficients.";
             statusDiv.className = "mt-4 text-center text-sm font-bold text-rose-600";
@@ -1207,6 +1315,301 @@ function bindStoichActions() {
             }
         }
     });
+
+    // Toggle scratch pad visibility
+    const btnToggleScratch = document.getElementById("btn-toggle-scratchpad");
+    const scratchContent = document.getElementById("scratchpad-content");
+    const scratchToggleIcon = document.getElementById("scratchpad-toggle-icon");
+    if (btnToggleScratch && scratchContent && scratchToggleIcon) {
+        btnToggleScratch.addEventListener("click", () => {
+            const isCollapsed = scratchContent.classList.contains("hidden");
+            if (isCollapsed) {
+                scratchContent.classList.remove("hidden");
+                scratchToggleIcon.textContent = "▲";
+            } else {
+                scratchContent.classList.add("hidden");
+                scratchToggleIcon.textContent = "▼";
+            }
+        });
+        
+        // Ensure it starts open
+        scratchContent.classList.remove("hidden");
+        scratchToggleIcon.textContent = "▲";
+    }
+}
+
+function initScratchpad(rxn, activeScenario) {
+    const tbody = document.getElementById("scratchpad-tbody");
+    const btnImport = document.getElementById("btn-scratchpad-import");
+    const notepad = document.getElementById("scratchpad-notes");
+    
+    if (!tbody) return;
+    
+    tbody.innerHTML = "";
+    if (notepad) notepad.value = "";
+    
+    // Guard check: Ensure rxn and activeScenario are valid
+    if (!rxn || !activeScenario) {
+        console.warn("initScratchpad: Missing reaction or activeScenario.");
+        return;
+    }
+    
+    const speciesList = [];
+    
+    rxn.reactants.forEach((formula, idx) => {
+        speciesList.push({
+            formula,
+            coeff: rxn.coefficients[idx],
+            type: "reactant",
+            index: idx
+        });
+    });
+    
+    rxn.products.forEach((formula, idx) => {
+        speciesList.push({
+            formula,
+            coeff: rxn.coefficients[rxn.reactants.length + idx],
+            type: "product",
+            index: idx
+        });
+    });
+    
+    const rowInputs = [];
+    
+    // Helper to dispatch standard input/change events for reactivity
+    const dispatchInputEvents = (el) => {
+        if (!el) return;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    // Helper to clear error highlights on focus/input
+    const registerClearOnErrorInput = (el) => {
+        const handler = () => el.classList.remove("border-rose-500", "dark:border-rose-500");
+        el.addEventListener("input", handler);
+        el.addEventListener("change", handler);
+    };
+
+    speciesList.forEach((sp) => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-slate-100 dark:border-slate-800/50";
+        
+        // 1. Formula
+        const tdFormula = document.createElement("td");
+        tdFormula.className = "py-3 font-semibold text-slate-800 dark:text-slate-200";
+        tdFormula.innerHTML = `${sp.coeff} <span class="ml-1">${renderInteractiveFormula(sp.formula)}</span>`;
+        tr.appendChild(tdFormula);
+        
+        // 2. Molar Mass
+        const tdMolarMass = document.createElement("td");
+        tdMolarMass.className = "py-3 pr-2";
+        const mmVal = getMolarMass(sp.formula);
+        tdMolarMass.innerHTML = `
+            <input type="number" step="0.01" data-field="molar-mass" data-type="${sp.type}" data-index="${sp.index}" class="w-full text-xs p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-amber-500 font-mono transition-all duration-200" placeholder="MM (g/mol)">
+            <button type="button" class="btn-fill-mm text-[10px] text-amber-600 dark:text-amber-400 hover:underline text-left block mt-0.5" data-mm="${mmVal.toFixed(2)}">Use ${mmVal.toFixed(2)}</button>
+        `;
+        tr.appendChild(tdMolarMass);
+        
+        // 3. Mass
+        const tdMass = document.createElement("td");
+        tdMass.className = "py-3 pr-2";
+        tdMass.innerHTML = `
+            <input type="number" step="0.1" data-field="mass" data-type="${sp.type}" data-index="${sp.index}" class="w-full text-xs p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-amber-500 font-mono transition-all duration-200" placeholder="Mass (g)">
+        `;
+        tr.appendChild(tdMass);
+        
+        // 4. Moles
+        const tdMoles = document.createElement("td");
+        tdMoles.className = "py-3 pr-2";
+        tdMoles.innerHTML = `
+            <input type="number" step="0.0001" data-field="moles" data-type="${sp.type}" data-index="${sp.index}" class="w-full text-xs p-1.5 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 outline-none focus:border-amber-500 font-mono transition-all duration-200" placeholder="Moles">
+        `;
+        tr.appendChild(tdMoles);
+        
+        // 5. Actions
+        const tdActions = document.createElement("td");
+        tdActions.className = "py-3 text-center space-y-1.5";
+        
+        if (sp.type === "reactant") {
+            tdActions.innerHTML = `
+                <button type="button" class="btn-calc-moles w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[10px] rounded shadow-sm shadow-amber-500/25 transition-colors" title="Calculate Moles = Mass / Molar Mass">g &rarr; mol</button>
+            `;
+        } else {
+            let ratioHtml = "";
+            rxn.reactants.forEach((rFormula, rIdx) => {
+                const rCoeff = rxn.coefficients[rIdx];
+                const rName = rFormula;
+                ratioHtml += `
+                    <button type="button" class="btn-calc-ratio block w-full py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[9px] font-bold rounded transition-colors" data-reactant-idx="${rIdx}" data-ratio="${sp.coeff / rCoeff}" title="Calculate from ${rName}">from ${rName}</button>
+                `;
+            });
+            ratioHtml += `
+                <button type="button" class="btn-calc-mass block w-full py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded transition-colors" title="Calculate Yield = Moles * Molar Mass">mol &rarr; g</button>
+            `;
+            tdActions.innerHTML = ratioHtml;
+        }
+        tr.appendChild(tdActions);
+        
+        tbody.appendChild(tr);
+        
+        const inpMM = tdMolarMass.querySelector("input");
+        const inpMass = tdMass.querySelector("input");
+        const inpMoles = tdMoles.querySelector("input");
+        
+        registerClearOnErrorInput(inpMM);
+        registerClearOnErrorInput(inpMass);
+        registerClearOnErrorInput(inpMoles);
+        
+        const rowData = {
+            formula: sp.formula,
+            coeff: sp.coeff,
+            type: sp.type,
+            index: sp.index,
+            inpMM,
+            inpMass,
+            inpMoles
+        };
+        rowInputs.push(rowData);
+        
+        // Add event listener to the "Use Molar Mass" button
+        const btnFillMM = tdMolarMass.querySelector(".btn-fill-mm");
+        if (btnFillMM) {
+            btnFillMM.addEventListener("click", () => {
+                inpMM.value = btnFillMM.getAttribute("data-mm");
+                inpMM.classList.remove("border-rose-500", "dark:border-rose-500");
+                dispatchInputEvents(inpMM);
+            });
+        }
+        
+        // Add event listener to "Calculate Moles" for reactants
+        if (sp.type === "reactant") {
+            const btnCalcMoles = tdActions.querySelector(".btn-calc-moles");
+            btnCalcMoles.addEventListener("click", () => {
+                const mm = parseFloat(inpMM.value);
+                const mass = parseFloat(inpMass.value);
+                let hasError = false;
+                
+                if (isNaN(mm) || mm <= 0) {
+                    inpMM.classList.add("border-rose-500", "dark:border-rose-500");
+                    hasError = true;
+                }
+                if (isNaN(mass)) {
+                    inpMass.classList.add("border-rose-500", "dark:border-rose-500");
+                    hasError = true;
+                }
+                
+                if (hasError) {
+                    const firstErr = isNaN(mm) ? inpMM : inpMass;
+                    firstErr.focus();
+                    return;
+                }
+                
+                inpMoles.value = (mass / mm).toFixed(4);
+                inpMoles.classList.remove("border-rose-500", "dark:border-rose-500");
+                dispatchInputEvents(inpMoles);
+            });
+        } else {
+            // Add event listeners to "Calculate from Reactant" for products
+            const btnsCalcRatio = tdActions.querySelectorAll(".btn-calc-ratio");
+            btnsCalcRatio.forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const rIdx = parseInt(btn.getAttribute("data-reactant-idx"), 10);
+                    const reactantRow = rowInputs.find(ri => ri.type === "reactant" && ri.index === rIdx);
+                    if (reactantRow) {
+                        const rMoles = parseFloat(reactantRow.inpMoles.value);
+                        const ratio = parseFloat(btn.getAttribute("data-ratio"));
+                        
+                        if (isNaN(rMoles)) {
+                            reactantRow.inpMoles.classList.add("border-rose-500", "dark:border-rose-500");
+                            reactantRow.inpMoles.focus();
+                            return;
+                        }
+                        
+                        if (!isNaN(ratio)) {
+                            inpMoles.value = (rMoles * ratio).toFixed(4);
+                            inpMoles.classList.remove("border-rose-500", "dark:border-rose-500");
+                            dispatchInputEvents(inpMoles);
+                        }
+                    }
+                });
+            });
+            
+            // Add event listener to "Calculate Mass" (yield) for products
+            const btnCalcMass = tdActions.querySelector(".btn-calc-mass");
+            btnCalcMass.addEventListener("click", () => {
+                const mm = parseFloat(inpMM.value);
+                const moles = parseFloat(inpMoles.value);
+                let hasError = false;
+                
+                if (isNaN(mm) || mm <= 0) {
+                    inpMM.classList.add("border-rose-500", "dark:border-rose-500");
+                    hasError = true;
+                }
+                if (isNaN(moles)) {
+                    inpMoles.classList.add("border-rose-500", "dark:border-rose-500");
+                    hasError = true;
+                }
+                
+                if (hasError) {
+                    const firstErr = isNaN(mm) ? inpMM : inpMoles;
+                    firstErr.focus();
+                    return;
+                }
+                
+                inpMass.value = (moles * mm).toFixed(1);
+                inpMass.classList.remove("border-rose-500", "dark:border-rose-500");
+                dispatchInputEvents(inpMass);
+            });
+        }
+    });
+    
+    // Auto-fill masses function
+    const doAutoFill = () => {
+        if (activeScenario.m1) {
+            const r1Row = rowInputs.find(ri => ri.type === "reactant" && ri.index === 0);
+            if (r1Row && r1Row.inpMass) {
+                r1Row.inpMass.value = activeScenario.m1;
+                r1Row.inpMass.classList.remove("border-rose-500", "dark:border-rose-500");
+                dispatchInputEvents(r1Row.inpMass);
+            } else {
+                const fallback = tbody.querySelector('input[data-field="mass"][data-type="reactant"][data-index="0"]');
+                if (fallback) {
+                    fallback.value = activeScenario.m1;
+                    fallback.classList.remove("border-rose-500", "dark:border-rose-500");
+                    dispatchInputEvents(fallback);
+                }
+            }
+        }
+        if (activeScenario.m2) {
+            const r2Row = rowInputs.find(ri => ri.type === "reactant" && ri.index === 1);
+            if (r2Row && r2Row.inpMass) {
+                r2Row.inpMass.value = activeScenario.m2;
+                r2Row.inpMass.classList.remove("border-rose-500", "dark:border-rose-500");
+                dispatchInputEvents(r2Row.inpMass);
+            } else {
+                const fallback = tbody.querySelector('input[data-field="mass"][data-type="reactant"][data-index="1"]');
+                if (fallback) {
+                    fallback.value = activeScenario.m2;
+                    fallback.classList.remove("border-rose-500", "dark:border-rose-500");
+                    dispatchInputEvents(fallback);
+                }
+            }
+        }
+    };
+    
+    // Call auto fill initially
+    doAutoFill();
+    
+    // Bind click to Import button
+    if (btnImport) {
+        btnImport.onclick = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            doAutoFill();
+        };
+    }
 }
 
 function getMolarMass(formula) {
@@ -1301,8 +1704,45 @@ function formatFormula(str) {
     if (!str) return "";
     let formatted = str.replace(/ (\d?[+-])/g, "<sup>$1</sup>");
     formatted = formatted.replace(/(\d?[+-])$/, "<sup>$1</sup>");
-    formatted = formatted.replace(/(?<!^)(?<!�\s*)([A-Za-z\)])(\d+)(?!\s*<)/g, "$1<sub>$2</sub>");
+    formatted = formatted.replace(/(?<!^)(?<!\s*)([A-Za-z\)])(\d+)(?!\s*<)/g, "$1<sub>$2</sub>");
     return formatted;
+}
+
+function renderInteractiveFormula(formula) {
+    if (!formula) return "";
+    const regex = /([A-Z][a-z]?)|(\d+)|([()+-[\]*·•])/g;
+    let html = "";
+    let match;
+    regex.lastIndex = 0;
+    
+    let lastIndex = 0;
+    while ((match = regex.exec(formula)) !== null) {
+        if (match.index > lastIndex) {
+            html += formula.slice(lastIndex, match.index);
+        }
+        
+        const [token, element, subscript, special] = match;
+        if (element) {
+            const elData = window.ChemData?.elements?.[element];
+            const name = elData ? elData.name : element;
+            const mass = elData ? elData.mass : "";
+            
+            html += `
+            <span tabindex="0" class="chem-tooltip-trigger inline-block cursor-help border-b border-dotted border-amber-500/60 hover:text-amber-600 focus:text-amber-600 outline-none select-none transition-colors" data-tooltip-name="${name}" ${mass ? `data-tooltip-mass="${mass}"` : ""}>
+                ${element}
+            </span>
+            `.trim();
+        } else if (subscript) {
+            html += `<sub>${subscript}</sub>`;
+        } else if (special) {
+            html += special;
+        }
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < formula.length) {
+        html += formula.slice(lastIndex);
+    }
+    return html;
 }
 
 function bindNomenclatureActions() {
@@ -1562,64 +2002,347 @@ function bindLabActions() {
 
     function generateSVG(spec, value) {
         if (spec.type === "digital") {
-            return `<div class="bg-gray-800 p-6 rounded-lg text-green-400 font-mono text-4xl shadow-inner text-center border-4 border-gray-900 mx-auto max-w-[300px]">${value.toFixed(spec.decimalPlaces)} ${spec.unit}</div>`;
+            // Analytical Balance rendering
+            return `
+            <svg width="220" height="220" xmlns="http://www.w3.org/2000/svg" class="mx-auto select-none">
+                <defs>
+                    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#94a3b8" />
+                        <stop offset="50%" stop-color="#f1f5f9" />
+                        <stop offset="100%" stop-color="#64748b" />
+                    </linearGradient>
+                    <linearGradient id="lcdGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#020617" />
+                        <stop offset="100%" stop-color="#0f172a" />
+                    </linearGradient>
+                    <linearGradient id="casingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#f8fafc" />
+                        <stop offset="100%" stop-color="#cbd5e1" />
+                    </linearGradient>
+                </defs>
+
+                <!-- Balance Base Shadow -->
+                <rect x="8" y="105" width="204" height="106" fill="rgba(0, 0, 0, 0.15)" rx="12" />
+
+                <!-- Balance Body -->
+                <rect x="10" y="100" width="200" height="110" fill="url(#casingGradient)" stroke="#94a3b8" stroke-width="2.5" rx="10" />
+                
+                <!-- Feet of the balance -->
+                <rect x="25" y="209" width="30" height="6" fill="#334155" rx="2" />
+                <rect x="165" y="209" width="30" height="6" fill="#334155" rx="2" />
+                
+                <!-- Glass Draft Shield Back panel & floor -->
+                <rect x="30" y="15" width="160" height="85" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="1" rx="4" />
+                <!-- Chamber Interior shadow -->
+                <rect x="32" y="17" width="156" height="15" fill="rgba(148, 163, 184, 0.1)" />
+                
+                <!-- Weighing Pan Pillar -->
+                <rect x="106" y="78" width="8" height="22" fill="#64748b" stroke="#475569" stroke-width="0.5" />
+                <!-- Weighing Pan -->
+                <ellipse cx="110" cy="78" rx="42" ry="5" fill="url(#metalGradient)" stroke="#475569" stroke-width="1" />
+                
+                <!-- Weighing Boat -->
+                <path d="M 88 77 L 93 70 L 127 70 L 132 77 Z" fill="rgba(147, 197, 253, 0.5)" stroke="#2563eb" stroke-width="1.5" />
+                <!-- Substance (Crystals represented as white and pale blue dots) -->
+                <circle cx="106" cy="74" r="1.5" fill="#ffffff" opacity="0.9" />
+                <circle cx="109" cy="73" r="1.5" fill="#e0f2fe" opacity="0.9" />
+                <circle cx="112" cy="74" r="2" fill="#ffffff" opacity="0.9" />
+                <circle cx="115" cy="73" r="1.5" fill="#bae6fd" opacity="0.9" />
+                <circle cx="111" cy="72" r="1" fill="#ffffff" opacity="0.9" />
+                <circle cx="118" cy="74" r="1.5" fill="#ffffff" opacity="0.9" />
+                <circle cx="103" cy="75" r="1.5" fill="#ffffff" opacity="0.9" />
+                <circle cx="107" cy="75" r="1" fill="#bae6fd" opacity="0.9" />
+                <circle cx="114" cy="75" r="1" fill="#ffffff" opacity="0.9" />
+                
+                <!-- Draft Shield Glass Panels (Foreground) -->
+                <rect x="30" y="15" width="160" height="85" fill="rgba(219, 234, 254, 0.15)" stroke="#94a3b8" stroke-width="1.5" rx="4" />
+                <!-- Glass Reflections -->
+                <path d="M 35 18 L 85 18 L 50 95 L 35 95 Z" fill="rgba(255, 255, 255, 0.25)" />
+                <path d="M 145 18 L 185 18 L 175 95 L 145 95 Z" fill="rgba(255, 255, 255, 0.15)" />
+                
+                <!-- Digital Display Panel -->
+                <rect x="30" y="115" width="160" height="46" fill="url(#lcdGradient)" stroke="#334155" stroke-width="2.5" rx="6" />
+                <!-- Glowing digital readout -->
+                <text x="110" y="146" fill="#06b6d4" font-family="monospace" font-weight="bold" font-size="22" text-anchor="middle" style="text-shadow: 0 0 8px rgba(6, 182, 212, 0.8);" class="select-none">
+                    ${value.toFixed(spec.decimalPlaces)} <tspan font-size="15" fill="#0891b2">${spec.unit}</tspan>
+                </text>
+                
+                <!-- Status text "STABLE" -->
+                <text x="38" y="127" fill="#10b981" font-family="sans-serif" font-weight="bold" font-size="7" class="select-none">STABLE</text>
+                <!-- Zero indicator -->
+                <circle cx="176" cy="124" r="2" fill="#10b981" />
+                <text x="176" y="132" fill="#64748b" font-family="sans-serif" font-size="6" text-anchor="middle" class="select-none">ZERO</text>
+                
+                <!-- Buttons -->
+                <!-- Tare Button -->
+                <g class="cursor-pointer">
+                    <rect x="40" y="174" width="40" height="20" fill="#94a3b8" stroke="#475569" stroke-width="1" rx="4" />
+                    <text x="60" y="187" fill="#1e293b" font-family="sans-serif" font-weight="bold" font-size="8" text-anchor="middle" class="select-none">TARE</text>
+                </g>
+                <!-- On/Off Button -->
+                <g class="cursor-pointer">
+                    <rect x="90" y="174" width="40" height="20" fill="#ef4444" stroke="#b91c1c" stroke-width="1" rx="4" />
+                    <text x="110" y="187" fill="#ffffff" font-family="sans-serif" font-weight="bold" font-size="8" text-anchor="middle" class="select-none">ON/OFF</text>
+                </g>
+                <!-- Cal Button -->
+                <g class="cursor-pointer">
+                    <rect x="140" y="174" width="40" height="20" fill="#94a3b8" stroke="#475569" stroke-width="1" rx="4" />
+                    <text x="160" y="187" fill="#1e293b" font-family="sans-serif" font-weight="bold" font-size="8" text-anchor="middle" class="select-none">CAL</text>
+                </g>
+            </svg>
+            `;
         }
 
         const major = spec.majorIncrement;
         const minor = spec.minorIncrement;
         const isBurette = !!spec.inverted;
         const isQualitative = !!spec.qualitative;
+        const isThermometer = spec.unit === "°C";
 
-        let minDraw = Math.floor(value / major) * major - major;
-        let maxDraw = Math.floor(value / major) * major + major * 2;
-        if (minDraw < spec.min) minDraw = spec.min;
-        if (maxDraw > spec.max) maxDraw = spec.max;
+        // Let's decide scale drawing range (minDraw to maxDraw)
+        // Draw centered around target value, but clamped to spec limits.
+        // A range of 3 major divisions is ideal for cylinders/thermometer.
+        // For beaker we show the entire range.
+        let minDraw, maxDraw;
+        if (spec.name.includes("Beaker")) {
+            minDraw = spec.min;
+            maxDraw = spec.max;
+        } else {
+            minDraw = Math.floor(value / major) * major - major;
+            maxDraw = Math.floor(value / major) * major + major * 2;
+            if (minDraw < spec.min) minDraw = Math.floor(spec.min / major) * major;
+            if (maxDraw > spec.max) maxDraw = Math.ceil(spec.max / major) * major;
+            if (minDraw >= maxDraw) {
+                minDraw = spec.min;
+                maxDraw = spec.max;
+            }
+        }
 
-        const tickSpacing = 20;
+        // Set dynamic tick spacing based on number of divisions
+        let tickSpacing = 20;
         const totalMinorTicks = Math.round((maxDraw - minDraw) / minor);
+        if (totalMinorTicks <= 5) {
+            tickSpacing = 70;
+        } else if (totalMinorTicks <= 15) {
+            tickSpacing = 35;
+        } else {
+            tickSpacing = 22;
+        }
         const h = totalMinorTicks * tickSpacing;
 
+        // Visual setup depending on instrument type
+        let svgWidth = 160;
+        let svgHeight = h + 100;
+        let tubeWidth = 70;
+        let tubeX1 = 45;
+        let tubeX2 = 115;
+        let center = 80;
+        let curveDepth = 10;
+        let liquidColor = isQualitative ? "rgba(59, 130, 246, 0.3)" : "rgba(167, 139, 250, 0.35)";
+        
+        if (spec.name.includes("10 mL")) {
+            tubeWidth = 50;
+            tubeX1 = 55;
+            tubeX2 = 105;
+            curveDepth = 7;
+        } else if (isBurette) {
+            tubeWidth = 42;
+            tubeX1 = 59;
+            tubeX2 = 101;
+            curveDepth = 6;
+            svgHeight = h + 180; // Extra room for the burette stopcock assembly
+        } else if (isThermometer) {
+            tubeWidth = 24;
+            tubeX1 = 68;
+            tubeX2 = 92;
+            curveDepth = 0; // The thermometer has a convex red capillary cap
+        } else if (spec.name.includes("Beaker")) {
+            tubeWidth = 140;
+            tubeX1 = 30;
+            tubeX2 = 170;
+            center = 100;
+            curveDepth = 14;
+            svgWidth = 200;
+            svgHeight = h + 80;
+            liquidColor = "rgba(56, 189, 248, 0.35)"; // sky blue
+        }
+
+        // 1. Calculate Meniscus Y Coordinate
+        // Non-inverted: minDraw at bottom (y = h + 40), maxDraw at top (y = 40)
+        // Inverted: minDraw at top (y = 40), maxDraw at bottom (y = h + 40)
+        let yTarget;
+        if (isBurette) {
+            yTarget = 40 + ((value - minDraw) / (maxDraw - minDraw)) * h;
+        } else {
+            yTarget = 40 + ((maxDraw - value) / (maxDraw - minDraw)) * h;
+        }
+
+        // Draw ticks and labels
         let pathMarks = "";
         let textMarks = "";
 
         for (let i = 0; i <= totalMinorTicks; i++) {
-            const currentVal = isBurette ? (maxDraw - i * minor) : (minDraw + i * minor);
-            const y = i * tickSpacing + 30;
+            const y = 40 + i * tickSpacing;
+            const currentVal = isBurette ? (minDraw + i * minor) : (maxDraw - i * minor);
             const rem = currentVal % major;
             const isMajor = Math.abs(rem) < 1e-6 || Math.abs(rem - major) < 1e-6;
-            const lineLength = isMajor ? 50 : 25;
 
-            pathMarks += `<line x1="50" y1="${y}" x2="${50 + lineLength}" y2="${y}" stroke="black" stroke-width="${isMajor ? 2 : 1}" />`;
+            let tickX1, tickX2, labelX, lineLength;
+
+            if (isThermometer) {
+                // Ticks drawn on the right stem wall going right
+                tickX1 = tubeX2;
+                lineLength = isMajor ? 14 : 7;
+                tickX2 = tubeX2 + lineLength;
+                labelX = tickX2 + 4;
+            } else if (spec.name.includes("Beaker")) {
+                // Beaker ticks starting from left wall going right
+                tickX1 = tubeX1;
+                lineLength = isMajor ? 26 : 14;
+                tickX2 = tubeX1 + lineLength;
+                labelX = tickX2 + 6;
+            } else {
+                // Cylinders/Burettes ticks starting from left wall going right
+                tickX1 = tubeX1;
+                lineLength = isMajor ? 24 : 12;
+                tickX2 = tubeX1 + lineLength;
+                labelX = tickX2 + 6;
+            }
+
+            pathMarks += `<line x1="${tickX1}" y1="${y}" x2="${tickX2}" y2="${y}" stroke="#334155" stroke-width="${isMajor ? 1.5 : 0.8}" />`;
+            
             if (isMajor) {
                 const dp = (major.toString().includes(".")) ? major.toString().split(".")[1].length : 0;
-                textMarks += `<text x="10" y="${y + 4}" fill="black" font-size="13" font-family="monospace" class="select-none">${currentVal.toFixed(dp)}</text>`;
+                const formattedVal = currentVal.toFixed(dp);
+                textMarks += `<text x="${labelX}" y="${y + 4}" fill="#1e293b" font-size="12" font-family="monospace" font-weight="bold" class="select-none">${formattedVal}</text>`;
             }
         }
 
-        const liquidColor = isQualitative ? "rgba(59, 130, 246, 0.4)" : "rgba(167, 139, 250, 0.3)";
-        const meniscusY = 30 + (isBurette ? ((maxDraw - value) / minor) * tickSpacing : ((value - minDraw) / minor) * tickSpacing);
+        // Liquid filling and meniscus path
+        let fillPath = "";
+        let meniscusPath = "";
 
-        let fillY;
-        let fillHeight;
-        if (isBurette) {
-            fillY = 0;
-            fillHeight = meniscusY;
+        if (isThermometer) {
+            // Thermometer red capillary line and bulb
+            const capillaryWidth = 4;
+            const capillaryX = center - capillaryWidth / 2;
+            const bulbY = h + 65;
+            
+            // Red column from bulb to yTarget
+            fillPath = `
+                <!-- Bulb -->
+                <circle cx="${center}" cy="${bulbY}" r="15" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5" />
+                <circle cx="${center - 5}" cy="${bulbY - 5}" r="4" fill="#ffffff" opacity="0.3" />
+                <!-- Capillary red liquid -->
+                <rect x="${capillaryX}" y="${yTarget}" width="${capillaryWidth}" height="${bulbY - yTarget}" fill="#ef4444" />
+                <!-- Rounded top on the column -->
+                <circle cx="${center}" cy="${yTarget}" r="2" fill="#ef4444" />
+            `;
+            // For thermometer, we don't have a wide concave meniscus
+            meniscusPath = ``;
         } else {
-            fillY = meniscusY;
-            fillHeight = Math.max(h + 60 - meniscusY, 0);
+            // Concave meniscus curve
+            // The bottom of the meniscus (center x) is exactly at yTarget.
+            // The sides are shifted UP by curveDepth: (yTarget - curveDepth).
+            const meniscusY = yTarget - curveDepth;
+            
+            let fillBottomY = h + 50;
+            if (isBurette) fillBottomY = h + 100; // liquid fills down to the stopcock top
+
+            fillPath = `<path d="M ${tubeX1} ${meniscusY} Q ${center} ${yTarget} ${tubeX2} ${meniscusY} L ${tubeX2} ${fillBottomY} L ${tubeX1} ${fillBottomY} Z" fill="${liquidColor}" />`;
+            meniscusPath = `
+                <!-- Main dark meniscus line -->
+                <path d="M ${tubeX1} ${meniscusY} Q ${center} ${yTarget} ${tubeX2} ${meniscusY}" fill="none" stroke="#4f46e5" stroke-width="2.5" />
+                <!-- Highlight line under the meniscus -->
+                <path d="M ${tubeX1} ${meniscusY + 1} Q ${center} ${yTarget + 1} ${tubeX2} ${meniscusY + 1}" fill="none" stroke="#c084fc" stroke-width="1" opacity="0.6" />
+            `;
         }
 
-        const curveDepth = isBurette ? 8 : 12;
-        const fillPath = `<path d="M 40 ${fillY} Q 75 ${fillY + curveDepth} 110 ${fillY} L 110 ${fillY + fillHeight + 10} L 40 ${fillY + fillHeight + 10} Z" fill="${liquidColor}" />`;
-        const meniscusPath = `<path d="M 40 ${meniscusY} Q 75 ${meniscusY + curveDepth} 110 ${meniscusY}" fill="none" stroke="rgba(79, 70, 229, 0.8)" stroke-width="2" />`;
+        // Draw the glassware frame and accessories
+        let glasswareFrame = "";
 
-        return `<svg width="150" height="${h + 60}" xmlns="http://www.w3.org/2000/svg">
-            <rect x="40" y="0" width="70" height="${h + 60}" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" rx="5" />
+        if (isThermometer) {
+            // Glass outer bulb and stem
+            glasswareFrame = `
+                <!-- Stem -->
+                <rect x="${tubeX1}" y="15" width="${tubeWidth}" height="${h + 50}" fill="rgba(241, 245, 249, 0.15)" stroke="#94a3b8" stroke-width="2" rx="6" />
+                <!-- Rounded Cap -->
+                <path d="M ${tubeX1} 15 Q ${center} 0 ${tubeX2} 15 Z" fill="rgba(241, 245, 249, 0.15)" stroke="#94a3b8" stroke-width="2" />
+                <!-- Glass bulb outline -->
+                <circle cx="${center}" cy="${h + 65}" r="18" fill="none" stroke="#94a3b8" stroke-width="2" />
+                <!-- Capillary hollow channel background -->
+                <rect x="${center - 1.5}" y="10" width="3" height="${h + 40}" fill="rgba(0, 0, 0, 0.05)" />
+            `;
+        } else if (spec.name.includes("Beaker")) {
+            // Beaker shape: rectangular body with spout at top left
+            glasswareFrame = `
+                <!-- Beaker body -->
+                <path d="M 30 20 L 170 20 L 170 ${h + 50} Q 170 ${h + 54} 166 ${h + 54} L 34 ${h + 54} Q 30 ${h + 54} 30 ${h + 50} Z" fill="rgba(241, 245, 249, 0.1)" stroke="#94a3b8" stroke-width="2.5" />
+                <!-- Beaker Spout -->
+                <path d="M 30 20 C 20 18, 18 10, 26 8 C 30 7, 32 15, 34 20" fill="none" stroke="#94a3b8" stroke-width="2.5" />
+                <!-- White scale prints on beaker glass -->
+                <text x="${center}" y="38" fill="#64748b" font-family="sans-serif" font-weight="bold" font-size="10" text-anchor="middle" class="select-none" opacity="0.8">100 mL</text>
+                <text x="${center}" y="48" fill="#64748b" font-family="sans-serif" font-size="7" text-anchor="middle" class="select-none" opacity="0.7">APPROX. VOL.</text>
+            `;
+        } else if (isBurette) {
+            // Burette glass tube extending to stopcock at the bottom
+            const stopcockY = h + 110;
+            glasswareFrame = `
+                <!-- Glass Tube -->
+                <rect x="${tubeX1}" y="0" width="${tubeWidth}" height="${h + 100}" fill="rgba(241, 245, 249, 0.05)" stroke="#94a3b8" stroke-width="2" />
+                
+                <!-- Stopcock Narrows -->
+                <path d="M ${tubeX1} ${h + 100} L ${center - 6} ${stopcockY} L ${center + 6} ${stopcockY} L ${tubeX2} ${h + 100} Z" fill="rgba(241, 245, 249, 0.2)" stroke="#94a3b8" stroke-width="2" />
+                <!-- Stopcock Liquid inside -->
+                <path d="M ${tubeX1} ${h + 100} L ${center - 6} ${stopcockY} L ${center + 6} ${stopcockY} L ${tubeX2} ${h + 100} Z" fill="${liquidColor}" opacity="0.8" />
+                
+                <!-- Stopcock Valve Assembly -->
+                <!-- Valve casing -->
+                <circle cx="${center}" cy="${stopcockY}" r="11" fill="#cbd5e1" stroke="#475569" stroke-width="1.5" />
+                <!-- Teflon Rotating Valve Knob (Red, showing open position: vertical alignment) -->
+                <rect x="${center - 4}" y="${stopcockY - 14}" width="8" height="28" fill="#ef4444" rx="2" stroke="#b91c1c" stroke-width="1" />
+                <rect x="${center - 7}" y="${stopcockY - 4}" width="14" height="8" fill="#ef4444" rx="1" stroke="#b91c1c" stroke-width="1" />
+                
+                <!-- Drip Tip glass -->
+                <path d="M ${center - 5} ${stopcockY + 11} L ${center - 2} ${stopcockY + 45} L ${center + 2} ${stopcockY + 45} L ${center + 5} ${stopcockY + 11} Z" fill="rgba(241, 245, 249, 0.2)" stroke="#94a3b8" stroke-width="2" />
+                <!-- Liquid in drip tip -->
+                <path d="M ${center - 5} ${stopcockY + 11} L ${center - 2} ${stopcockY + 45} L ${center + 2} ${stopcockY + 45} L ${center + 5} ${stopcockY + 11} Z" fill="${liquidColor}" opacity="0.8" />
+                
+                <!-- Label Burette unit -->
+                <text x="${center}" y="25" fill="#64748b" font-family="sans-serif" font-weight="bold" font-size="9" text-anchor="middle" class="select-none" opacity="0.7">50 mL</text>
+            `;
+        } else {
+            // Graduated Cylinders
+            const baseTopY = h + 50;
+            const baseBottomY = h + 68;
+            glasswareFrame = `
+                <!-- Glass Tube -->
+                <rect x="${tubeX1}" y="20" width="${tubeWidth}" height="${h + 30}" fill="rgba(241, 245, 249, 0.05)" stroke="#94a3b8" stroke-width="2" rx="4" />
+                <!-- Flared Pouring Lip at top -->
+                <path d="M ${tubeX1} 20 C ${tubeX1 - 8} 18, ${tubeX1 - 8} 5, ${tubeX1 + 4} 10 C ${tubeX1 + 10} 12, ${center} 12, ${center} 20" fill="none" stroke="#94a3b8" stroke-width="2" />
+                
+                <!-- Plastic Hexagonal Base -->
+                <polygon points="${center - 50},${baseTopY} ${center + 50},${baseTopY} ${center + 60},${baseBottomY} ${center - 60},${baseBottomY}" fill="#334155" stroke="#1e293b" stroke-width="1.5" />
+                <!-- Bumper guard ring (amber plastic collar) to prevent breakage -->
+                <rect x="${tubeX1 - 5}" y="32" width="${tubeWidth + 10}" height="10" fill="#f59e0b" stroke="#d97706" stroke-width="1.5" rx="3" opacity="0.85" />
+                
+                <!-- White vertical highlights for glass reflection -->
+                <rect x="${tubeX2 - 12}" y="22" width="4" height="${h + 26}" fill="#ffffff" opacity="0.25" rx="2" />
+                
+                <!-- Label for unit -->
+                <text x="${center}" y="48" fill="#64748b" font-family="sans-serif" font-weight="bold" font-size="9" text-anchor="middle" class="select-none" opacity="0.7">${spec.unit}</text>
+            `;
+        }
+
+        return `
+        <svg width="${svgWidth}" height="${svgHeight}" xmlns="http://www.w3.org/2000/svg" class="mx-auto drop-shadow-md">
             ${fillPath}
+            ${glasswareFrame}
             ${meniscusPath}
             ${pathMarks}
             ${textMarks}
-        </svg>`;
+        </svg>
+        `;
     }
 
     btnGen.addEventListener("click", () => {
@@ -1667,7 +2390,39 @@ function bindLabActions() {
         output.classList.remove("hidden");
 
         if (Math.abs(enteredVal - expectedVal) > (labSession.spec.tolerance ?? 0.0001)) {
-            setStatus(output, "Incorrect reading value. Re-check the meniscus and graduations.", "error");
+            let scaffoldFeedback = "";
+            const step1Val = step1 ? step1.value.trim() : "";
+            const step2Val = step2 ? step2.value.trim() : "";
+            const step3Val = step3 ? step3.value.trim() : "";
+
+            if (step1Val || step2Val || step3Val) {
+                const minorVal = labSession.spec.minorIncrement;
+                // Calculate certain digits limit (the nearest division mark the liquid is past)
+                const certainVal = parseFloat((Math.floor((expectedVal + 1e-9) / minorVal) * minorVal).toFixed(labSession.spec.decimalPlaces - 1 > 0 ? labSession.spec.decimalPlaces - 1 : 0));
+                const expectedEstDigit = labSession.targetVal.charAt(labSession.targetVal.length - 1);
+                const estValueAlternative = parseFloat(expectedEstDigit) * Math.pow(10, -labSession.spec.decimalPlaces);
+
+                let errors = [];
+                if (step1Val && Math.abs(parseFloat(step1Val) - minorVal) > 1e-6) {
+                    errors.push(`Step 1 (Value of 1 marking) is incorrect. The divisions are every ${minorVal} ${labSession.spec.unit}.`);
+                }
+                if (step2Val && Math.abs(parseFloat(step2Val) - certainVal) > 1e-6) {
+                    errors.push(`Step 2 (Certain digits) is incorrect. Based on the meniscus level, you should be certain up to ${certainVal} ${labSession.spec.unit}.`);
+                }
+                if (step3Val && parseFloat(step3Val) !== parseFloat(expectedEstDigit) && Math.abs(parseFloat(step3Val) - estValueAlternative) > 1e-6) {
+                    errors.push(`Step 3 (Estimated digit) is incorrect. You should estimate the digit between the markings (expected: ${expectedEstDigit}).`);
+                }
+
+                if (errors.length > 0) {
+                    scaffoldFeedback = "<br/><strong class='text-red-700'>Scaffold Help:</strong><ul class='list-disc pl-5 mt-1 text-red-600'>" + errors.map(e => `<li>${e}</li>`).join("") + "</ul>";
+                } else {
+                    scaffoldFeedback = "<br/><span class='text-green-700 font-semibold'>Your scaffolded analysis steps are correct!</span> Re-evaluate how you combined them: reading = (certain digits) + (estimated digit).";
+                }
+            } else {
+                scaffoldFeedback = "<br/><span class='text-gray-500 italic'>Tip: Use the \"Scaffolded Analysis\" fields above to break down your reading step-by-step!</span>";
+            }
+
+            setStatus(output, `Incorrect reading value. Re-check the meniscus and graduations. ${scaffoldFeedback}`, "error");
             recordCompetencyAttempt("measurement-precision", false);
             if (window.ChemTutor) {
                 window.ChemTutor.invoke(`I am interpreting a lab instrument reading for a ${equipmentSelect.options[equipmentSelect.selectedIndex].text}. I entered ${readingRaw} but the value is off. Walk me through reading this instrument visually and estimating the uncertain digit.`, btnCheck.parentElement, `The user is practicing analog lab readings. Instrument: ${equipmentSelect.options[equipmentSelect.selectedIndex].text}. Expected decimal places: ${labSession.spec.decimalPlaces}. Correct value: ${labSession.targetVal}.`);
@@ -1814,44 +2569,68 @@ function setStatus(element, text, kind) {
 // --- GLOBAL INLINE AI TUTOR ---
 window.ChemTutor = (() => {
     const parseMD = (text) => {
+        if (typeof text !== 'string') return '';
+
+        // Escape HTML tags to prevent XSS
         let html = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // Math blocks $$ ... $$ using KaTeX (fallback to mono blocks if katex missing)
-        html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
-            if (typeof katex !== 'undefined') {
-                try {
-                    return `<div class="my-3 overflow-x-auto text-center">` + katex.renderToString(mathContent, { displayMode: true, throwOnError: false }) + `</div>`;
-                } catch (e) { }
-            }
-            return `<div class="text-center font-mono my-2 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 py-1 rounded overflow-x-auto">${mathContent}</div>`;
+        // Extract code blocks and inline code to protect them
+        const codeBlocks = [];
+        
+        // Match code blocks: ``` ... ```
+        html = html.replace(/```(?:javascript|js|chemistry|html|css)?\n([\s\S]*?)\n```/g, (match, code) => {
+            const id = `__CODE_BLOCK_${codeBlocks.length}__`;
+            codeBlocks.push(`<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg my-2 overflow-x-auto font-mono text-xs">${code}</pre>`);
+            return id;
         });
 
-        // Inline math $ ... $ using KaTeX
-        html = html.replace(/\$([^\n\$]+?)\$/g, (match, mathContent) => {
-            if (typeof katex !== 'undefined') {
-                try {
-                    return katex.renderToString(mathContent, { displayMode: false, throwOnError: false });
-                } catch (e) { }
-            }
-            return `<span class="font-mono text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-1 rounded mx-0.5">${mathContent}</span>`;
+        // Match inline backticks: `...`
+        html = html.replace(/`([^`\n]+?)`/g, (match, code) => {
+            const id = `__CODE_BLOCK_${codeBlocks.length}__`;
+            codeBlocks.push(`<code class="bg-gray-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-1 py-0.5 rounded font-mono text-xs">${code}</code>`);
+            return id;
         });
+
+        // Run consolidated math and LaTeX cleanup on the remaining text
+        if (window.CLINICAL_TUTOR && typeof window.CLINICAL_TUTOR.cleanMathAndLaTeX === 'function') {
+            html = window.CLINICAL_TUTOR.cleanMathAndLaTeX(html);
+        } else {
+            // Fallback simple clean
+            html = html.replace(/\\mathrm\{([^{}]+)\}/g, '$1')
+                       .replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
+                       .replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>')
+                       .replace(/([A-Za-z0-9)])_([0-9]+)/g, '$1<sub>$2</sub>')
+                       .replace(/([A-Za-z0-9)])\^([0-9+\-]+)/g, '$1<sup>$2</sup>')
+                       .replace(/\$\$/g, '')
+                       .replace(/\$/g, '');
+        }
 
         // Headers
         html = html.replace(/^####\s+(.*)$/gm, '<h4 class="font-bold text-gray-800 dark:text-gray-200 mt-2 mb-1">$1</h4>');
         html = html.replace(/^###\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-3 mb-2">$1</h3>');
+        
         // Bold
         html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Italics (negative lookbehind/lookahead for proper emphasis handling)
+        
+        // Italics
         html = html.replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+        
         // Lists
         html = html.replace(/^[\*\-]\s+(.*)$/gm, '<li class="ml-5 list-disc marker:text-indigo-500">$1</li>');
+        
         // Newlines
         html = html.replace(/\n/g, '<br>');
+        
         // Cleanup excessive breaks around block elements
         html = html.replace(/<\/(h3|h4|div|li)><br>/g, '</$1>');
         html = html.replace(/<br><li/g, '<li');
-        // Cleanup double <br>
         html = html.replace(/(<br>\s*){2,}/g, '<br><br>');
+
+        // Restore protected code blocks
+        codeBlocks.forEach((codeHtml, index) => {
+            html = html.replace(`__CODE_BLOCK_${index}__`, codeHtml);
+        });
+
         return html;
     };
 
@@ -2240,4 +3019,118 @@ function getTabForTarget(target) {
     if (t.includes('meniscus') || t.includes('precision') || t.includes('shielding') || t.includes('half-life') || t.includes('diffusion') || t.includes('osmosis') || t.includes('dilution') || t.includes('activation-energy') || t.includes('buffer') || t.includes('ph-')) return 'lab';
     if (t.includes('atom-builder') || t.includes('electron-jump') || t.includes('periodic-table') || t.includes('ion-charge') || t.includes('electronegativity') || t.includes('polarity') || t.includes('vsepr') || t.includes('dna-') || t.includes('carbon-chain') || t.includes('macromolecule') || t.includes('free-radical') || t.includes('radiation-dna')) return 'lab';
     return 'dashboard';
+}
+
+function initGlobalTooltip() {
+    const tooltip = document.getElementById("chem-tooltip");
+    if (!tooltip) return;
+    const nameEl = document.getElementById("chem-tooltip-name");
+    const massEl = document.getElementById("chem-tooltip-mass");
+    const arrowEl = document.getElementById("chem-tooltip-arrow");
+    if (!nameEl || !massEl || !arrowEl) return;
+    
+    let activeTrigger = null;
+    let fadeTimeout = null;
+    
+    const showTooltip = (target) => {
+        if (fadeTimeout) {
+            clearTimeout(fadeTimeout);
+            fadeTimeout = null;
+        }
+        
+        const name = target.getAttribute("data-tooltip-name");
+        const mass = target.getAttribute("data-tooltip-mass");
+        if (!name) return;
+        
+        nameEl.textContent = name;
+        if (mass) {
+            massEl.textContent = `Mass: ${mass} g/mol`;
+            massEl.classList.remove("hidden");
+        } else {
+            massEl.classList.add("hidden");
+        }
+        
+        tooltip.classList.remove("hidden");
+        
+        // Reset positions to get clean bounds
+        tooltip.style.left = "0px";
+        tooltip.style.top = "0px";
+        
+        const rect = target.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        
+        // Center horizontally and offset vertically
+        let top = rect.top - tooltipRect.height - 8;
+        let placeBelow = false;
+        
+        if (top < 8) {
+            top = rect.bottom + 8;
+            placeBelow = true;
+        }
+        
+        let left = rect.left + (rect.width - tooltipRect.width) / 2;
+        if (left < 8) {
+            left = 8;
+        } else if (left + tooltipRect.width > window.innerWidth - 8) {
+            left = window.innerWidth - tooltipRect.width - 8;
+        }
+        
+        // Style Arrow depending on position
+        if (placeBelow) {
+            arrowEl.className = "absolute left-1/2 -translate-x-1/2 bottom-full border-4 border-transparent border-b-slate-900/95 dark:border-b-slate-800/95";
+        } else {
+            arrowEl.className = "absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-slate-900/95 dark:border-t-slate-800/95";
+        }
+        
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+        
+        tooltip.classList.remove("opacity-0", "scale-95");
+        tooltip.classList.add("opacity-100", "scale-100");
+        activeTrigger = target;
+    };
+    
+    const hideTooltip = () => {
+        tooltip.classList.remove("opacity-100", "scale-100");
+        tooltip.classList.add("opacity-0", "scale-95");
+        
+        if (fadeTimeout) clearTimeout(fadeTimeout);
+        fadeTimeout = setTimeout(() => {
+            if (tooltip.classList.contains("opacity-0")) {
+                tooltip.classList.add("hidden");
+            }
+        }, 150);
+        activeTrigger = null;
+    };
+    
+    document.addEventListener("mouseover", (e) => {
+        const trigger = e.target.closest(".chem-tooltip-trigger");
+        if (trigger) {
+            showTooltip(trigger);
+        }
+    });
+    
+    document.addEventListener("mouseout", (e) => {
+        const trigger = e.target.closest(".chem-tooltip-trigger");
+        if (trigger && activeTrigger === trigger) {
+            hideTooltip();
+        }
+    });
+    
+    document.addEventListener("focusin", (e) => {
+        const trigger = e.target.closest(".chem-tooltip-trigger");
+        if (trigger) {
+            showTooltip(trigger);
+        }
+    });
+    
+    document.addEventListener("focusout", (e) => {
+        const trigger = e.target.closest(".chem-tooltip-trigger");
+        if (trigger && activeTrigger === trigger) {
+            hideTooltip();
+        }
+    });
+    
+    window.addEventListener("scroll", hideTooltip, { passive: true });
+    window.addEventListener("resize", hideTooltip, { passive: true });
 }

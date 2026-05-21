@@ -1,6 +1,6 @@
 # CH 104Z & CH 124Z: Clinical Chemistry & Lab Mastery
 **Target Audience:** Pre-Clinical Allied Health (Radiology, Dosimetry, Nursing).
-**AI Instruction:** When generating a lesson, you MUST use the exact Concept, Clinical Tie-In, Interactive Target, and Feynman Prompt provided in this document. Limit lectures to 300 words.
+**AI Instruction:** When generating a lesson, you MUST use the exact Concept, Clinical Tie-In, Interactive Target, and Feynman Prompt provided in this document. Lectures must be comprehensive, college-level, and approximately 600-800 words, structured using clear markdown headers (###) into four sections: (1) Clinical Case Study & Scenario, (2) Core Chemical Principles, (3) Mathematical Frameworks & Calculations, and (4) Physiological & Radiological Significance.
 
 ---
 

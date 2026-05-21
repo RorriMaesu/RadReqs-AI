@@ -44,6 +44,80 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #10b981; /* emerald-500 */
         }
+
+        /* Markdown rendering inside lectures and tutor chat bubbles */
+        .markdown-body ul {
+            list-style-type: disc !important;
+            padding-left: 1.25rem !important;
+            margin-top: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        .markdown-body ol {
+            list-style-type: decimal !important;
+            padding-left: 1.25rem !important;
+            margin-top: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        .markdown-body li {
+            margin-top: 0.25rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .markdown-body p {
+            margin-bottom: 0.75rem !important;
+        }
+        .markdown-body p:last-child {
+            margin-bottom: 0 !important;
+        }
+        .markdown-body h3 {
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+            margin-top: 1.25rem !important;
+            margin-bottom: 0.5rem !important;
+            color: #0f172a !important;
+        }
+        .dark .markdown-body h3 {
+            color: #ffffff !important;
+        }
+        .markdown-body h4 {
+            font-size: 0.875rem !important;
+            font-weight: 700 !important;
+            margin-top: 1rem !important;
+            margin-bottom: 0.25rem !important;
+            color: #334155 !important;
+        }
+        .dark .markdown-body h4 {
+            color: #cbd5e1 !important;
+        }
+        .markdown-body strong {
+            font-weight: 700 !important;
+        }
+        .markdown-body code {
+            font-family: monospace !important;
+            font-size: 0.75rem !important;
+            background-color: rgba(226, 232, 240, 0.5) !important;
+            color: #0f172a !important;
+            padding: 0.125rem 0.25rem !important;
+            border-radius: 0.25rem !important;
+        }
+        .dark .markdown-body code {
+            background-color: rgba(30, 41, 59, 0.8) !important;
+            color: #f1f5f9 !important;
+        }
+        .markdown-body pre {
+            background-color: #0f172a !important;
+            padding: 0.75rem !important;
+            border-radius: 0.5rem !important;
+            overflow-x: auto !important;
+            margin-top: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        .markdown-body pre code {
+            background-color: transparent !important;
+            color: #f1f5f9 !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            font-size: 0.75rem !important;
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-screen flex flex-col font-sans overflow-hidden">
@@ -178,7 +252,19 @@
                             <i class="fa-solid fa-book-open-reader text-emerald-500"></i>
                             <span>Clinical Micro-Lecture & Physiological Relevance</span>
                         </div>
-                        <span class="text-[10px] text-emerald-600 dark:text-emerald-500 font-mono bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">CH 104Z Lecture</span>
+                        <div class="flex items-center space-x-2">
+                            <select id="select-active-lecture" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-[10px] rounded px-1.5 py-0.5 outline-none font-medium text-slate-700 dark:text-slate-200 transition-colors">
+                                <option value="0">Lecture 1</option>
+                            </select>
+                            <button id="btn-add-lecture" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1" title="Generate an additional lecture variation for this lesson using Gemma4">
+                                <i class="fa-solid fa-plus text-[9px]"></i>
+                                <span>Add Lecture</span>
+                            </button>
+                            <button id="btn-regenerate-lecture" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 border border-amber-500/20 dark:border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1" title="Regenerate the active lecture using Gemma4">
+                                <i class="fa-solid fa-arrows-rotate text-[9px]"></i>
+                                <span>Regenerate Active</span>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Scrollable Micro-Lecture Content -->
@@ -201,6 +287,10 @@
                             <span id="chat-header-title">Socratic Clinical Interaction</span>
                         </div>
                         <div class="flex items-center space-x-3 text-[10px] font-mono">
+                            <button id="btn-generate-question" class="hidden bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded font-sans font-semibold transition flex items-center space-x-1" title="Generate a new dynamic practice question using Gemma4">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span>New Question</span>
+                            </button>
                             <span class="text-slate-505 dark:text-slate-500">Mode:</span>
                             <span class="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50" id="current-mode-badge">SOCRATIC CHECK</span>
                         </div>

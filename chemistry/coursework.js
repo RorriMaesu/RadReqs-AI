@@ -13,7 +13,9 @@
         useSpeechInput: false,
         recognition: null,
         syllabus: null,
-        matrix: {}
+        matrix: {},
+        lectures: [],
+        activeLectureIdx: 0
     };
 
     const els = {};
@@ -40,6 +42,10 @@
         els.btnRegenerate = document.getElementById('btn-regenerate');
         els.btnRestartLesson = document.getElementById('btn-restart-lesson');
         els.sessionStatus = document.getElementById('session-status');
+        els.btnGenerateQuestion = document.getElementById('btn-generate-question');
+        els.selectActiveLecture = document.getElementById('select-active-lecture');
+        els.btnAddLecture = document.getElementById('btn-add-lecture');
+        els.btnRegenerateLecture = document.getElementById('btn-regenerate-lecture');
 
         els.dots = {
             1: document.getElementById('dot-1'),
@@ -149,18 +155,22 @@
             els.modeBadge.textContent = 'LECTURE';
             els.chatHeaderTitle.textContent = 'Socratic Clinical Interaction';
             els.inputInstructions.textContent = 'Start the Socratic flow to begin chat...';
+            if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.add('hidden');
         } else if (appState.stage === STAGE_SOCRATIC) {
             els.modeBadge.textContent = 'SOCRATIC CHECK';
             els.chatHeaderTitle.textContent = 'Socratic Clinical Interaction';
             els.inputInstructions.textContent = 'Respond to Socratic Question...';
+            if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.remove('hidden');
         } else if (appState.stage === STAGE_SANDBOX) {
             els.modeBadge.textContent = 'SANDBOX HANDSHAKE';
             els.chatHeaderTitle.textContent = 'Socratic Clinical Interaction';
             els.inputInstructions.textContent = 'Complete the sandbox and return...';
+            if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.add('hidden');
         } else {
             els.modeBadge.textContent = 'FEYNMAN FINAL';
             els.chatHeaderTitle.textContent = 'Feynman Final Defense';
             els.inputInstructions.textContent = 'Teach it back clearly to pass theory mastery...';
+            if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.remove('hidden');
         }
     }
 
@@ -200,9 +210,26 @@
 
         const row = document.createElement('div');
         row.className = `max-w-[85%] rounded-lg px-3 py-2 text-sm ${bubbleClass}`;
+
+        let messageBody = '';
+        if (isUser) {
+            messageBody = `<div class="leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</div>`;
+        } else {
+            if (window.marked && typeof window.marked.parse === 'function') {
+                try {
+                    messageBody = `<div class="leading-relaxed markdown-body">${window.marked.parse(text)}</div>`;
+                } catch (e) {
+                    console.warn('Error parsing markdown for tutor message:', e);
+                    messageBody = `<div class="leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</div>`;
+                }
+            } else {
+                messageBody = `<div class="leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</div>`;
+            }
+        }
+
         row.innerHTML = `
             <div class="text-[10px] uppercase tracking-wider font-bold mb-1 ${isUser ? 'text-emerald-600 dark:text-emerald-300' : 'text-slate-505 dark:text-slate-400'}">${roleLabel}</div>
-            <div class="leading-relaxed whitespace-pre-wrap">${escapeHtml(text)}</div>
+            ${messageBody}
         `;
 
         els.chatMessages.appendChild(row);
@@ -236,18 +263,41 @@
         els.sessionStatus.classList.add(isGood ? 'text-emerald-500' : 'text-amber-500');
     }
 
-    function generateOfflineMockLecture(lesson) {
-        return `### Clinical Lecture: ${lesson.concept}
+    function generateOfflineMockLecture(lesson, variationIndex = 0) {
+        const ages = [45, 62, 28, 54, 37];
+        const genders = ['male', 'female', 'non-binary', 'male', 'female'];
+        const names = ['John Doe', 'Jane Smith', 'Alex Rivera', 'Robert Chen', 'Sarah Connor'];
+        
+        const age = ages[variationIndex % ages.length];
+        const gender = genders[variationIndex % genders.length];
+        const name = names[variationIndex % names.length];
+        
+        const varSuffix = variationIndex > 0 ? `\n\n*(Note: This is offline Lecture Variation #${variationIndex + 1} detailing the clinical profile of ${name}, a ${age}-year-old ${gender} patient.)*` : '';
 
-In clinical medicine, understanding **${lesson.concept}** is essential for patient care and safety. This topic directly relates to our clinical practice, particularly: *${lesson.clinical_tie_in}*.
-
-#### Key Principles
-1. **Biological and Physical Foundations:** The molecular and physical structures governed by these chemistry rules dictate how physiological systems behave.
-2. **Clinical Significance:** Accurate measurement and conceptual application prevent diagnostic errors and dosage mistakes.
-3. **Equipment and Targets:** We use specific diagnostic tools like \`${lesson.interactive_target}\` to observe and quantify these states in a lab environment.
-
-#### Patient Communication
-When explaining these chemistry foundations to patients (as in the Feynman defense: *"${lesson.feynman_prompt}"*), always use accessible analogies. Breaking down complex atomic or molecular reactions into everyday phenomena helps patients understand their treatment and reduces anxiety.`;
+        const sections = [
+            `### Clinical Case Study & Scenario${variationIndex > 0 ? ' (Variation #' + (variationIndex + 1) + ')' : ''}`,
+            `Consider a clinical presentation where a ${age}-year-old ${gender} patient (${name}), presenting with symptoms of metabolic distress and dehydration, is admitted to the emergency department. The attending medical team immediately orders a comprehensive metabolic panel (CMP), blood gas analysis, and urinalysis to establish a baseline physiological profile. As allied health professionals—whether working in radiology, dosimetry, or clinical nursing—understanding the underlying chemical indicators is paramount to making safe, accurate therapeutic decisions.${varSuffix}`,
+            `The patient's clinical tie-in focuses on: *${lesson.clinical_tie_in}*. This is not merely an abstract concept but a critical checkpoint in diagnostic monitoring. For instance, in dosimetry and medical imaging, we must precisely quantify chemical properties to calibrate contrast media, evaluate physiological tracer distribution, or determine appropriate radiation doses. Misinterpreting these parameters can lead to systemic failures, inaccurate dosing, or severe patient harm. This lecture explores how we translate the chemical properties of **${lesson.concept}** directly to the bedside and the scanning suite.`,
+            
+            `### Core Chemical Principles`,
+            `To fully comprehend this phenomenon, we must look at the microscopic scale. The concept of **${lesson.concept}** operates on fundamental chemical rules. In general chemistry, physical properties and molecular interactions are governed by atomic structures, electron arrangements, and electrostatic forces. For instance, atoms share, donate, or accept valence electrons to achieve stability, forming ionic or covalent bonds that dictate a molecule's behavior in an aqueous environment.`,
+            `When these substances interact within the human body, they follow strict thermodynamic and kinetic laws. Whether we are discussing the diffusion of gas molecules in the alveoli, the hydration shell of sodium ions in the plasma, or the ionization of water molecules by high-energy X-ray photons, the basic chemical framework remains identical. The concentration of solutes, the pressure of gases, and the stoichiometry of metabolic reactions determine the chemical equilibrium of physiological systems. A failure to maintain this equilibrium, even by a fraction of a percent, can disrupt cellular functions and trigger systemic pathology.`,
+            
+            `### Mathematical Frameworks & Calculations`,
+            `Quantifying these chemical behaviors requires rigorous mathematical frameworks. In clinical chemistry, we rely on dimensional analysis to construct unit conversion chains, ensuring that units cancel out correctly and leave no room for transcription errors. For example, when calculating a dosage or preparing a solution, we start with the known quantity and apply conversion factors derived from equivalence statements:`,
+            `*Given Unit x (Desired Unit / Given Unit) = Desired Unit*`,
+            `For instance, converting a drug mass from grams to milligrams requires the metric scale factor (1 g = 1000 mg). Similarly, concentration calculations use the molarity equation:`,
+            `*Molarity (M) = Moles of Solute (mol) / Liters of Solution (L)*`,
+            `If we need to calculate the number of particles, we apply Avogadro's constant (6.022 * 10^23 particles/mol). Gas behavior is modeled using the Ideal Gas Law:`,
+            `*P * V = n * R * T*`,
+            `where P is pressure, V is volume, n is the number of moles, R is the universal gas constant, and T is temperature in Kelvin. In our clinical application, we utilize these equations to double-check patient doses, evaluate gas solubility in blood, and calibrate lab equipment like the \`${lesson.interactive_target}\`. Every calculation must be rounded using proper significant figure rules to reflect the precision limits of our instruments.`,
+            
+            `### Physiological & Radiological Significance`,
+            `The practical significance of mastering **${lesson.concept}** cannot be overstated. In radiology and oncology dosimetry, chemical precision is the difference between a successful diagnostic image and a toxic overdose. For example, administering contrast agents requires calculating patient-specific clearance rates to avoid nephrotoxicity. In radiation therapy, ionizing radiation interacts with cellular water to produce highly reactive free radicals, which subsequently damage DNA. This indirect effect is fundamentally a chemical reaction, governed by kinetics and concentration.`,
+            `Furthermore, patient education is a key responsibility for clinical professionals. As part of your pedagogical development, you must master the Feynman defense: *"${lesson.feynman_prompt}"*. Explaining complex concepts using simple, everyday analogies—such as comparing the mole to a baker's dozen or gas expansion to a bicycle pump—helps bridge the gap between abstract science and patient understanding. By learning to communicate these principles clearly, you build patient trust and ensure safety at every level of clinical practice.`
+        ].join('\n\n');
+        
+        return sections;
     }
 
     function renderLectureContent(lesson, lectureText) {
@@ -286,7 +336,51 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         `;
     }
 
-    function renderGenerationFailure(lesson, errMsg) {
+    function getStoredLectures(lessonId) {
+        const newKey = `chemistry_lesson_lectures_${lessonId}`;
+        const oldKey = `chemistry_lesson_lecture_${lessonId}`;
+        
+        let list = [];
+        try {
+            const val = localStorage.getItem(newKey);
+            if (val) {
+                list = JSON.parse(val);
+            }
+        } catch (_err) {}
+        
+        if (!Array.isArray(list) || list.length === 0) {
+            const oldVal = localStorage.getItem(oldKey);
+            if (oldVal) {
+                list = [oldVal];
+                try {
+                    localStorage.setItem(newKey, JSON.stringify(list));
+                    localStorage.removeItem(oldKey);
+                } catch (_err) {}
+            }
+        }
+        return list;
+    }
+
+    function saveStoredLectures(lessonId, lectures) {
+        localStorage.setItem(`chemistry_lesson_lectures_${lessonId}`, JSON.stringify(lectures));
+    }
+
+    function updateLectureSelectDropdown() {
+        if (!els.selectActiveLecture) return;
+        els.selectActiveLecture.innerHTML = '';
+        
+        appState.lectures.forEach((_, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = `Lecture ${idx + 1}`;
+            if (idx === appState.activeLectureIdx) {
+                opt.selected = true;
+            }
+            els.selectActiveLecture.appendChild(opt);
+        });
+    }
+
+    function renderGenerationFailure(lesson, errMsg, index, isRegenerate) {
         els.lectureContainer.innerHTML = `
             <div class="flex flex-col h-full justify-center p-5 max-w-lg mx-auto space-y-4">
                 <div class="flex items-center space-x-3 text-red-500 font-semibold text-sm">
@@ -312,22 +406,31 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         `;
 
         document.getElementById('btn-retry-generation').addEventListener('click', () => {
-            generateLecture(lesson);
+            generateLecture(lesson, index, isRegenerate);
         });
 
         document.getElementById('btn-use-mock-lecture').addEventListener('click', () => {
-            const mockText = generateOfflineMockLecture(lesson);
-            localStorage.setItem(`chemistry_lesson_lecture_${lesson.id}`, mockText);
+            const mockText = generateOfflineMockLecture(lesson, index);
+            if (isRegenerate) {
+                appState.lectures[index] = mockText;
+            } else {
+                appState.lectures.push(mockText);
+                appState.activeLectureIdx = appState.lectures.length - 1;
+            }
+            saveStoredLectures(lesson.id, appState.lectures);
+            localStorage.setItem(`chemistry_lesson_active_lecture_idx_${lesson.id}`, appState.activeLectureIdx);
+            
+            updateLectureSelectDropdown();
             renderLectureContent(lesson, mockText);
         });
     }
 
-    async function generateLecture(lesson) {
+    async function generateLecture(lesson, index, isRegenerate = false) {
         els.lectureContainer.innerHTML = `
             <div class="flex flex-col h-full justify-center p-4 max-w-lg mx-auto space-y-3">
                 <div class="flex items-center space-x-3 text-amber-500 dark:text-amber-400 font-semibold text-xs">
                     <i class="fa-solid fa-gears animate-spin"></i>
-                    <span>Generating Lecture via Gemma 4...</span>
+                    <span>${isRegenerate ? 'Regenerating' : 'Generating'} Lecture via Gemma 4...</span>
                 </div>
                 
                 <div class="bg-slate-900 border border-slate-800 rounded p-3 font-mono text-[10px] text-slate-300 space-y-2 shadow-inner">
@@ -340,7 +443,7 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
                         <span class="status font-bold">PENDING</span>
                     </div>
                     <div id="step-generate" class="flex items-center justify-between text-slate-500">
-                        <span>[3/4] Requesting 300-word micro-lecture...</span>
+                        <span>[3/4] Requesting 600-800 word clinical lecture...</span>
                         <span class="status font-bold">PENDING</span>
                     </div>
                     <div id="step-render" class="flex items-center justify-between text-slate-500">
@@ -384,20 +487,30 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
 
         const tutor = window.CLINICAL_TUTOR;
         if (!tutor || typeof tutor.fetchGeneratedLesson !== 'function') {
-            renderGenerationFailure(lesson, 'CLINICAL_TUTOR module or fetchGeneratedLesson is unavailable.');
+            renderGenerationFailure(lesson, 'CLINICAL_TUTOR module or fetchGeneratedLesson is unavailable.', index, isRegenerate);
             return;
         }
 
         try {
             const lectureText = await tutor.fetchGeneratedLesson(lesson, (step, status, details) => {
                 updateStepUI(step, status, details);
-            });
+            }, index);
 
             if (!lectureText) {
                 throw new Error('Received empty lecture text output from tutor module.');
             }
 
-            localStorage.setItem(`chemistry_lesson_lecture_${lesson.id}`, lectureText);
+            if (isRegenerate) {
+                appState.lectures[index] = lectureText;
+            } else {
+                appState.lectures.push(lectureText);
+                appState.activeLectureIdx = appState.lectures.length - 1;
+            }
+            
+            saveStoredLectures(lesson.id, appState.lectures);
+            localStorage.setItem(`chemistry_lesson_active_lecture_idx_${lesson.id}`, appState.activeLectureIdx);
+
+            updateLectureSelectDropdown();
             updateStepUI('render', 'success', 'Lecture formatted.');
             
             setTimeout(() => {
@@ -407,7 +520,7 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         } catch (err) {
             console.error('Lecture generation failed:', err);
             updateStepUI('generate', 'error', err.message);
-            renderGenerationFailure(lesson, err.message);
+            renderGenerationFailure(lesson, err.message, index, isRegenerate);
         }
     }
 
@@ -415,15 +528,56 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         const lesson = appState.lesson;
         if (!lesson) return;
 
-        const cacheKey = `chemistry_lesson_lecture_${lesson.id}`;
-        const cached = localStorage.getItem(cacheKey);
-
-        if (cached) {
-            renderLectureContent(lesson, cached);
+        if (appState.lectures.length > 0) {
+            const activeText = appState.lectures[appState.activeLectureIdx];
+            renderLectureContent(lesson, activeText);
             return;
         }
 
-        await generateLecture(lesson);
+        await generateLecture(lesson, 0, false);
+    }
+
+    async function loadDynamicQuestion(mode) {
+        appState.isChatLocked = true;
+        els.chatInput.disabled = true;
+        els.btnSend.disabled = true;
+
+        addTypingIndicator();
+
+        const tutor = window.CLINICAL_TUTOR;
+        let generatedQuestion = null;
+
+        if (tutor && typeof tutor.fetchGeneratedQuestion === 'function') {
+            try {
+                generatedQuestion = await tutor.fetchGeneratedQuestion(appState.lesson, mode);
+            } catch (err) {
+                console.warn('Failed to generate dynamic question, using fallback:', err);
+            }
+        }
+
+        removeTypingIndicator();
+        appState.isChatLocked = false;
+        els.chatInput.disabled = false;
+        els.btnSend.disabled = false;
+
+        if (!generatedQuestion) {
+            if (mode === 'socratic') {
+                generatedQuestion = `Socratic Check: Explain "${appState.lesson.concept}" and connect it to this clinical tie-in: ${appState.lesson.clinical_tie_in}`;
+            } else {
+                generatedQuestion = `Feynman Final: ${appState.lesson.feynman_prompt}`;
+            }
+        } else {
+            if (mode === 'socratic') {
+                generatedQuestion = `Socratic Check: ${generatedQuestion}`;
+            } else {
+                generatedQuestion = `Feynman Check: ${generatedQuestion}`;
+            }
+        }
+
+        appState.messageHistory.push({ role: 'assistant', content: generatedQuestion });
+        addMessage('assistant', generatedQuestion);
+        saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
+        scrollChatToBottom();
     }
 
     function renderStage1() {
@@ -456,12 +610,7 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         const startBtn = document.getElementById('btn-start-socratic');
         if (startBtn) {
             startBtn.addEventListener('click', () => {
-                if (appState.messageHistory.length === 0) {
-                    const seedQuestion = `Socratic Check: Explain "${appState.lesson.concept}" and connect it to this clinical tie-in: ${appState.lesson.clinical_tie_in}`;
-                    appState.messageHistory.push({ role: 'assistant', content: seedQuestion });
-                }
                 renderStage2();
-                saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
             });
         }
     }
@@ -492,9 +641,7 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         renderHistoryToUi();
 
         if (appState.messageHistory.length === 0) {
-            const seedQuestion = `Socratic Check: Explain "${appState.lesson.concept}" and connect it to this clinical tie-in: ${appState.lesson.clinical_tie_in}`;
-            appState.messageHistory.push({ role: 'assistant', content: seedQuestion });
-            addMessage('assistant', seedQuestion);
+            loadDynamicQuestion('socratic');
         }
 
         scrollChatToBottom();
@@ -678,13 +825,33 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         setupSpeechRecognition();
         applyInputMode();
 
-        const feynmanPromptText = `Feynman Final: ${appState.lesson.feynman_prompt}`;
-        const hasPrompt = appState.messageHistory.some(m => m.content && m.content.includes('Feynman Final:'));
+        renderHistoryToUi();
+
+        const hasPrompt = appState.messageHistory.some(m => m.content && (m.content.includes('Feynman Final:') || m.content.includes('Feynman Check:')));
         if (!hasPrompt) {
-            appState.messageHistory.push({ role: 'assistant', content: feynmanPromptText });
-            addMessage('assistant', feynmanPromptText);
+            loadDynamicQuestion('feynman');
         }
-        saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
+    }
+
+    function resetStageChatAndRegenerate() {
+        const mode = els.chatForm.dataset.mode;
+        if (mode === 'socratic') {
+            const ok = window.confirm('Generate a new Socratic practice question? This will clear your current Socratic chat history.');
+            if (!ok) return;
+            appState.messageHistory = [];
+            els.chatMessages.innerHTML = '';
+            loadDynamicQuestion('socratic');
+        } else if (mode === 'feynman') {
+            const ok = window.confirm('Generate a new Feynman practice question? This will clear your current Feynman chat history.');
+            if (!ok) return;
+            
+            const feynmanIdx = appState.messageHistory.findIndex(m => m.content && (m.content.includes('Feynman Final:') || m.content.includes('Feynman Check:')));
+            if (feynmanIdx !== -1) {
+                appState.messageHistory = appState.messageHistory.slice(0, feynmanIdx);
+            }
+            renderHistoryToUi();
+            loadDynamicQuestion('feynman');
+        }
     }
 
     function lockChatAndShowCta() {
@@ -710,14 +877,16 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
                 'You are a strict clinical chemistry evaluator for Radiology/Dosimetry learners.',
                 'Use the Feynman prompt below to grade the explanation for clarity, correctness, and patient-safe reasoning.',
                 `Feynman Prompt: ${appState.lesson.feynman_prompt}`,
-                'Pass only when explanation is accurate and teachable to a patient.'
+                'Pass only when explanation is accurate and teachable to a patient.',
+                'CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses) so they render cleanly.'
             ].join(' ');
         } else {
             systemPrompt = [
                 'You are a Socratic clinical chemistry tutor for allied health students.',
                 `Concept: ${appState.lesson.concept}.`,
                 `Clinical Tie-In: ${appState.lesson.clinical_tie_in}.`,
-                'Ask or respond in a way that tests conceptual understanding and patient safety judgment.'
+                'Ask or respond in a way that tests conceptual understanding and patient safety judgment.',
+                'CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses) so they render cleanly.'
             ].join(' ');
         }
 
@@ -789,6 +958,14 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
 
     function populateLessonHeaderAndLecture() {
         els.activeLessonTitle.textContent = `Lesson ${appState.lesson.numStr}: ${appState.lesson.title}`;
+        
+        appState.lectures = getStoredLectures(appState.lessonId);
+        
+        const activeIdxKey = `chemistry_lesson_active_lecture_idx_${appState.lessonId}`;
+        const savedIdx = Number(localStorage.getItem(activeIdxKey)) || 0;
+        appState.activeLectureIdx = savedIdx < appState.lectures.length ? savedIdx : 0;
+
+        updateLectureSelectDropdown();
         ensureLectureContent();
     }
 
@@ -867,6 +1044,36 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
             });
         }
 
+        if (els.btnGenerateQuestion) {
+            els.btnGenerateQuestion.addEventListener('click', resetStageChatAndRegenerate);
+        }
+
+        if (els.selectActiveLecture) {
+            els.selectActiveLecture.addEventListener('change', (e) => {
+                const idx = Number(e.target.value);
+                if (idx >= 0 && idx < appState.lectures.length) {
+                    appState.activeLectureIdx = idx;
+                    localStorage.setItem(`chemistry_lesson_active_lecture_idx_${appState.lessonId}`, idx);
+                    renderLectureContent(appState.lesson, appState.lectures[idx]);
+                }
+            });
+        }
+
+        if (els.btnAddLecture) {
+            els.btnAddLecture.addEventListener('click', () => {
+                const nextIdx = appState.lectures.length;
+                generateLecture(appState.lesson, nextIdx, false);
+            });
+        }
+
+        if (els.btnRegenerateLecture) {
+            els.btnRegenerateLecture.addEventListener('click', () => {
+                const ok = window.confirm(`Regenerate Lecture ${appState.activeLectureIdx + 1}? This will overwrite this specific variation with a newly generated lecture.`);
+                if (!ok) return;
+                generateLecture(appState.lesson, appState.activeLectureIdx, true);
+            });
+        }
+
         els.btnMic.addEventListener('click', () => {
             if (!appState.recognition) {
                 addMessage('assistant', 'Speech API unavailable in this browser. Please use keyboard mode.');
@@ -888,15 +1095,19 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
         });
 
         els.btnRegenerate.addEventListener('click', () => {
-            const ok = window.confirm('Regenerate this lesson? This clears the active session conversation and restarts Stage 1.');
+            const ok = window.confirm('Regenerate this lesson? This clears all generated lectures and active conversation to restart Stage 1.');
             if (!ok) return;
 
             localStorage.removeItem(`chemistry_lesson_lecture_${appState.lessonId}`);
+            localStorage.removeItem(`chemistry_lesson_lectures_${appState.lessonId}`);
+            localStorage.removeItem(`chemistry_lesson_active_lecture_idx_${appState.lessonId}`);
             localStorage.removeItem(`sandbox_complete_${appState.lessonId}`);
             sessionStorage.removeItem('activeLessonState');
             appState.messageHistory = [];
             appState.stage = STAGE_LECTURE;
             appState.isChatLocked = false;
+            appState.lectures = [];
+            appState.activeLectureIdx = 0;
 
             clearConversationUi();
             renderStage1();

@@ -506,35 +506,301 @@
             <p class="text-gray-600 mb-5">Balance the equation then solve the resulting limiting/yield scenario.</p>
             
             <!-- Expert Educator Stoichiometry Tutorial -->
-            <details class="bg-emerald-50 dark:bg-slate-800 border border-emerald-200 dark:border-slate-700 rounded-xl mb-6 overflow-hidden group transition-colors">
-                <summary class="px-5 py-4 cursor-pointer font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-slate-700 transition-colors flex justify-between items-center select-none">
-                    <span>💡 Expert Guide: The Recipe of Chemistry (Stoichiometry)</span>
-                    <span class="text-emerald-500 dark:text-emerald-400 group-open:rotate-180 transition-transform duration-200">▼</span>
+            <details class="bg-emerald-50 dark:bg-slate-900 border border-emerald-200 dark:border-emerald-950 rounded-xl mb-6 overflow-hidden group transition-colors shadow-sm">
+                <summary class="px-5 py-4 cursor-pointer font-bold text-emerald-800 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-slate-850 transition-colors flex justify-between items-center select-none">
+                    <span class="flex items-center gap-2">
+                        <span>💡</span>
+                        <span>Expert Guide: The Recipe of Chemistry (Stoichiometry)</span>
+                    </span>
+                    <span class="text-emerald-500 dark:text-emerald-400 group-open:rotate-180 transition-transform duration-200 text-xs">▼</span>
                 </summary>
-                <div class="px-5 pb-5 pt-2 text-sm text-gray-700 dark:text-gray-300 space-y-5">
+                <div class="px-5 pb-6 pt-2 text-sm text-gray-700 dark:text-slate-350 space-y-6">
+                    <!-- Section 0: The Hook & Physical Meaning -->
                     <div>
-                        <h4 class="font-bold text-emerald-900 dark:text-emerald-200 border-b border-emerald-200 dark:border-slate-700 pb-1 mb-2">0. Why do we need Stoichiometry?</h4>
-                        <p>Chemistry isn't just about <em>what</em> reacts, it's about <strong>how much</strong>. If a pharmaceutical company needs to synthesize 50kg of a life-saving drug, they need to know exactly how much of each raw ingredient to buy. Stoichiometry allows us to predict the exact amounts needed so we don't waste expensive chemicals or cause a dangerous runaway reaction. It is simply scaling up or down a recipe.</p>
+                        <h4 class="font-bold text-emerald-900 dark:text-emerald-300 border-b border-emerald-200 dark:border-slate-800 pb-1 mb-2 text-base flex items-center gap-1.5">
+                            <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">0</span>
+                            Why do we need Stoichiometry?
+                        </h4>
+                        <p class="leading-relaxed">
+                            Chemistry isn't just about <em>what</em> reacts, it's about <strong>how much</strong>. Imagine a pharmaceutical company preparing a life-saving medication. They cannot guess the amounts—buying too little leaves patients without medicine, and buying too much wastes millions of dollars. Stoichiometry is the exact mathematical scaling of chemical reactions. It is the absolute bridge between the submicroscopic atoms we cannot see and the real-world mass we measure on a laboratory scale.
+                        </p>
                     </div>
+
+                    <!-- Section 1: The Flowchart Roadmap -->
                     <div>
-                        <h4 class="font-bold text-emerald-900 dark:text-emerald-200 border-b border-emerald-200 dark:border-slate-700 pb-1 mb-2">1. The Balanced Equation is your Recipe</h4>
-                        <p>Before you do any math, you <strong>must</strong> have a balanced equation. The coefficients (the big numbers in front) represent the ratio of moles. Think of them as the cups of flour or number of eggs in a baking recipe.</p>
-                        <p class="mt-2 text-emerald-800 dark:text-emerald-300 font-semibold bg-emerald-100/50 dark:bg-slate-700/50 p-2 rounded">Example: <strong>2</strong> H&sub2; + <strong>1</strong> O&sub2; &rarr; <strong>2</strong> H&sub2;O <br><span class="font-normal">(It takes 2 parts Hydrogen and 1 part Oxygen to make 2 parts Water)</span></p>
+                        <h4 class="font-bold text-emerald-900 dark:text-emerald-300 border-b border-emerald-200 dark:border-slate-800 pb-1 mb-3 text-base flex items-center gap-1.5">
+                            <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">1</span>
+                            The Stoichiometry Master Roadmap
+                        </h4>
+                        <p class="mb-4 leading-relaxed">
+                            You can <strong class="text-red-600 dark:text-red-400">never</strong> convert grams of Reactant A directly into grams of Product B. Because molecules have different weights, you must first convert to the universal currency of chemistry: <strong>Moles</strong>. Always follow the golden pipeline:
+                        </p>
+                        
+                        <!-- Visual Pipeline Flowchart -->
+                        <div class="grid grid-cols-1 lg:grid-cols-7 items-center gap-3 p-4 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 text-center font-bold shadow-inner">
+                            <!-- State 1 -->
+                            <div class="p-3 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-400 rounded-xl border border-blue-150 dark:border-blue-900/50 shadow-sm">
+                                <div class="text-[9px] uppercase tracking-wider opacity-75 font-semibold text-blue-500">Start State</div>
+                                <div class="text-sm font-extrabold mt-0.5">Grams of A (g)</div>
+                            </div>
+                            <!-- Arrow 1 -->
+                            <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-1">
+                                <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full mb-0.5">÷ Molar Mass A</span>
+                                <span class="text-lg lg:rotate-0 rotate-90 leading-none">➔</span>
+                            </div>
+                            <!-- State 2 -->
+                            <div class="p-3 bg-indigo-50 dark:bg-indigo-955/40 text-indigo-800 dark:text-indigo-400 rounded-xl border border-indigo-150 dark:border-indigo-900/50 shadow-sm">
+                                <div class="text-[9px] uppercase tracking-wider opacity-75 font-semibold text-indigo-500">Mole Bridge Entry</div>
+                                <div class="text-sm font-extrabold mt-0.5">Moles of A (mol)</div>
+                            </div>
+                            <!-- Arrow 2 -->
+                            <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-1">
+                                <span class="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-955/40 px-2 py-0.5 rounded-full mb-0.5 flex flex-col items-center">
+                                    <span>&times; Mole Ratio</span>
+                                    <span class="text-[8px] opacity-80">(Coeff B / Coeff A)</span>
+                                </span>
+                                <span class="text-lg lg:rotate-0 rotate-90 leading-none">➔</span>
+                            </div>
+                            <!-- State 3 -->
+                            <div class="p-3 bg-purple-50 dark:bg-purple-955/40 text-purple-800 dark:text-purple-400 rounded-xl border border-purple-150 dark:border-purple-900/50 shadow-sm">
+                                <div class="text-[9px] uppercase tracking-wider opacity-75 font-semibold text-purple-500">Mole Bridge Exit</div>
+                                <div class="text-sm font-extrabold mt-0.5">Moles of B (mol)</div>
+                            </div>
+                            <!-- Arrow 3 -->
+                            <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-1">
+                                <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full mb-0.5">&times; Molar Mass B</span>
+                                <span class="text-lg lg:rotate-0 rotate-90 leading-none">➔</span>
+                            </div>
+                            <!-- State 4 -->
+                            <div class="p-3 bg-rose-50 dark:bg-rose-955/40 text-rose-800 dark:text-rose-400 rounded-xl border border-rose-150 dark:border-rose-900/50 shadow-sm">
+                                <div class="text-[9px] uppercase tracking-wider opacity-75 font-semibold text-rose-500">End State</div>
+                                <div class="text-sm font-extrabold mt-0.5">Grams of B (g)</div>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Section 2: Step 1 (Balancing & Atom Inventory) -->
                     <div>
-                        <h4 class="font-bold text-emerald-900 dark:text-emerald-200 border-b border-emerald-200 dark:border-slate-700 pb-1 mb-2">2. The "Mole-to-Mole" Bridge</h4>
-                        <p class="mb-2">You can <strong>NEVER</strong> convert grams of chemical A directly into grams of chemical B. You must first convert to the universal currency of chemistry: <strong>Moles</strong>.</p>
-                        <ul class="list-decimal pl-5 space-y-2 font-medium">
-                            <li>Convert Given (Grams A) to Moles A <span class="text-gray-500 dark:text-gray-400 font-normal">(Divide by Molar Mass of A)</span></li>
-                            <li><strong>Cross the Bridge:</strong> Moles A &rarr; Moles B <span class="text-gray-500 dark:text-gray-400 font-normal">(Use the ratio from the balanced equation)</span></li>
-                            <li>Convert Moles B to Target (Grams B) <span class="text-gray-500 dark:text-gray-400 font-normal">(Multiply by Molar Mass of B)</span></li>
-                        </ul>
-                        <p class="mt-2 text-xs font-bold text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-slate-700/50 p-2 rounded">Always follow the path: Grams A &rarr; Moles A &rarr; Moles B &rarr; Grams B</p>
+                        <h4 class="font-bold text-emerald-900 dark:text-emerald-300 border-b border-emerald-200 dark:border-slate-800 pb-1 mb-2 text-base flex items-center gap-1.5">
+                            <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">2</span>
+                            Step 1: Balancing by Atom Inventory
+                        </h4>
+                        <p class="leading-relaxed mb-3">
+                            You cannot scale a recipe if the ingredients are unbalanced. Standard coefficients (the large leading numbers) act as scaling factors to satisfy the **Law of Conservation of Mass**: atoms are never created or destroyed, only rearranged.
+                        </p>
+                        <p class="mb-3 leading-relaxed">
+                            Let's balance the synthesis of water: <span class="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-bold text-xs">__ H<sub>2</sub> + __ O<sub>2</sub> ➔ __ H<sub>2</sub>O</span>. We count the atoms on both sides:
+                        </p>
+                        
+                        <!-- Inventory Table -->
+                        <div class="overflow-x-auto my-3">
+                            <table class="w-full text-center border-collapse max-w-md mx-auto text-xs border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+                                <thead>
+                                    <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+                                        <th class="p-2 border-r border-slate-200 dark:border-slate-700 w-1/4">Element</th>
+                                        <th class="p-2 border-r border-slate-200 dark:border-slate-700 w-3/8">Reactants (Left Side)</th>
+                                        <th class="p-2 w-3/8">Products (Right Side)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-150 dark:divide-slate-700 bg-white dark:bg-slate-850 text-slate-600 dark:text-slate-300 font-medium">
+                                    <tr>
+                                        <td class="p-2 border-r border-slate-200 dark:border-slate-700 font-bold bg-slate-50 dark:bg-slate-900/50">H</td>
+                                        <td class="p-2 border-r border-slate-200 dark:border-slate-700">
+                                            <div class="font-bold text-red-500 dark:text-red-400">2 <span class="font-normal text-[10px] opacity-80">(in H<sub>2</sub>)</span></div>
+                                            <div class="font-bold text-emerald-600 dark:text-emerald-400 border-t border-dashed border-slate-200 dark:border-slate-700 mt-1 pt-1">➔ 4 <span class="font-normal text-[10px] opacity-80">(2 &times; H<sub>2</sub>)</span></div>
+                                        </td>
+                                        <td class="p-2">
+                                            <div class="font-bold text-red-500 dark:text-red-400">2 <span class="font-normal text-[10px] opacity-80">(in H<sub>2</sub>O)</span></div>
+                                            <div class="font-bold text-emerald-600 dark:text-emerald-400 border-t border-dashed border-slate-200 dark:border-slate-700 mt-1 pt-1">➔ 4 <span class="font-normal text-[10px] opacity-80">(2 &times; H<sub>2</sub>O)</span></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-2 border-r border-slate-200 dark:border-slate-700 font-bold bg-slate-50 dark:bg-slate-900/50">O</td>
+                                        <td class="p-2 border-r border-slate-200 dark:border-slate-700">
+                                            <div class="font-bold text-emerald-600 dark:text-emerald-400">2 <span class="font-normal text-[10px] opacity-80">(in O<sub>2</sub>)</span></div>
+                                            <div class="font-bold text-emerald-600 dark:text-emerald-400 border-t border-dashed border-slate-200 dark:border-slate-700 mt-1 pt-1">➔ 2 <span class="font-normal text-[10px] opacity-80">(unaffected)</span></div>
+                                        </td>
+                                        <td class="p-2">
+                                            <div class="font-bold text-red-500 dark:text-red-400">1 <span class="font-normal text-[10px] opacity-80">(in H<sub>2</sub>O)</span></div>
+                                            <div class="font-bold text-emerald-600 dark:text-emerald-400 border-t border-dashed border-slate-200 dark:border-slate-700 mt-1 pt-1">➔ 2 <span class="font-normal text-[10px] opacity-80">(2 &times; 1 in 2 H<sub>2</sub>O)</span></div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="leading-relaxed">
+                            By placing a <strong class="text-amber-600 dark:text-amber-400">2</strong> in front of H<sub>2</sub>O, we balance Oxygen, but double our Hydrogen. We then place a <strong class="text-amber-600 dark:text-amber-400">2</strong> in front of H<sub>2</sub>, giving a perfect balance on both sides! The final balanced recipe is: 
+                            <strong class="font-mono bg-slate-100 dark:bg-slate-800 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded text-xs">2 H<sub>2</sub> + 1 O<sub>2</sub> ➔ 2 H<sub>2</sub>O</strong>
+                        </p>
                     </div>
+
+                    <!-- Section 3: Steps 2-4 (Dimensional Analysis) -->
                     <div>
-                        <h4 class="font-bold text-emerald-900 dark:text-emerald-200 border-b border-emerald-200 dark:border-slate-700 pb-1 mb-2">3. Limiting Reactants (The "Hot Dog &amp; Bun" Problem)</h4>
-                        <p>If you have 10 hot dogs and 8 buns, you can only make 8 complete hot dogs. The buns run out first. They are the <strong>Limiting Reactant</strong>.</p>
-                        <p class="mt-2 text-emerald-800 dark:text-emerald-300 bg-emerald-100/50 dark:bg-slate-700/50 p-2 rounded font-semibold">In chemistry, if you are given the amounts of <em>two</em> starting materials, you must do the math twice! Calculate how much product <em>each</em> reactant can make. The one that makes the <strong>least</strong> amount of product is your true answer, because that reactant will run out first.</p>
+                        <h4 class="font-bold text-emerald-900 dark:text-emerald-300 border-b border-emerald-200 dark:border-slate-800 pb-1 mb-2 text-base flex items-center gap-1.5">
+                            <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">3</span>
+                            Steps 2–4: Mathematical Dimensional Analysis
+                        </h4>
+                        <p class="leading-relaxed mb-3">
+                            Let's calculate the exact mass of water (H<sub>2</sub>O) produced from <strong class="text-blue-600 dark:text-blue-400">10.0 g of H<sub>2</sub></strong> (assuming infinite O<sub>2</sub>).
+                        </p>
+                        
+                        <!-- Dimensional Analysis Card -->
+                        <div class="my-4 p-4 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl font-mono text-xs text-slate-850 dark:text-slate-200 flex flex-wrap items-center justify-center gap-2.5 leading-relaxed shadow-sm">
+                            <!-- Given -->
+                            <div class="px-2 py-1 bg-blue-50 dark:bg-blue-955/30 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-900 rounded-md font-bold">
+                                10.0 g H<sub>2</sub>
+                            </div>
+                            <span class="text-slate-400 font-bold">&times;</span>
+                            <!-- MM A -->
+                            <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md p-1 px-2">
+                                <div class="flex flex-col text-center items-center justify-center">
+                                    <span class="border-b border-slate-300 dark:border-slate-650 pb-0.5 px-1 font-semibold">1 mol H<sub>2</sub></span>
+                                    <span class="pt-0.5 px-1 text-slate-500 dark:text-slate-400">2.016 g H<sub>2</sub></span>
+                                </div>
+                            </div>
+                            <span class="text-slate-400 font-bold">&times;</span>
+                            <!-- Mole ratio -->
+                            <div class="flex items-center gap-1 bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-md p-1 px-2 font-bold text-amber-800 dark:text-amber-400">
+                                <div class="flex flex-col text-center items-center justify-center">
+                                    <span class="border-b border-amber-300 dark:border-amber-800 pb-0.5 px-1">2 mol H<sub>2</sub>O</span>
+                                    <span class="pt-0.5 px-1">2 mol H<sub>2</sub></span>
+                                </div>
+                            </div>
+                            <span class="text-slate-400 font-bold">&times;</span>
+                            <!-- MM B -->
+                            <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md p-1 px-2">
+                                <div class="flex flex-col text-center items-center justify-center">
+                                    <span class="border-b border-slate-300 dark:border-slate-650 pb-0.5 px-1 font-semibold">18.015 g H<sub>2</sub>O</span>
+                                    <span class="pt-0.5 px-1 text-slate-500 dark:text-slate-400">1 mol H<sub>2</sub>O</span>
+                                </div>
+                            </div>
+                            <span class="text-slate-400 font-bold font-sans">=</span>
+                            <!-- Final result -->
+                            <div class="px-2 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-450 border border-emerald-250 dark:border-emerald-900/80 rounded-md font-black">
+                                89.4 g H<sub>2</sub>O
+                            </div>
+                        </div>
+
+                        <!-- Step Explanations -->
+                        <div class="space-y-3 mt-4 text-xs">
+                            <div class="flex gap-2">
+                                <span class="font-bold text-blue-600 dark:text-blue-400">Step 2:</span>
+                                <div>
+                                    <strong>Convert Grams of A to Moles of A:</strong> Divide the starting mass of Reactant A by its molecular mass. 
+                                    <div class="font-mono mt-1 text-slate-500 dark:text-slate-400">10.0 g ÷ 2.016 g/mol = 4.9603 mol H<sub>2</sub></div>
+                                    <em class="text-[11px] block mt-0.5 text-slate-450">Tip: Keep at least 4 decimal places in intermediate calculations to avoid rounding errors.</em>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="font-bold text-amber-600 dark:text-amber-400">Step 3:</span>
+                                <div>
+                                    <strong>Cross the Mole-to-Mole Bridge:</strong> Multiply the moles of Reactant A by the coefficient ratio from your balanced equation. The target chemical goes on top, and the starting chemical goes on the bottom:
+                                    <div class="font-mono mt-1 text-slate-500 dark:text-slate-400">4.9603 mol H<sub>2</sub> &times; (2 mol H<sub>2</sub>O / 2 mol H<sub>2</sub>) = 4.9603 mol H<sub>2</sub>O</div>
+                                    <em class="text-[11px] block mt-0.5 text-slate-450">Because H<sub>2</sub> on top and bottom cancel out, you are left with moles of H<sub>2</sub>O.</em>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <span class="font-bold text-purple-600 dark:text-purple-400">Step 4:</span>
+                                <div>
+                                    <strong>Convert Moles of B to Grams of B:</strong> Multiply the moles of Product B by its molecular mass to obtain the mass yield:
+                                    <div class="font-mono mt-1 text-slate-500 dark:text-slate-400 font-semibold text-slate-800 dark:text-slate-200">4.9603 mol H<sub>2</sub>O &times; 18.015 g/mol = 89.36 g</div>
+                                    <em class="text-[11px] block mt-0.5 text-slate-450">This rounds to 3 significant figures to match the starting 10.0 g, yielding <strong>89.4 g</strong>.</em>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 4: Step 5 (Limiting Reactants & The Dual-Track Method) -->
+                    <div>
+                        <h4 class="font-bold text-emerald-900 dark:text-emerald-300 border-b border-emerald-200 dark:border-slate-800 pb-1 mb-2 text-base flex items-center gap-1.5">
+                            <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">4</span>
+                            Step 5: Limiting Reactants (The Dual-Track Strategy)
+                        </h4>
+                        <p class="leading-relaxed mb-3">
+                            In the real world, reactants are rarely mixed in perfect proportions. One reactant will run out first, stopping the reaction. This is the **Limiting Reactant**. The reactant left over is the **Excess Reactant**.
+                        </p>
+                        <div class="p-4 bg-amber-50/50 dark:bg-slate-950 border border-amber-200/60 dark:border-slate-800 rounded-xl mb-4 leading-relaxed">
+                            <span class="font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wide text-xs block mb-1">💡 The Expert Rule of Dual Calculations</span>
+                            If you are given starting masses for <strong>both</strong> reactants, you must perform the stoichiometry calculation <strong>twice</strong> (one complete track for each reactant). 
+                            <div class="font-bold mt-2 text-emerald-850 dark:text-emerald-400">The reactant that calculates to produce the SMALLER amount of product is the true limiting reactant, and its calculated result is your Theoretical Yield.</div>
+                        </div>
+                        
+                        <p class="mb-3 font-semibold text-xs uppercase tracking-wider text-slate-500">Dual-Track Walkthrough Example:</p>
+                        <p class="mb-4 leading-relaxed">
+                            We mix <strong class="text-blue-600 dark:text-blue-400">10.0 g of H<sub>2</sub></strong> with <strong class="text-purple-600 dark:text-purple-400">80.0 g of O<sub>2</sub></strong>. Which runs out first, and what is the theoretical yield of water?
+                        </p>
+
+                        <!-- The Two Tracks Side-by-Side -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Track 1: H2 -->
+                            <div class="p-4 bg-blue-50/30 dark:bg-blue-950/20 border border-blue-150 dark:border-blue-900/40 rounded-xl">
+                                <div class="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wide mb-2 flex items-center justify-between">
+                                    <span>Track 1: From H<sub>2</sub></span>
+                                    <span class="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded text-[10px]">10.0 g starting</span>
+                                </div>
+                                <ol class="list-decimal pl-4 space-y-1.5 text-xs text-slate-650 dark:text-slate-350">
+                                    <li>Convert: 10.0 g ÷ 2.016 = <strong class="text-slate-800 dark:text-slate-200 font-mono">4.960 mol H<sub>2</sub></strong></li>
+                                    <li>Mole Bridge: 4.960 &times; (2 H<sub>2</sub>O / 2 H<sub>2</sub>) = <strong class="text-slate-800 dark:text-slate-200 font-mono">4.960 mol H<sub>2</sub>O</strong></li>
+                                    <li>Final Weight: 4.960 &times; 18.015 = <strong class="text-blue-700 dark:text-blue-400 font-mono">89.4 g H<sub>2</sub>O</strong></li>
+                                </ol>
+                            </div>
+                            
+                            <!-- Track 2: O2 -->
+                            <div class="p-4 bg-purple-50/30 dark:bg-purple-950/20 border border-purple-150 dark:border-purple-900/40 rounded-xl">
+                                <div class="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wide mb-2 flex items-center justify-between">
+                                    <span>Track 2: From O<sub>2</sub></span>
+                                    <span class="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 px-2 py-0.5 rounded text-[10px]">80.0 g starting</span>
+                                </div>
+                                <ol class="list-decimal pl-4 space-y-1.5 text-xs text-slate-650 dark:text-slate-350">
+                                    <li>Convert: 80.0 g ÷ 32.000 = <strong class="text-slate-800 dark:text-slate-200 font-mono">2.500 mol O<sub>2</sub></strong></li>
+                                    <li>Mole Bridge: 2.500 &times; (2 H<sub>2</sub>O / 1 O<sub>2</sub>) = <strong class="text-slate-800 dark:text-slate-200 font-mono">5.000 mol H<sub>2</sub>O</strong></li>
+                                    <li>Final Weight: 5.000 &times; 18.015 = <strong class="text-purple-700 dark:text-purple-400 font-mono">90.1 g H<sub>2</sub>O</strong></li>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <!-- Decision Result Callout -->
+                        <div class="mt-4 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-250 dark:border-emerald-900/60 rounded-xl">
+                            <span class="font-extrabold text-emerald-800 dark:text-emerald-400 uppercase tracking-wide text-xs block mb-1">📢 The Verdict</span>
+                            Comparing the yields:
+                            <ul class="list-disc pl-5 mt-1.5 space-y-1 text-xs">
+                                <li>H<sub>2</sub> produces <strong class="text-emerald-700 dark:text-emerald-400 font-mono">89.4 g</strong>.</li>
+                                <li>O<sub>2</sub> produces <strong class="text-slate-700 dark:text-slate-350 font-mono">90.1 g</strong>.</li>
+                            </ul>
+                            <div class="mt-2.5 leading-relaxed text-xs">
+                                Since <strong class="text-blue-600 dark:text-blue-400">H<sub>2</sub></strong> produces the <strong class="underline">least</strong> amount of product, <strong>Hydrogen is the Limiting Reactant</strong> and will be entirely consumed. Oxygen is the **Excess Reactant** (there will be unreacted O<sub>2</sub> left over). The true **Theoretical Yield** of water is exactly <strong class="text-emerald-700 dark:text-emerald-400 font-mono">89.4 g</strong>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Significant Figures in Stoichiometry -->
+                    <div>
+                        <h4 class="font-bold text-emerald-900 dark:text-emerald-300 border-b border-emerald-200 dark:border-slate-800 pb-1 mb-2 text-base flex items-center gap-1.5">
+                            <span class="bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 w-5 h-5 rounded-full flex items-center justify-center text-xs">5</span>
+                            Significant Figures in Stoichiometry
+                        </h4>
+                        <p class="leading-relaxed mb-3">
+                            The chemistry trainer grades answers strictly on significant figures. To ensure you never lose points, keep these three professional rules in mind:
+                        </p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+                            <!-- Rule A -->
+                            <div class="p-3 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl shadow-xs">
+                                <span class="font-extrabold text-blue-600 dark:text-blue-400 block mb-1">Rule A: Reactants Dictate SF</span>
+                                The starting mass value of your limiting reactant determines the total significant figures of your final yield. 
+                                <div class="font-semibold text-slate-500 mt-1">Ex: 10.0 g (3 SF) ➔ Answer rounded to 3 SF.</div>
+                            </div>
+                            <!-- Rule B -->
+                            <div class="p-3 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl shadow-xs">
+                                <span class="font-extrabold text-amber-700 dark:text-amber-400 block mb-1">Rule B: Coefficients are Exact</span>
+                                Stoichiometric coefficients in a balanced equation are exact counts (e.g. exactly 2 molecules). They have infinite precision and **never** limit your significant figures.
+                            </div>
+                            <!-- Rule C -->
+                            <div class="p-3 bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-800 rounded-xl shadow-xs">
+                                <span class="font-extrabold text-purple-600 dark:text-purple-400 block mb-1">Rule C: Molar Mass Precision</span>
+                                Always use molar masses with *more* precision (greater significant figures) than your starting mass. 
+                                <div class="font-semibold text-slate-500 mt-1">Ex: For 10.0 g (3 SF), use 18.015 g/mol (5 SF) instead of 18 g/mol (2 SF).</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </details>
@@ -556,6 +822,49 @@
             <div id="stoich-scenario-container" class="hidden bg-white border border-amber-200 rounded-xl p-5 mb-4">
                 <h4 class="font-bold text-amber-800 mb-2 text-sm uppercase tracking-wide">2. Solve the Problem</h4>
                 <p id="stoich-prompt" class="text-gray-800 font-medium mb-4 text-sm"></p>
+                
+                <!-- Stoichiometry Scratch Pad Widget -->
+                <div class="mt-4 mb-6 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+                    <button type="button" id="btn-toggle-scratchpad" class="w-full px-4 py-3 flex justify-between items-center bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider select-none hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator"></i> Stoichiometry Scratch Pad
+                        </span>
+                        <span id="scratchpad-toggle-icon" class="text-slate-500 font-bold transition-transform duration-200">▲</span>
+                    </button>
+                    <div id="scratchpad-content" class="p-4 space-y-4">
+                        <div class="flex justify-between items-center gap-2">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Record and calculate molecular quantities step-by-step:</span>
+                            <button type="button" id="btn-scratchpad-import" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
+                                <i class="fa-solid fa-file-import"></i> Auto-fill Masses
+                            </button>
+                        </div>
+                        
+                        <!-- Dynamic Scratch Pad Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[500px]">
+                                <thead>
+                                    <tr class="border-b border-slate-200 dark:border-slate-700 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                                        <th class="pb-2">Formula</th>
+                                        <th class="pb-2 w-28">Molar Mass</th>
+                                        <th class="pb-2 w-24">Mass (g)</th>
+                                        <th class="pb-2 w-28">Moles (mol)</th>
+                                        <th class="pb-2 w-24 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scratchpad-tbody" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- General Notepad -->
+                        <div class="space-y-1.5">
+                            <label for="scratchpad-notes" class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Scratchpad Notes</label>
+                            <textarea id="scratchpad-notes" rows="2" class="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 font-mono resize-y" placeholder="Write down molecular ratios, conversion paths, or scratch notes here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex gap-2 w-full max-w-sm">
                     <input id="stoich-reading" type="text" class="flex-grow border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Your Answer (e.g. 15.0 g)">
                     <button id="btn-check-stoich" class="py-3 px-6 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Submit</button>
@@ -718,8 +1027,16 @@
         </div>
     </nav>
 
+    <!-- Global Chemical Formula Tooltip -->
+    <div id="chem-tooltip" class="pointer-events-none fixed z-[9999] bg-slate-900/95 dark:bg-slate-800/95 text-white text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-md shadow-lg text-center leading-tight transition-all duration-150 opacity-0 scale-95 hidden" role="tooltip">
+        <span id="chem-tooltip-name" class="text-white font-bold block"></span>
+        <span id="chem-tooltip-mass" class="text-amber-300 font-medium block text-[9px] sm:text-[10px] hidden"></span>
+        <span id="chem-tooltip-arrow" class="absolute left-1/2 -translate-x-1/2 border-4 border-transparent"></span>
+    </div>
+
     <script src="mastery.js"></script>
     <script src="data.js"></script>
+    <script src="ai-tutor.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

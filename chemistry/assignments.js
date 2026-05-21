@@ -21,7 +21,14 @@
     const ASSIGNMENT_DB = {
         lesson_1_1: generateLesson1_1,
         lesson_1_2: generateLesson1_2,
-        lesson_1_3: generateLesson1_3
+        lesson_1_3: generateLesson1_3,
+        lesson_4_1: generateLesson4_1,
+        lesson_4_2: generateLesson4_2,
+        lesson_4_3: generateLesson4_3,
+        lesson_4_4: generateLesson4_4,
+        lesson_4_5: generateLesson4_5,
+        lesson_4_6: generateLesson4_6,
+        lesson_4_7: generateLesson4_7
     };
 
     function cacheDom() {
@@ -279,6 +286,332 @@
                     question: `Write ${value} in normalized scientific notation: enter mantissa only (for a x 10^b).`,
                     correctAnswer: normalized,
                     tolerance: 0.01
+                });
+            }
+        }
+        return questions;
+    }
+
+    function generateLesson4_1() {
+        const questions = [];
+        for (let i = 0; i < 10; i++) {
+            const style = randomInt(1, 3);
+            if (style === 1) {
+                // Style 1: Millimoles to moles conversion (3 decimal places)
+                const val = randomInt(20, 150); // e.g. 45 mmol
+                const moles = val / 1000;
+                questions.push({
+                    question: `A patient is prescribed a dose of potassium chloride containing ${val} millimoles (mmol) of K+ ions. How many moles (mol) of K+ ions is this? (Enter your answer to 3 decimal places).`,
+                    correctAnswer: moles,
+                    tolerance: 0.001
+                });
+            } else if (style === 2) {
+                // Style 2: Moles to molecules mantissa (2 decimal places)
+                const val = randomFloat(0.15, 0.85, 2); // e.g. 0.50 mol
+                const correctMantissa = val * 6.022; // E.g. 0.50 * 6.022 = 3.01
+                questions.push({
+                    question: `A clinical saline infusion delivers ${val.toFixed(2)} moles of NaCl. How many individual formula units of NaCl are administered? Enter only the mantissa (the 'a' in a * 10^23) rounded to 2 decimal places. (Use Avogadro's number = 6.022 * 10^23).`,
+                    correctAnswer: correctMantissa,
+                    tolerance: 0.02
+                });
+            } else {
+                // Style 3: Tracer atoms to micromoles (2 decimal places)
+                const val = randomInt(12, 48); // e.g. 24 x 10^17 atoms
+                const mcmol = val / 6.022; // (val * 10^17) / 6.022e23 = (val/6.022) * 10^-6 mol = (val/6.022) mcmol
+                questions.push({
+                    question: `A nuclear pharmacy preparing a Technetium-99m tracer uses a dose containing ${val} * 10^17 atoms of Tc-99m. How many micromoles (mcmol) of Tc-99m does this represent? (Enter your answer to 2 decimal places. Use Avogadro's number = 6.022 * 10^23).`,
+                    correctAnswer: mcmol,
+                    tolerance: 0.02
+                });
+            }
+        }
+        return questions;
+    }
+
+    function generateLesson4_2() {
+        const questions = [];
+        const compounds = [
+            { name: "Glucose", formula: "C6H12O6", mm: 180.16 },
+            { name: "Sodium Chloride (Saline)", formula: "NaCl", mm: 58.44 },
+            { name: "Calcium Carbonate (Antacid)", formula: "CaCO3", mm: 100.09 },
+            { name: "Lactic Acid", formula: "HC3H5O3", mm: 90.08 },
+            { name: "Sodium Bicarbonate", formula: "NaHCO3", mm: 84.01 },
+            { name: "Water", formula: "H2O", mm: 18.02 }
+        ];
+
+        for (let i = 0; i < 10; i++) {
+            const cmp = compounds[randomInt(0, compounds.length - 1)];
+            const style = randomInt(1, 3);
+            if (style === 1) {
+                // Style 1: Find molar mass of the compound
+                questions.push({
+                    question: `What is the molar mass of ${cmp.name} (${cmp.formula}) in g/mol? (Enter your answer to 2 decimal places).`,
+                    correctAnswer: cmp.mm,
+                    tolerance: 0.02
+                });
+            } else if (style === 2) {
+                // Style 2: Grams to moles (3 decimal places)
+                const grams = randomFloat(5.0, 50.0, 1);
+                const moles = grams / cmp.mm;
+                questions.push({
+                    question: `A clinical preparation contains ${grams.toFixed(1)} grams of ${cmp.name} (${cmp.formula}, molar mass = ${cmp.mm} g/mol). How many moles of ${cmp.formula} are present? (Enter your answer to 3 decimal places).`,
+                    correctAnswer: moles,
+                    tolerance: 0.005
+                });
+            } else {
+                // Style 3: Moles to grams (2 decimal places)
+                const moles = randomFloat(0.05, 0.45, 3);
+                const grams = moles * cmp.mm;
+                questions.push({
+                    question: `An IV solution requires ${moles.toFixed(3)} moles of ${cmp.name} (${cmp.formula}, molar mass = ${cmp.mm} g/mol). How many grams of this compound must be weighed out? (Enter your answer to 2 decimal places).`,
+                    correctAnswer: grams,
+                    tolerance: 0.05
+                });
+            }
+        }
+        return questions;
+    }
+
+    function generateLesson4_3() {
+        const questions = [];
+        const reactionStyles = [
+            {
+                prompt: "Balance the combustion reaction of methane: a CH4 + b O2 -> c CO2 + d H2O. What is the value of 'b' (the coefficient for O2)?",
+                answer: 2
+            },
+            {
+                prompt: "Balance the cellular respiration reaction: a C6H12O6 + b O2 -> c CO2 + d H2O. What is the coefficient 'c' for CO2?",
+                answer: 6
+            },
+            {
+                prompt: "Balance the neutralization of stomach acid with Milk of Magnesia: a Mg(OH)2 + b HCl -> c MgCl2 + d H2O. What is the value of 'b' (the coefficient for HCl)?",
+                answer: 2
+            },
+            {
+                prompt: "Balance the iron rusting equation: a Fe + b O2 -> c Fe2O3. What is the sum of the reactant coefficients (a + b)?",
+                answer: 7
+            },
+            {
+                prompt: "Balance the precipitation of barium sulfate: a BaCl2 + b Na2SO4 -> c BaSO4 + d NaCl. What is the sum of ALL coefficients (a + b + c + d) in the fully balanced equation?",
+                answer: 5
+            },
+            {
+                prompt: "Balance the enzymatic decomposition of hydrogen peroxide in cells: a H2O2 -> b H2O + c O2. What is the value of the coefficient 'a'?",
+                answer: 2
+            },
+            {
+                prompt: "Balance the synthesis of ammonia (Haber process): a N2 + b H2 -> c NH3. What is the coefficient 'b' for H2?",
+                answer: 3
+            },
+            {
+                prompt: "Balance the metal dissolution reaction: a Al + b HCl -> c AlCl3 + d H2. What is the coefficient 'd' for H2 gas?",
+                answer: 3
+            },
+            {
+                prompt: "Balance the emergency oxygen generator reaction: a NaClO3 -> b NaCl + c O2. What is the sum of all coefficients (a + b + c) in the fully balanced equation?",
+                answer: 7
+            },
+            {
+                prompt: "Balance the double replacement precipitation of calcium phosphate: a CaCl2 + b Na3PO4 -> c Ca3(PO4)2 + d NaCl. What is the coefficient 'd' for NaCl?",
+                answer: 6
+            }
+        ];
+
+        // Shuffle or select 10 questions
+        const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = indices[i];
+            indices[i] = indices[j];
+            indices[j] = temp;
+        }
+
+        for (let i = 0; i < 10; i++) {
+            const rxn = reactionStyles[indices[i]];
+            questions.push({
+                question: rxn.prompt,
+                correctAnswer: rxn.answer,
+                tolerance: 0
+            });
+        }
+        return questions;
+    }
+
+    function generateLesson4_4() {
+        const questions = [];
+        const typePool = [
+            { rxn: "C3H8 + 5 O2 -> 3 CO2 + 4 H2O", ans: 5 },
+            { rxn: "2 H2O2 -> 2 H2O + O2", ans: 2 },
+            { rxn: "AgNO3 + NaCl -> AgCl + NaNO3", ans: 4 },
+            { rxn: "4 Fe + 3 O2 -> 2 Fe2O3", ans: 1 },
+            { rxn: "Zn + 2 HCl -> ZnCl2 + H2", ans: 3 },
+            { rxn: "2 Al + 6 HCl -> 2 AlCl3 + 3 H2", ans: 3 },
+            { rxn: "CaCO3 -> CaO + CO2", ans: 2 },
+            { rxn: "N2 + 3 H2 -> 2 NH3", ans: 1 },
+            { rxn: "Mg(OH)2 + 2 HCl -> MgCl2 + 2 H2O", ans: 4 },
+            { rxn: "2 CH3OH + 3 O2 -> 2 CO2 + 4 H2O", ans: 5 }
+        ];
+
+        const solubleSalts = ["NaCl", "NaNO3", "KNO3", "KCl", "NH4Cl", "Na2SO4", "LiCl", "NH4NO3"];
+        const insolubleSalts = ["AgCl", "BaSO4", "Ca3(PO4)2", "PbI2", "Fe(OH)3", "CaCO3", "BaCO3", "AgBr"];
+
+        const typeIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        for (let i = typeIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = typeIndices[i];
+            typeIndices[i] = typeIndices[j];
+            typeIndices[j] = temp;
+        }
+
+        for (let i = 0; i < 5; i++) {
+            const item = typePool[typeIndices[i]];
+            questions.push({
+                question: `Identify the chemical reaction type for: ${item.rxn}. Enter: 1 for Synthesis, 2 for Decomposition, 3 for Single Replacement, 4 for Double Replacement, 5 for Combustion.`,
+                correctAnswer: item.ans,
+                tolerance: 0
+            });
+        }
+
+        for (let i = 0; i < 5; i++) {
+            const numSalts = randomInt(4, 6);
+            const chosen = [];
+            let insolubleCount = 0;
+
+            for (let k = 0; k < numSalts; k++) {
+                if (Math.random() < 0.5) {
+                    const salt = solubleSalts[randomInt(0, solubleSalts.length - 1)];
+                    if (!chosen.includes(salt)) {
+                        chosen.push(salt);
+                    } else {
+                        k--;
+                    }
+                } else {
+                    const salt = insolubleSalts[randomInt(0, insolubleSalts.length - 1)];
+                    if (!chosen.includes(salt)) {
+                        chosen.push(salt);
+                        insolubleCount++;
+                    } else {
+                        k--;
+                    }
+                }
+            }
+
+            questions.push({
+                question: `According to clinical solubility rules, how many of the following salts are INSOLUBLE in water (will form a precipitate)? [${chosen.join(", ")}].`,
+                correctAnswer: insolubleCount,
+                tolerance: 0
+            });
+        }
+
+        return questions;
+    }
+
+    function generateLesson4_5() {
+        const questions = [];
+        for (let i = 0; i < 10; i++) {
+            const style = randomInt(1, 4);
+            const moles = randomFloat(0.1, 1.5, 1);
+            if (style === 1) {
+                const ans = moles * 3;
+                questions.push({
+                    question: `Given the unbalanced reaction: Al + HCl -> AlCl3 + H2. Once balanced, how many moles of HCl are required to completely react with ${moles.toFixed(1)} moles of Al? (Enter to 1 decimal place).`,
+                    correctAnswer: ans,
+                    tolerance: 0.05
+                });
+            } else if (style === 2) {
+                const ans = moles * 6;
+                questions.push({
+                    question: `Given the unbalanced reaction: C6H12O6 + O2 -> CO2 + H2O. Once balanced, how many moles of CO2 are produced when ${moles.toFixed(1)} moles of glucose (C6H12O6) are fully metabolized? (Enter to 1 decimal place).`,
+                    correctAnswer: ans,
+                    tolerance: 0.05
+                });
+            } else if (style === 3) {
+                questions.push({
+                    question: `Given the unbalanced reaction: Mg(OH)2 + HCl -> MgCl2 + H2O. Once balanced, how many moles of water are formed when ${moles.toFixed(1)} moles of stomach acid (HCl) are completely neutralized by excess Mg(OH)2? (Enter to 1 decimal place).`,
+                    correctAnswer: moles,
+                    tolerance: 0.05
+                });
+            } else {
+                const ans = moles * 2;
+                questions.push({
+                    question: `Given the unbalanced reaction: NH3 + CO2 -> (NH2)2CO + H2O. Once balanced, how many moles of ammonia (NH3) are metabolized to synthesize ${moles.toFixed(1)} moles of urea ((NH2)2CO) in the liver? (Enter to 1 decimal place).`,
+                    correctAnswer: ans,
+                    tolerance: 0.05
+                });
+            }
+        }
+        return questions;
+    }
+
+    function generateLesson4_6() {
+        const questions = [];
+        for (let i = 0; i < 10; i++) {
+            const style = randomInt(1, 3);
+            if (style === 1) {
+                const g = randomFloat(10.0, 50.0, 1);
+                const ans = (g / 180.16) * 6 * 32.00;
+                questions.push({
+                    question: `A patient's cells metabolize glucose via the reaction: C6H12O6(s) + 6 O2(g) -> 6 CO2(g) + 6 H2O(l). (Molar masses: C6H12O6 = 180.16 g/mol, O2 = 32.00 g/mol). If ${g.toFixed(1)} grams of glucose are completely oxidized, what mass in grams of oxygen is consumed? (Enter to 2 decimal places).`,
+                    correctAnswer: ans,
+                    tolerance: 0.05
+                });
+            } else if (style === 2) {
+                const g = randomFloat(100.0, 300.0, 1);
+                const ans = (g / 106.44) * 1.5 * 32.00;
+                questions.push({
+                    question: `In an emergency aviation mask, oxygen is generated via sodium chlorate decomposition: 2 NaClO3 -> 2 NaCl + 3 O2. (Molar masses: NaClO3 = 106.44 g/mol, O2 = 32.00 g/mol). If ${g.toFixed(1)} grams of NaClO3 decompose completely, how many grams of O2 gas are produced? (Enter to 2 decimal places).`,
+                    correctAnswer: ans,
+                    tolerance: 0.05
+                });
+            } else {
+                const g = randomFloat(1.5, 5.0, 1);
+                const ans = (g / 100.09) * 44.01;
+                questions.push({
+                    question: `An antacid tablet containing CaCO3 neutralizes stomach acid: CaCO3 + 2 HCl -> CaCl2 + H2O + CO2. (Molar masses: CaCO3 = 100.09 g/mol, CO2 = 44.01 g/mol). If a tablet containing ${g.toFixed(1)} grams of CaCO3 is fully neutralized, how many grams of CO2 gas are released? (Enter to 2 decimal places).`,
+                    correctAnswer: ans,
+                    tolerance: 0.05
+                });
+            }
+        }
+        return questions;
+    }
+
+    function generateLesson4_7() {
+        const questions = [];
+        for (let i = 0; i < 10; i++) {
+            const style = randomInt(1, 2);
+            if (style === 1) {
+                const g1 = randomFloat(10.0, 30.0, 1);
+                const g2 = randomFloat(1.0, 4.0, 1);
+                
+                const molPt = g1 / 415.09;
+                const molAmmonia = g2 / 17.03;
+                
+                let theoreticalMoles = 0;
+                if (molAmmonia < 2 * molPt) {
+                    theoreticalMoles = molAmmonia / 2;
+                } else {
+                    theoreticalMoles = molPt;
+                }
+                const theoreticalYield = theoreticalMoles * 300.06;
+
+                questions.push({
+                    question: `To prepare the chemotherapy agent cisplatin, a pharmacy reacts ${g1.toFixed(1)} g of K2PtCl4 (415.09 g/mol) with ${g2.toFixed(1)} g of NH3 (17.03 g/mol) via: K2PtCl4 + 2 NH3 -> Pt(NH3)2Cl2 + 2 KCl. (Molar mass of cisplatin Pt(NH3)2Cl2 = 300.06 g/mol). What is the theoretical yield of cisplatin in grams? (Enter to 2 decimal places).`,
+                    correctAnswer: theoreticalYield,
+                    tolerance: 0.05
+                });
+            } else {
+                const g1 = randomFloat(5.0, 15.0, 1);
+                const theoreticalMoles = g1 / 138.12;
+                const theoreticalGrams = theoreticalMoles * 180.16;
+                
+                const pctYield = randomFloat(75.0, 92.0, 1);
+                const actualGrams = (pctYield / 100) * theoreticalGrams;
+
+                questions.push({
+                    question: `A student synthesizes aspirin (180.16 g/mol) from salicylic acid (138.12 g/mol) and excess acetic anhydride: C7H6O3 + C4H6O3 -> C9H8O4 + C2H4O2. If the student reacts ${g1.toFixed(1)} grams of salicylic acid and obtains an actual yield of ${actualGrams.toFixed(2)} grams of aspirin, what is the percent yield of the reaction? (Enter to 1 decimal place).`,
+                    correctAnswer: pctYield,
+                    tolerance: 0.1
                 });
             }
         }

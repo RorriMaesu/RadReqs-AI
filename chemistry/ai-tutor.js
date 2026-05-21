@@ -1,5 +1,106 @@
 const CONFIG = { endpoint: 'http://localhost:11434/api/generate', model: 'gemma' };
 
+function cleanMathAndLaTeX(text) {
+    if (typeof text !== 'string') return '';
+    
+    let cleaned = text.trim();
+
+    // 1. Strip global markdown code block wrappers if they wrap the entire response
+    if (cleaned.startsWith('```') && cleaned.endsWith('```')) {
+        cleaned = cleaned.replace(/^```[a-zA-Z]*\n?/, '');
+        cleaned = cleaned.replace(/\n?```$/, '');
+        cleaned = cleaned.trim();
+    }
+
+    // 2. Normalize degrees and temperature units before stripping commands
+    cleaned = cleaned.replace(/\\text\{[FCK]\}\^\{\\circ\}/g, (m) => m.includes('F') ? '°F' : m.includes('C') ? '°C' : '°K');
+    cleaned = cleaned.replace(/\\text\{[FCK]\}\^\\circ/g, (m) => m.includes('F') ? '°F' : m.includes('C') ? '°C' : '°K');
+    cleaned = cleaned.replace(/\^\{\\circ\}\\text\{[FC]\}/g, (m) => m.includes('F') ? '°F' : '°C');
+    cleaned = cleaned.replace(/\^\\circ\\text\{[FC]\}/g, (m) => m.includes('F') ? '°F' : '°C');
+    cleaned = cleaned.replace(/\^\{\\circ\}/g, '°');
+    cleaned = cleaned.replace(/\^\\circ/g, '°');
+    cleaned = cleaned.replace(/\\degree/g, '°');
+
+    // Clean up LaTeX spacing commands
+    cleaned = cleaned.replace(/\\(quad|qquad|space)\b/g, ' ');
+    cleaned = cleaned.replace(/\\(,|;|!)/g, '');
+
+    // Clean up mathematical function commands
+    cleaned = cleaned.replace(/\\(log|ln|exp|sin|cos|tan|lim|max|min|det)\b/g, '$1');
+
+    // Clean up percent sign escapes
+    cleaned = cleaned.replace(/\\%/g, '%');
+
+    // Clean up left/right sizing commands first
+    cleaned = cleaned.replace(/\\left\(/g, '(');
+    cleaned = cleaned.replace(/\\right\)/g, ')');
+    cleaned = cleaned.replace(/\\left\[/g, '[');
+    cleaned = cleaned.replace(/\\right\]/g, ']');
+
+    // Strip math delimiters \[ \] \( \)
+    cleaned = cleaned.replace(/\\+[\[\]()]/g, '');
+
+    // 3. Combined loop for nested structures: commands, subscripts, fractions, square roots
+    let prev;
+    do {
+        prev = cleaned;
+        // Strip text/formatting commands
+        cleaned = cleaned.replace(/\\(text|mathrm|mathit|mathbf|ce|underline|bar|hat|tilde|vec|dot|ddot)\{([^{}]+)\}/g, '$2');
+        // Convert braced superscripts & subscripts to HTML
+        cleaned = cleaned.replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>');
+        cleaned = cleaned.replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>');
+        // Convert fractions
+        cleaned = cleaned.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '$1 / $2');
+        // Convert square roots
+        cleaned = cleaned.replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)');
+    } while (cleaned !== prev);
+
+    // Convert non-braced subscripts and superscripts safely
+    // Match letters/digits/parentheses, then _, then digits or simple chemical/state signs
+    cleaned = cleaned.replace(/([A-Za-z0-9)])_([0-9]+|[a-z]{1,2})/g, '$1<sub>$2</sub>');
+    cleaned = cleaned.replace(/([A-Za-z0-9)])\^([0-9+\-]+)/g, '$1<sup>$2</sup>');
+
+    // Clean up spacing around parentheses
+    cleaned = cleaned.replace(/\(\s+/g, '(');
+    cleaned = cleaned.replace(/\s+\)/g, ')');
+
+    // Math symbols
+    cleaned = cleaned.replace(/\\times/g, '×');
+    cleaned = cleaned.replace(/\\cdot/g, '·');
+    cleaned = cleaned.replace(/\\pm/g, '±');
+    cleaned = cleaned.replace(/\\Delta/g, 'Δ');
+    cleaned = cleaned.replace(/\\delta/g, 'δ');
+    cleaned = cleaned.replace(/\\alpha/g, 'α');
+    cleaned = cleaned.replace(/\\beta/g, 'β');
+    cleaned = cleaned.replace(/\\mu/g, 'μ');
+    cleaned = cleaned.replace(/\\rightarrow/g, '→');
+    cleaned = cleaned.replace(/\\to/g, '→');
+    cleaned = cleaned.replace(/\\approx/g, '≈');
+    cleaned = cleaned.replace(/\\geq/g, '≥');
+    cleaned = cleaned.replace(/\\leq/g, '≤');
+    cleaned = cleaned.replace(/\\neq/g, '≠');
+    cleaned = cleaned.replace(/\\rightleftharpoons/g, '⇌');
+    cleaned = cleaned.replace(/\\leftrightarrow/g, '↔');
+    cleaned = cleaned.replace(/\\partial/g, '∂');
+    cleaned = cleaned.replace(/\\infty/g, '∞');
+    cleaned = cleaned.replace(/\\pi/g, 'π');
+    cleaned = cleaned.replace(/\\theta/g, 'θ');
+    cleaned = cleaned.replace(/\\lambda/g, 'λ');
+    cleaned = cleaned.replace(/\\sigma/g, 'σ');
+    cleaned = cleaned.replace(/\\omega/g, 'ω');
+    cleaned = cleaned.replace(/\\phi/g, 'φ');
+    cleaned = cleaned.replace(/\\gamma/g, 'γ');
+
+    // Remove dollar signs (both block $$ and inline $)
+    cleaned = cleaned.replace(/\$\$/g, '');
+    cleaned = cleaned.replace(/\$/g, '');
+
+    // Strip extra backslashes (e.g. escaped symbols that aren't valid LaTeX but might confuse readers)
+    cleaned = cleaned.replace(/\\([#*_`[\]()])/g, '$1');
+
+    return cleaned.trim();
+}
+
 const TUTOR_ERROR_RESPONSE = {
     passed: false,
     feedback: 'Error: Clinical Link interrupted. Please try again or click Regenerate.',
@@ -107,9 +208,12 @@ function normalizeTutorResponse(parsed) {
         throw new Error('Parsed response is not an object');
     }
 
+    let feedback = typeof parsed.feedback === 'string' ? parsed.feedback : 'No feedback provided.';
+    feedback = cleanMathAndLaTeX(feedback);
+
     return {
         passed: Boolean(parsed.passed),
-        feedback: typeof parsed.feedback === 'string' ? parsed.feedback : 'No feedback provided.',
+        feedback: feedback,
         nextStage: typeof parsed.nextStage === 'string' || parsed.nextStage === null
             ? parsed.nextStage
             : null
@@ -188,21 +292,32 @@ async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
     return { ...TUTOR_ERROR_RESPONSE };
 }
 
-async function fetchGeneratedLesson(lesson, onProgress) {
+async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
     const endpoint = getConfiguredEndpoint();
     let activeModel = getChemistryModel();
     
     const systemPrompt = `You are a Senior Principal Frontend Developer and an Expert Professor of Clinical Medical Education.`;
+    const variationInstruction = variationIndex > 0
+        ? `This is Lecture Variation #${variationIndex + 1} for this topic. You MUST create a completely different clinical scenario/case study and use different patient names/clinical focus compared to previous variations to ensure variety.`
+        : '';
     const prompt = [
-        `Write a clinical chemistry micro-lecture (~300 words) for Radiologic Technology and Dosimetry students.`,
+        `Write a comprehensive, college-level clinical chemistry lecture (approximately 600-800 words) for Radiologic Technology, Dosimetry, and Nursing students.`,
+        variationInstruction,
         `You MUST use the exact concept, clinical tie-in, interactive target, and feynman prompt details below:`,
         `- Concept: ${lesson.concept}`,
         `- Clinical Tie-In: ${lesson.clinical_tie_in}`,
         `- Interactive Target: ${lesson.interactive_target}`,
         `- Feynman Prompt: ${lesson.feynman_prompt}`,
         ``,
-        `Structure the lecture with clear headings or markdown paragraphs. Limit the lecture to 300 words. Focus on the chemical principles and explain their direct clinical relevance (why this matters for dosimetry/radiology, patient safety, etc.).`,
-        `Do not include introductory greetings, filler text, or sign-offs. Return ONLY the markdown content of the micro-lecture.`
+        `Structure the lecture using clear markdown headers (###) into the following four sections:`,
+        `1. ### Clinical Case Study & Scenario (introduce a realistic, detailed clinical scenario illustrating the concept)`,
+        `2. ### Core Chemical Principles (explain the underlying molecular mechanisms and chemistry concepts in depth)`,
+        `3. ### Mathematical Frameworks & Calculations (provide a step-by-step mathematical breakdown, detailing conversion chains or dimensional analysis)`,
+        `4. ### Physiological & Radiological Significance (discuss safety protocols, diagnostic imaging relevance, or metabolic impacts)`,
+        ``,
+        `CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, \\times, etc.) in your response. Write all mathematical equations, equations, conversions, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses) so they render cleanly in standard markdown.`,
+        ``,
+        `Ensure the lecture is highly educational, rigorous, and meets the 600-800 word length requirement. Do not include introductory greetings, filler text, or sign-offs. Return ONLY the markdown content.`
     ].join('\n');
 
     // 1. Connection Step
@@ -280,12 +395,69 @@ async function fetchGeneratedLesson(lesson, onProgress) {
 
     // 4. Rendering Step
     onProgress('render', 'running', `Formatting and parsing Markdown...`);
+    const cleanedText = cleanMathAndLaTeX(responseText);
     onProgress('render', 'success', `Ready to display.`);
-    return responseText;
+    return cleanedText;
+}
+
+async function fetchGeneratedQuestion(lesson, mode) {
+    const endpoint = getConfiguredEndpoint();
+    let activeModel = getChemistryModel();
+    
+    let systemPrompt = `You are an Expert Professor of Clinical Chemistry.`;
+    let prompt = '';
+
+    if (mode === 'socratic') {
+        prompt = [
+            `Generate a single, unique, challenging, clinical scenario-based question to test a student's understanding of the concept: "${lesson.concept}".`,
+            `The context must relate to the clinical tie-in: "${lesson.clinical_tie_in}".`,
+            `The question must require the student to explain the chemical principles and make critical patient safety/radiological decisions.`,
+            `CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses).`,
+            `Return ONLY the question text itself. Do not include any introductory greetings, markdown headers, markdown code blocks, JSON wrapper, or conversational filler.`
+        ].join('\n');
+    } else if (mode === 'feynman') {
+        prompt = [
+            `Generate a challenging clinical chemistry prompt to test the student's ability to explain the concept "${lesson.concept}" using the Feynman technique (explaining a complex topic to a patient or child in simple, everyday language).`,
+            `The prompt should be based on the clinical tie-in: "${lesson.clinical_tie_in}".`,
+            `For example: "Explain how [concept] works to a patient who is worried about their diagnostic scan."`,
+            `CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses).`,
+            `Return ONLY the prompt text itself. Do not include any introductory greetings, markdown headers, markdown code blocks, JSON wrapper, or conversational filler.`
+        ].join('\n');
+    } else {
+        throw new Error(`Unsupported mode for question generation: ${mode}`);
+    }
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: activeModel,
+            stream: false,
+            prompt: prompt,
+            system: systemPrompt,
+            options: {
+                num_ctx: 2048,
+                temperature: 0.8
+            }
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error(`Ollama returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const question = typeof data?.response === 'string' ? data.response.trim() : '';
+    if (!question) {
+        throw new Error('Empty response received from Ollama');
+    }
+    return cleanMathAndLaTeX(question);
 }
 
 window.CLINICAL_TUTOR = {
     CONFIG,
     fetchLocalTutor,
-    fetchGeneratedLesson
+    fetchGeneratedLesson,
+    fetchGeneratedQuestion,
+    cleanMathAndLaTeX
 };
