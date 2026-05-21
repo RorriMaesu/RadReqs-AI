@@ -20,6 +20,43 @@ const STRICT_JSON_DIRECTIVE = [
     'Do not include any text before or after the JSON object.'
 ].join(' ');
 
+function getConfiguredEndpoint() {
+    const override = localStorage.getItem('chemistry_ollama_endpoint');
+    return override && override.trim() ? override.trim() : CONFIG.endpoint;
+}
+
+function getChemistryModel() {
+    return localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
+}
+
+function pickAvailableModel(requestedModel, models) {
+    if (!Array.isArray(models) || models.length === 0) {
+        return requestedModel;
+    }
+
+    const exact = models.find((m) => typeof m?.name === 'string' && m.name === requestedModel);
+    if (exact) return exact.name;
+
+    const startsWith = models.find((m) => typeof m?.name === 'string' && m.name.startsWith(requestedModel));
+    if (startsWith) return startsWith.name;
+
+    const gemma = models.find((m) => typeof m?.name === 'string' && m.name.toLowerCase().includes('gemma'));
+    if (gemma) return gemma.name;
+
+    const first = models.find((m) => typeof m?.name === 'string' && m.name.trim());
+    return first ? first.name : requestedModel;
+}
+
+async function fetchOllamaTags(endpoint) {
+    const tagsUrl = endpoint.replace('/api/generate', '/api/tags');
+    const response = await fetch(tagsUrl, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) {
+        throw new Error(`Ollama tags response status ${response.status}`);
+    }
+    const data = await response.json();
+    return Array.isArray(data?.models) ? data.models : [];
+}
+
 function buildTutorPrompt(systemPrompt, messageHistory, userInput) {
     const safeHistory = Array.isArray(messageHistory) ? messageHistory : [];
 
@@ -82,14 +119,26 @@ function normalizeTutorResponse(parsed) {
 async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
     const maxAttempts = 3;
     const prompt = buildTutorPrompt(systemPrompt, messageHistory, userInput);
-    const activeModel = localStorage.getItem('chemistry_llm') || localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
+    const endpoint = getConfiguredEndpoint();
+    let activeModel = getChemistryModel();
+
+    try {
+        const models = await fetchOllamaTags(endpoint);
+        const fallback = pickAvailableModel(activeModel, models);
+        if (fallback !== activeModel) {
+            activeModel = fallback;
+            localStorage.setItem('chemistry_llm', activeModel);
+        }
+    } catch (_err) {
+        // Keep requested model when tags endpoint is unavailable.
+    }
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         let response;
         let responseData;
 
         try {
-            response = await fetch(CONFIG.endpoint, {
+            response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -140,8 +189,8 @@ async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
 }
 
 async function fetchGeneratedLesson(lesson, onProgress) {
-    const endpoint = CONFIG.endpoint;
-    const activeModel = localStorage.getItem('chemistry_llm') || localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
+    const endpoint = getConfiguredEndpoint();
+    let activeModel = getChemistryModel();
     
     const systemPrompt = `You are a Senior Principal Frontend Developer and an Expert Professor of Clinical Medical Education.`;
     const prompt = [
@@ -158,10 +207,9 @@ async function fetchGeneratedLesson(lesson, onProgress) {
 
     // 1. Connection Step
     onProgress('connect', 'running', `Connecting to Ollama endpoint at ${endpoint}...`);
+    let models = [];
     try {
-        const tagsUrl = endpoint.replace('/api/generate', '/api/tags');
-        const connCheck = await fetch(tagsUrl, { signal: AbortSignal.timeout(3000) });
-        if (!connCheck.ok) throw new Error('Ollama endpoint status code not OK');
+        models = await fetchOllamaTags(endpoint);
         onProgress('connect', 'success', `Successfully connected to Ollama.`);
     } catch (err) {
         console.warn('Ollama tags check failed:', err);
@@ -171,18 +219,17 @@ async function fetchGeneratedLesson(lesson, onProgress) {
     // 2. Model Check Step
     onProgress('model', 'running', `Verifying model '${activeModel}' status...`);
     try {
-        const tagsUrl = endpoint.replace('/api/generate', '/api/tags');
-        const connCheck = await fetch(tagsUrl, { signal: AbortSignal.timeout(3000) });
-        if (connCheck.ok) {
-            const tagsData = await connCheck.json();
-            const exists = tagsData.models && tagsData.models.some(m => m.name === activeModel || m.name.startsWith(activeModel));
-            if (exists) {
-                onProgress('model', 'success', `Model '${activeModel}' is available.`);
+        if (models.length > 0) {
+            const selected = pickAvailableModel(activeModel, models);
+            if (selected !== activeModel) {
+                onProgress('model', 'warning', `Model '${activeModel}' not found. Using '${selected}' instead.`);
+                activeModel = selected;
+                localStorage.setItem('chemistry_llm', activeModel);
             } else {
-                throw new Error(`Model '${activeModel}' not found in local Ollama list.`);
+                onProgress('model', 'success', `Model '${activeModel}' is available.`);
             }
         } else {
-            throw new Error('Ollama tags response not OK');
+            onProgress('model', 'warning', 'Unable to list models. Proceeding with saved chemistry model.');
         }
     } catch (err) {
         console.warn('Model verification failed:', err);
