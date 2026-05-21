@@ -412,7 +412,12 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
             }, 600);
 
         } catch (err) {
-            console.error('Lecture generation failed:', err);
+            const isHostedFallback = err && err.code === 'OLLAMA_UNAVAILABLE';
+            if (isHostedFallback) {
+                console.info('Lecture generation using offline fallback:', err.message);
+            } else {
+                console.warn('Lecture generation failed, using offline fallback:', err);
+            }
             const mockText = generateOfflineMockLecture(lesson);
             localStorage.setItem(`chemistry_lesson_lecture_${lesson.id}`, mockText);
             updateStepUI('generate', 'warning', err && err.message ? err.message : 'Generation failed, switching to offline lecture.');
