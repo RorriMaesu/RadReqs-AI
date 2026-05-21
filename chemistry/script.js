@@ -1,7 +1,21 @@
 const CHEM_STATE_KEY = "chemistry_learning_state_v1";
+const CHEM_LOCAL_OLLAMA_BASE = "http://localhost:11434";
 let learningState = null;
 let activateChemTab = () => {};
 let diagnosticSession = null;
+
+function isLoopbackHost(hostname) {
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+}
+
+function isHostedEnvironment() {
+    const host = window?.location?.hostname || "";
+    return !isLoopbackHost(host);
+}
+
+function shouldUseLocalOllama() {
+    return !isHostedEnvironment() || localStorage.getItem("chemistry_allow_localhost_ollama") === "true";
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     learningState = loadLearningState();
@@ -107,8 +121,15 @@ function bindTutorActions() {
     const checkStatus = async () => {
         const dot = document.getElementById("chat-status-dot");
         const text = document.getElementById("chat-status-text");
+
+        if (!shouldUseLocalOllama()) {
+            dot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
+            text.textContent = "Hosted mode (offline tutor)";
+            return false;
+        }
+
         try {
-            const res = await fetch("http://localhost:11434/api/ps", { signal: AbortSignal.timeout(3000) });
+            const res = await fetch(`${CHEM_LOCAL_OLLAMA_BASE}/api/ps`, { signal: AbortSignal.timeout(3000) });
             if (res.ok) {
                 dot.className = "inline-block w-2 h-2 rounded-full bg-green-500";
                 text.textContent = "Prof. Beaker is ready";
@@ -201,9 +222,18 @@ function bindTutorActions() {
         msgsEl.scrollTop = msgsEl.scrollHeight;
 
         let payload = [{ role: "system", content: TUTOR_SYSTEM }, ...chatHistory];
+
+        if (!shouldUseLocalOllama()) {
+            document.getElementById(typingId)?.remove();
+            appendBubble("assistant", "Live site mode: local Ollama is unavailable in-browser. Use local launch scripts for full AI tutoring.");
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+            return;
+        }
         
         try {
-            const response = await fetch("http://localhost:11434/api/chat", {
+            const response = await fetch(`${CHEM_LOCAL_OLLAMA_BASE}/api/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
@@ -1880,13 +1910,19 @@ window.ChemTutor = (() => {
         msgsEl.appendChild(typingWrap);
         msgsEl.scrollTop = msgsEl.scrollHeight;
 
+        if (!shouldUseLocalOllama()) {
+            typingWrap.remove();
+            appendInlineBubble(msgsEl, "assistant", "Hosted mode detected. Local Ollama is not reachable from GitHub Pages. Run locally for AI chat.");
+            return;
+        }
+
         let payload = [
             { role: "system", content: "You are Prof. Beaker. Be encouraging, precise, and concise. Explain step by step where the student went wrong. If there are calculations, outline the steps." + (systemContext ? "\n\n[Current App Context:\n" + systemContext + "]" : "") }, 
             ...chatHistory
         ];
         
         try {
-            const response = await fetch("http://localhost:11434/api/chat", {
+            const response = await fetch(`${CHEM_LOCAL_OLLAMA_BASE}/api/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
