@@ -697,4 +697,21 @@ const ChemData = {
     }
 };
 
+ChemData.polyatomicIons = [
+  { "name": "Ammonium", "formula": "NH4+", "htmlFormula": "NH<sub>4</sub><sup>+</sup>", "charge": "+1", "group": "Positive Cations" },
+  { "name": "Nitrate", "formula": "NO3-", "htmlFormula": "NO<sub>3</sub><sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Acetate", "formula": "C2H3O2-", "htmlFormula": "C<sub>2</sub>H<sub>3</sub>O<sub>2</sub><sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Chlorate", "formula": "ClO3-", "htmlFormula": "ClO<sub>3</sub><sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Hydroxide", "formula": "OH-", "htmlFormula": "OH<sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Cyanide", "formula": "CN-", "htmlFormula": "CN<sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Permanganate", "formula": "MnO4-", "htmlFormula": "MnO<sub>4</sub><sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Bicarbonate", "formula": "HCO3-", "htmlFormula": "HCO<sub>3</sub><sup>-</sup>", "charge": "-1", "group": "-1 Anions" },
+  { "name": "Sulfate", "formula": "SO4 2-", "htmlFormula": "SO<sub>4</sub><sup>2-</sup>", "charge": "-2", "group": "-2 Anions" },
+  { "name": "Carbonate", "formula": "CO3 2-", "htmlFormula": "CO<sub>3</sub><sup>2-</sup>", "charge": "-2", "group": "-2 Anions" },
+  { "name": "Chromate", "formula": "CrO4 2-", "htmlFormula": "CrO<sub>4</sub><sup>2-</sup>", "charge": "-2", "group": "-2 Anions" },
+  { "name": "Dichromate", "formula": "Cr2O7 2-", "htmlFormula": "Cr<sub>2</sub>O<sub>7</sub><sup>2-</sup>", "charge": "-2", "group": "-2 Anions" },
+  { "name": "Oxalate", "formula": "C2O4 2-", "htmlFormula": "C<sub>2</sub>O<sub>4</sub><sup>2-</sup>", "charge": "-2", "group": "-2 Anions" },
+  { "name": "Phosphate", "formula": "PO4 3-", "htmlFormula": "PO<sub>4</sub><sup>3-</sup>", "charge": "-3", "group": "-3 Anions" }
+];
+
 window.ChemData = ChemData;

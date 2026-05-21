@@ -290,71 +290,304 @@
         </section>
 
         <section id="view-nomenclature" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
-            <div class="flex items-center justify-between mb-2">
-                <h3 class="text-xl font-bold">Nomenclature Flashcards</h3>
-                <select id="fc-category-select" class="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2">
-                </select>
+            <!-- Nomenclature Sub-Tabs -->
+            <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6 gap-2" role="tablist">
+                <button id="subnav-nomen-srs" class="px-5 py-2.5 text-sm font-bold border-b-2 border-amber-500 text-amber-700 dark:text-amber-400 transition-all focus:outline-none" role="tab" aria-selected="true">
+                    General SRS
+                </button>
+                <button id="subnav-nomen-polyatomic" class="px-5 py-2.5 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition-all focus:outline-none" role="tab" aria-selected="false">
+                    Polyatomic Ions Master
+                </button>
             </div>
-            <p class="text-gray-600 mb-5">Memorize polyatomic ions and chemical compounds.</p>
-            
-            <div class="flex flex-col items-center justify-center max-w-md mx-auto w-full">
-                <!-- 3D Flip Card Container -->
-                <div id="fc-card" class="flip-card cursor-pointer select-none group">
-                    <div class="flip-card-inner">
-                        <!-- Front Face -->
-                        <div class="flip-card-front group-hover:border-amber-300 transition-colors">
-                            <div class="mt-auto"></div>
-                            <span id="fc-front" class="text-5xl font-black text-gray-800 text-center px-4">Start</span>
-                            <span id="fc-hint" class="text-amber-600/60 text-sm mt-auto flex items-center gap-2 font-medium bg-amber-50/50 px-4 py-2 rounded-full"><i class="fa-solid fa-hand-pointer"></i> Click to Flip</span>
-                        </div>
-                        <!-- Back Face -->
-                        <div class="flip-card-back relative p-6">
-                            <span class="text-xs text-amber-500 absolute top-4 font-semibold uppercase tracking-wider">Answer</span>
-                            <span id="fc-front-repeat" class="text-sm font-medium text-amber-700/70 mb-1 mt-4"></span>
-                            <span id="fc-back" class="text-3xl sm:text-4xl font-bold text-amber-800 text-center px-4 mb-2"></span>
-                            <div id="fc-rule" class="text-sm italic text-amber-700/80 mt-auto bg-amber-50 rounded-lg p-3 w-full border border-amber-100 hidden"></div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- 4-Button SM-2 Controls -->
-                <div id="fc-controls" class="mt-6 opacity-0 pointer-events-none transition-all duration-300 translate-y-4 w-full">
-                    <div class="grid grid-cols-4 gap-2 sm:gap-3">
-                        <button id="btn-fc-again" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
-                            <span id="fc-int-again" class="text-[10px] font-bold text-rose-400 mb-0.5">&lt; 1m</span>
-                            <i class="fa-solid fa-rotate-left text-lg"></i>
-                            <span class="text-sm">Again</span>
-                            <span class="text-[10px] text-rose-400/80 font-normal hidden sm:block">1</span>
-                        </button>
-                        <button id="btn-fc-hard" class="bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
-                            <span id="fc-int-hard" class="text-[10px] font-bold text-orange-400 mb-0.5">1d</span>
-                            <i class="fa-solid fa-circle-exclamation text-lg"></i>
-                            <span class="text-sm">Hard</span>
-                            <span class="text-[10px] text-orange-400/80 font-normal hidden sm:block">2</span>
-                        </button>
-                        <button id="btn-fc-good" class="bg-amber-500 border-2 border-amber-600 text-white hover:bg-amber-600 font-bold py-3 px-1 rounded-2xl transition-all shadow-md shadow-amber-500/20 flex flex-col items-center gap-0.5">
-                            <span id="fc-int-good" class="text-[10px] font-bold text-amber-200 mb-0.5">2d</span>
-                            <i class="fa-solid fa-check text-lg"></i>
-                            <span class="text-sm">Good</span>
-                            <span class="text-[10px] text-amber-200/80 font-normal hidden sm:block">3</span>
-                        </button>
-                        <button id="btn-fc-easy" class="bg-white border-2 border-green-200 text-green-600 hover:bg-green-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
-                            <span id="fc-int-easy" class="text-[10px] font-bold text-green-400 mb-0.5">4d</span>
-                            <i class="fa-solid fa-star text-lg"></i>
-                            <span class="text-sm">Easy</span>
-                            <span class="text-[10px] text-green-400/80 font-normal hidden sm:block">4</span>
-                        </button>
+            <!-- Global Flashcards Scoreboard -->
+            <div id="nomen-scoreboard" class="bg-gradient-to-r from-amber-500/10 to-violet-500/10 border border-amber-500/20 dark:border-amber-500/35 rounded-2xl p-4 mb-6 grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <span class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Deck Mastery</span>
+                    <span id="nomen-mastery-score" class="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">0%</span>
+                </div>
+                <div class="border-x border-gray-200 dark:border-gray-700">
+                    <span class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Streak</span>
+                    <span id="nomen-streak-counter" class="text-xl sm:text-2xl font-black text-rose-500 flex items-center justify-center gap-1">0 <i class="fa-solid fa-fire text-base animate-pulse"></i></span>
+                </div>
+                <div>
+                    <span class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Session XP</span>
+                    <span id="nomen-xp-counter" class="text-xl sm:text-2xl font-black text-violet-600 dark:text-violet-400">0 pts</span>
+                </div>
+            </div>
+
+            <!-- Panel 1: General SRS (Original Flashcards) -->
+            <div id="panel-nomen-srs" class="fade-in">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                    <div>
+                        <h3 class="text-xl font-bold">Nomenclature Flashcards</h3>
                     </div>
-                    <!-- Ask Tutor Button -->
-                    <div class="mt-2.5 flex justify-center">
-                        <button id="btn-ask-tutor" class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors">
-                            <i class="fa-solid fa-robot text-[10px]"></i> Ask Tutor
+                    <div class="flex items-center gap-2">
+                        <select id="fc-category-select" class="text-xs font-semibold p-2.5 rounded-xl border border-gray-200 dark:border-[#363a52] bg-white dark:bg-[#1e2130] text-gray-700 dark:text-gray-300 focus:ring-amber-500 focus:border-amber-500 block">
+                        </select>
+                        <button id="btn-nomen-reset" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 hover:border-rose-500/30 transition-all flex items-center gap-1.5 shadow-sm" title="Reset all Nomenclature SRS progress">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Progress
                         </button>
                     </div>
                 </div>
+                <p class="text-gray-600 dark:text-gray-400 mb-5">Memorize polyatomic ions and chemical compounds.</p>
+                
+                <div class="flex flex-col items-center justify-center max-w-md mx-auto w-full">
+                    <!-- 3D Flip Card Container -->
+                    <div id="fc-card" class="flip-card cursor-pointer select-none group">
+                        <div class="flip-card-inner">
+                            <!-- Front Face -->
+                            <div class="flip-card-front group-hover:border-amber-300 transition-colors">
+                                <div class="mt-auto"></div>
+                                <span id="fc-front" class="text-5xl font-black text-gray-800 text-center px-4">Start</span>
+                                <span id="fc-hint" class="text-amber-600/60 text-sm mt-auto flex items-center gap-2 font-medium bg-amber-50/50 px-4 py-2 rounded-full"><i class="fa-solid fa-hand-pointer"></i> Click to Flip</span>
+                            </div>
+                            <!-- Back Face -->
+                            <div class="flip-card-back relative p-6 flex flex-col justify-between">
+                                <span class="text-xs text-amber-500 absolute top-4 font-semibold uppercase tracking-wider">Answer</span>
+                                <span id="fc-front-repeat" class="text-sm font-medium text-amber-700/70 mb-1 mt-4"></span>
+                                <span id="fc-back" class="text-3xl sm:text-4xl font-bold text-amber-800 text-center px-4 mb-2 my-auto"></span>
+                                
+                                <!-- Card Stats Panel -->
+                                <div class="w-full bg-white/50 dark:bg-black/20 border border-amber-500/20 dark:border-amber-500/35 rounded-xl p-2.5 flex items-center justify-around text-left mb-2">
+                                    <div class="leading-tight">
+                                        <span class="block text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Interval</span>
+                                        <span id="fc-stat-interval" class="text-xs font-black text-amber-700 dark:text-amber-400">New</span>
+                                    </div>
+                                    <div class="h-6 w-px bg-amber-500/25"></div>
+                                    <div class="leading-tight">
+                                        <span class="block text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Streak</span>
+                                        <span id="fc-stat-streak" class="text-xs font-black text-rose-500">0 🔥</span>
+                                    </div>
+                                    <div class="h-6 w-px bg-amber-500/25"></div>
+                                    <div class="leading-tight">
+                                        <span class="block text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Lapses</span>
+                                        <span id="fc-stat-lapses" class="text-xs font-black text-gray-700 dark:text-gray-300">0</span>
+                                    </div>
+                                </div>
 
-                <!-- Mini Chat Widget Placeholder -->
-                <div id="fc-mini-chat-container"></div>
+                                <div id="fc-rule" class="text-sm italic text-amber-700/80 mt-auto bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3 w-full border border-amber-100 dark:border-amber-900/35 hidden"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4-Button SM-2 Controls -->
+                    <div id="fc-controls" class="mt-6 opacity-0 pointer-events-none transition-all duration-300 translate-y-4 w-full">
+                        <div class="grid grid-cols-4 gap-2 sm:gap-3">
+                            <button id="btn-fc-again" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
+                                <span id="fc-int-again" class="text-[10px] font-bold text-rose-400 mb-0.5">&lt; 1m</span>
+                                <i class="fa-solid fa-rotate-left text-lg"></i>
+                                <span class="text-sm">Again</span>
+                                <span class="text-[10px] text-rose-400/80 font-normal hidden sm:block">1</span>
+                            </button>
+                            <button id="btn-fc-hard" class="bg-white border-2 border-orange-200 text-orange-600 hover:bg-orange-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
+                                <span id="fc-int-hard" class="text-[10px] font-bold text-orange-400 mb-0.5">1d</span>
+                                <i class="fa-solid fa-circle-exclamation text-lg"></i>
+                                <span class="text-sm">Hard</span>
+                                <span class="text-[10px] text-orange-400/80 font-normal hidden sm:block">2</span>
+                            </button>
+                            <button id="btn-fc-good" class="bg-amber-500 border-2 border-amber-600 text-white hover:bg-amber-600 font-bold py-3 px-1 rounded-2xl transition-all shadow-md shadow-amber-500/20 flex flex-col items-center gap-0.5">
+                                <span id="fc-int-good" class="text-[10px] font-bold text-amber-200 mb-0.5">2d</span>
+                                <i class="fa-solid fa-check text-lg"></i>
+                                <span class="text-sm">Good</span>
+                                <span class="text-[10px] text-amber-200/80 font-normal hidden sm:block">3</span>
+                            </button>
+                            <button id="btn-fc-easy" class="bg-white border-2 border-green-200 text-green-600 hover:bg-green-50 font-bold py-3 px-1 rounded-2xl transition-all shadow-sm flex flex-col items-center gap-0.5">
+                                <span id="fc-int-easy" class="text-[10px] font-bold text-green-400 mb-0.5">4d</span>
+                                <i class="fa-solid fa-star text-lg"></i>
+                                <span class="text-sm">Easy</span>
+                                <span class="text-[10px] text-green-400/80 font-normal hidden sm:block">4</span>
+                            </button>
+                        </div>
+                        <!-- Ask Tutor Button -->
+                        <div class="mt-2.5 flex justify-center">
+                            <button id="btn-ask-tutor" class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors">
+                                <i class="fa-solid fa-robot text-[10px]"></i> Ask Tutor
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mini Chat Widget Placeholder -->
+                    <div id="fc-mini-chat-container"></div>
+                </div>
+            </div>
+
+            <!-- Panel 2: Polyatomic Ions Master (New specialized module) -->
+            <div id="panel-nomen-polyatomic" class="hidden-tab fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-gray-800 dark:text-white">Polyatomic Ions Master</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Specialized active recall dashboard for polyatomic cations and anions.</p>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="flex items-center gap-2">
+                        <button id="btn-poly-shuffle" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:border-amber-500/30 transition-all flex items-center gap-1.5 shadow-sm" title="Shuffle current deck order">
+                            <i class="fa-solid fa-shuffle"></i> Shuffle
+                        </button>
+                        <button id="btn-poly-reset" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/20 hover:border-rose-500/30 transition-all flex items-center gap-1.5 shadow-sm" title="Reset all mastered progress">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> Reset Progress
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Study Configurations Banner -->
+                <div class="bg-gray-50 dark:bg-[#13151e] border border-gray-100 dark:border-[#252836] rounded-2xl p-4 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Study Mode Toggle -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Study Mode</label>
+                        <div class="inline-flex bg-gray-200/60 dark:bg-[#1e2130] rounded-xl p-1 w-full" role="group">
+                            <button id="btn-poly-mode-n2f" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white dark:bg-[#1a1d27] text-amber-700 dark:text-amber-400 shadow-sm focus:outline-none">
+                                Name &rarr; Formula
+                            </button>
+                            <button id="btn-poly-mode-f2n" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white focus:outline-none">
+                                Formula &rarr; Name
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter by Charge Group -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Filter by Charge Group</label>
+                        <select id="poly-group-select" class="w-full text-xs font-semibold p-2.5 rounded-xl border border-gray-200 dark:border-[#363a52] bg-white dark:bg-[#1e2130] text-gray-700 dark:text-gray-300 focus:ring-amber-500 focus:border-amber-500">
+                            <option value="all">All Ions (14)</option>
+                            <option value="+1">Positive Cations (+1)</option>
+                            <option value="-1">Charge -1 Anions (-1)</option>
+                            <option value="-2">Charge -2 Anions (-2)</option>
+                            <option value="-3">Charge -3 Anions (-3)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Session Progress Bar & State -->
+                <div class="mb-6 bg-gray-50 dark:bg-[#13151e] border border-gray-100 dark:border-[#252836] rounded-2xl p-4">
+                    <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-2 px-1">
+                        <span id="poly-progress-label">Session Progress</span>
+                        <span id="poly-progress-ratio" class="font-bold text-amber-600 dark:text-amber-400">Card 0 of 0</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                        <div id="poly-progress-bar" class="bg-gradient-to-r from-amber-500 to-amber-600 h-2.5 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Card and Controls Container -->
+                <div class="flex flex-col items-center justify-center max-w-md mx-auto w-full">
+                    
+                    <!-- Poly Flip Card -->
+                    <div id="poly-fc-card" class="flip-card cursor-pointer select-none group">
+                        <div class="flip-card-inner">
+                            <!-- Front Face -->
+                            <div class="flip-card-front group-hover:border-amber-300 dark:group-hover:border-amber-600/50 transition-colors flex flex-col justify-between">
+                                <div class="w-full flex justify-between items-center">
+                                    <span id="poly-front-group-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/35">Ion</span>
+                                    <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">Front</span>
+                                </div>
+                                <span id="poly-fc-front" class="text-4xl font-extrabold text-gray-800 dark:text-white text-center px-4 leading-normal my-auto">Ammonium</span>
+                                <span id="poly-fc-hint" class="text-amber-600/60 dark:text-amber-400/50 text-xs font-semibold bg-amber-50/50 dark:bg-amber-950/20 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 mb-1 transition-colors group-hover:bg-amber-50 dark:group-hover:bg-amber-950/40">
+                                    <i class="fa-solid fa-hand-pointer"></i> Click to Flip or Space
+                                </span>
+                            </div>
+                            <!-- Back Face -->
+                            <div class="flip-card-back relative flex flex-col justify-between">
+                                <div class="w-full flex justify-between items-center">
+                                    <span id="poly-back-group-badge" class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-100/40 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">Ion</span>
+                                    <span class="text-[10px] text-amber-700/60 dark:text-amber-400/50 font-semibold uppercase tracking-wider">Answer</span>
+                                </div>
+                                <div class="my-auto flex flex-col items-center justify-center">
+                                    <span id="poly-fc-back-title" class="text-xs font-medium text-amber-700/60 dark:text-amber-400/50 uppercase tracking-widest mb-2 font-mono">Formula</span>
+                                    <span id="poly-fc-back" class="text-5xl font-black text-amber-800 dark:text-amber-200 text-center px-4 leading-normal mb-2">NH<sub>4</sub><sup>+</sup></span>
+                                </div>
+                                
+                                <!-- Poly Card Stats Panel -->
+                                <div class="w-full bg-white/50 dark:bg-black/20 border border-amber-500/20 dark:border-amber-500/35 rounded-xl p-2 flex items-center justify-around text-left mb-2">
+                                    <div class="leading-tight">
+                                        <span class="block text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Interval</span>
+                                        <span id="poly-stat-interval" class="text-[11px] font-black text-amber-700 dark:text-amber-400">New</span>
+                                    </div>
+                                    <div class="h-5 w-px bg-amber-500/25"></div>
+                                    <div class="leading-tight">
+                                        <span class="block text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Streak</span>
+                                        <span id="poly-stat-streak" class="text-[11px] font-black text-rose-500">0 🔥</span>
+                                    </div>
+                                    <div class="h-5 w-px bg-amber-500/25"></div>
+                                    <div class="leading-tight">
+                                        <span class="block text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Lapses</span>
+                                        <span id="poly-stat-lapses" class="text-[11px] font-black text-gray-700 dark:text-gray-300">0</span>
+                                    </div>
+                                </div>
+
+                                <div class="w-full mb-1">
+                                    <span class="text-[9px] text-amber-700/50 dark:text-amber-400/40 font-semibold flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-arrow-rotate-left"></i> Click to flip back
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Poly Flashcard Controls -->
+                    <div id="poly-fc-controls" class="mt-6 w-full opacity-0 pointer-events-none transition-all duration-300 translate-y-4">
+                        <div class="grid grid-cols-4 gap-2">
+                            <!-- Struggling Button -->
+                            <button id="btn-poly-struggle" class="py-3 px-1 rounded-2xl bg-white dark:bg-[#1a1d27] border-2 border-rose-200 dark:border-rose-900/30 hover:bg-rose-50 dark:hover:bg-rose-950/20 text-rose-600 dark:text-rose-400 font-bold transition-all shadow-sm hover:shadow flex flex-col items-center justify-center gap-0.5 group/btn focus:outline-none">
+                                <span id="poly-int-struggle" class="text-[10px] font-bold text-rose-400 dark:text-rose-400/80 mb-0.5">&lt; 1m</span>
+                                <i class="fa-solid fa-rotate-left text-base transition-transform group-hover/btn:-rotate-45"></i>
+                                <span class="text-xs">Again</span>
+                                <span class="text-[8px] font-normal text-rose-400 dark:text-rose-500/70">Review (1)</span>
+                            </button>
+                            <!-- Hard Button -->
+                            <button id="btn-poly-hard" class="py-3 px-1 rounded-2xl bg-white dark:bg-[#1a1d27] border-2 border-orange-200 dark:border-orange-900/30 hover:bg-orange-50 dark:hover:bg-orange-950/20 text-orange-600 dark:text-orange-400 font-bold transition-all shadow-sm hover:shadow flex flex-col items-center justify-center gap-0.5 group/btn focus:outline-none">
+                                <span id="poly-int-hard" class="text-[10px] font-bold text-orange-400 dark:text-orange-400/80 mb-0.5">1d</span>
+                                <i class="fa-solid fa-circle-exclamation text-base transition-transform group-hover/btn:scale-110"></i>
+                                <span class="text-xs">Hard</span>
+                                <span class="text-[8px] font-normal text-orange-400 dark:text-orange-500/70">Pushed (2)</span>
+                            </button>
+                            <!-- Good Button -->
+                            <button id="btn-poly-good" class="py-3 px-1 rounded-2xl bg-white dark:bg-[#1a1d27] border-2 border-amber-200 dark:border-amber-900/30 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-amber-700 dark:text-amber-400 font-bold transition-all shadow-sm hover:shadow flex flex-col items-center justify-center gap-0.5 group/btn focus:outline-none">
+                                <span id="poly-int-good" class="text-[10px] font-bold text-amber-500 dark:text-amber-400/80 mb-0.5">2d</span>
+                                <i class="fa-solid fa-check text-base transition-transform group-hover/btn:scale-110"></i>
+                                <span class="text-xs">Good</span>
+                                <span class="text-[8px] font-normal text-amber-500 dark:text-amber-500/70">Recall (3)</span>
+                            </button>
+                            <!-- Easy Button -->
+                            <button id="btn-poly-easy" class="py-3 px-1 rounded-2xl bg-emerald-500 dark:bg-emerald-600 border-2 border-emerald-600 dark:border-emerald-700 hover:bg-emerald-600 dark:hover:bg-emerald-500 text-white font-bold transition-all shadow-md shadow-emerald-500/20 hover:shadow-lg flex flex-col items-center justify-center gap-0.5 group/btn focus:outline-none">
+                                <span id="poly-int-easy" class="text-[10px] font-bold text-emerald-100 dark:text-emerald-200 mb-0.5">4d</span>
+                                <i class="fa-solid fa-circle-check text-base transition-transform group-hover/btn:scale-110"></i>
+                                <span class="text-xs">Easy</span>
+                                <span class="text-[8px] font-normal text-emerald-100 dark:text-emerald-300/70">Got It! (4)</span>
+                            </button>
+                        </div>
+                        <!-- Ask Tutor Button -->
+                        <div class="mt-2.5 flex justify-center">
+                            <button id="btn-poly-ask-tutor" class="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors">
+                                <i class="fa-solid fa-robot text-[10px]"></i> Ask Tutor
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Session Completion / Victory Panel (Hidden initially) -->
+                <div id="poly-victory-panel" class="hidden text-center max-w-md mx-auto py-8 px-6 bg-emerald-500/10 dark:bg-emerald-950/20 border border-emerald-500/20 dark:border-emerald-900/35 rounded-3xl mt-4 fade-in">
+                    <div class="w-16 h-16 bg-emerald-500 dark:bg-emerald-600 text-white rounded-full flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg shadow-emerald-500/30">
+                        <i class="fa-solid fa-trophy animate-bounce"></i>
+                    </div>
+                    <h4 class="text-xl font-extrabold text-emerald-800 dark:text-emerald-400 mb-2">Deck Fully Mastered!</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">Fantastic work! You've successfully committed these polyatomic ions to memory.</p>
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                        <button id="btn-poly-restart" class="px-5 py-2.5 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md text-sm focus:outline-none">
+                            Restart Study Session
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mini Grid Tracker of All Ions in Current Group -->
+                <div class="mt-8 bg-gray-50 dark:bg-[#13151e] border border-gray-100 dark:border-[#252836] rounded-2xl p-5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 px-1">Deck Ions Status</h4>
+                    <div id="poly-ions-tracker-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <!-- Programmatically generated tracker chips -->
+                    </div>
+                </div>
             </div>
         </section>
 

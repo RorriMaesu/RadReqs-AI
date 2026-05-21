@@ -1,7 +1,16 @@
 const CHEM_STATE_KEY = "chemistry_learning_state_v1";
+const CHEM_NOMEN_SRS_STATE_KEY = "chem_nomen_srs_state_v2";
+const CHEM_POLY_SRS_STATE_KEY = "chem_polyatomic_srs_state_v1";
+const CHEM_POLY_LEGACY_KEY = "chem_polyatomic_mastered_v1";
 let learningState = null;
 let activateChemTab = () => {};
 let diagnosticSession = null;
+let chemistrySessionGamification = { streak: 0, xp: 0 };
+
+const chemistryDeckRegistry = {
+    nomen: { state: null, cardIds: [] },
+    poly: { state: null, cardIds: [] }
+};
 
 document.addEventListener("DOMContentLoaded", () => {
     learningState = loadLearningState();
@@ -17,6 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
     bindStoichActions();
     bindSigFigActions();
     bindNomenclatureActions();
+    bindPolyatomicSubTabs();
+    bindPolyatomicIonsActions();
     bindLabActions();
     bindDiagnosticActions();
     bindTutorActions();
@@ -76,6 +87,105 @@ function loadLearningState() {
 
 function saveLearningState() {
     localStorage.setItem(CHEM_STATE_KEY, JSON.stringify(learningState));
+}
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function shuffleArray(array) {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function formatRelativeDueText(dueTimestamp) {
+    if (!dueTimestamp) return "New";
+    const msUntilDue = dueTimestamp - Date.now();
+    if (msUntilDue <= 0) return "Due now";
+
+    const days = Math.ceil(msUntilDue / (24 * 60 * 60 * 1000));
+    if (days < 1) return "Due today";
+    if (days === 1) return "Due in 1 day";
+    if (days < 30) return `Due in ${days} days`;
+
+    const months = Math.round(days / 30);
+    if (months === 1) return "Due in 1 month";
+    return `Due in ${months} months`;
+}
+
+function formatInterval(days) {
+    if (days === 0) return "< 1m";
+    if (days < 30) return days + "d";
+    if (days < 365) return Math.round(days / 30) + "mo";
+    return Math.round(days / 365) + "y";
+}
+
+function calculateCardStrength(intervalDays, easeFactor) {
+    if (!intervalDays || intervalDays <= 0) return 0;
+    // Stricter strength curve: early intervals contribute less until retention horizon grows.
+    const intervalNorm = clamp(
+        Math.log1p(intervalDays) / Math.log1p(45),
+        0,
+        1
+    );
+    const boundedEase = clamp(easeFactor || 2.5, 1.3, 3.0);
+    const easeNorm = (boundedEase - 1.3) / (3.0 - 1.3);
+    return (Math.pow(intervalNorm, 1.2) * 0.8) + (easeNorm * 0.2);
+}
+
+function registerChemDeckState(deckKey, state, cardIds) {
+    chemistryDeckRegistry[deckKey] = {
+        state,
+        cardIds: Array.from(new Set(cardIds || []))
+    };
+    updateChemistryScoreboard();
+}
+
+function applySessionGamification(grade) {
+    if (grade === 0) {
+        chemistrySessionGamification.streak = 0;
+        chemistrySessionGamification.xp = Math.max(0, chemistrySessionGamification.xp - 5);
+    } else if (grade === 2) {
+        chemistrySessionGamification.streak += 1;
+        chemistrySessionGamification.xp += 10;
+    } else if (grade === 3) {
+        chemistrySessionGamification.streak += 1;
+        chemistrySessionGamification.xp += 20;
+    }
+
+    updateChemistryScoreboard();
+}
+
+function updateChemistryScoreboard() {
+    const masteryEl = document.getElementById("nomen-mastery-score");
+    const streakEl = document.getElementById("nomen-streak-counter");
+    const xpEl = document.getElementById("nomen-xp-counter");
+    if (!masteryEl || !streakEl || !xpEl) return;
+
+    const deckStates = Object.values(chemistryDeckRegistry);
+    let totalStrength = 0;
+    let totalCards = 0;
+
+    deckStates.forEach((deck) => {
+        if (!deck.state || !deck.cardIds || deck.cardIds.length === 0) return;
+        const state = deck.state;
+        deck.cardIds.forEach((cardId) => {
+            totalStrength += calculateCardStrength(
+                state.intervals?.[cardId] || 0,
+                state.easeFactors?.[cardId] || 2.5
+            );
+            totalCards += 1;
+        });
+    });
+
+    const masteryPercent = totalCards > 0 ? Math.round((totalStrength / totalCards) * 100) : 0;
+    masteryEl.textContent = `${masteryPercent}%`;
+    streakEl.innerHTML = `${chemistrySessionGamification.streak} <i class="fa-solid fa-fire text-base animate-pulse"></i>`;
+    xpEl.textContent = `${chemistrySessionGamification.xp} pts`;
 }
 
 function bindDarkModeToggle() {
@@ -1747,11 +1857,13 @@ function renderInteractiveFormula(formula) {
 
 function bindNomenclatureActions() {
     const card = document.getElementById("fc-card");
-    const innerCard = card ? card.querySelector(".flip-card-inner") : null;
     const front = document.getElementById("fc-front");
     const back = document.getElementById("fc-back");
     const frontRepeat = document.getElementById("fc-front-repeat");
     const controls = document.getElementById("fc-controls");
+    const statInterval = document.getElementById("fc-stat-interval");
+    const statStreak = document.getElementById("fc-stat-streak");
+    const statLapses = document.getElementById("fc-stat-lapses");
     
     // We expect these 4 buttons and their labels now matching Syngnosia style
     const btnAgain = document.getElementById("btn-fc-again");
@@ -1764,9 +1876,10 @@ function bindNomenclatureActions() {
     const intEasy = document.getElementById("fc-int-easy");
     const categorySelect = document.getElementById("fc-category-select");
     const fcAskTutor = document.getElementById("btn-ask-tutor");
-    const fcRule = document.getElementById("fc-rule"); // Added rule container
+    const fcRule = document.getElementById("fc-rule");
+    const btnReset = document.getElementById("btn-nomen-reset");
 
-    if (!card || !window.ChemData || !window.ChemData.nomenclature) return;
+    if (!card || !front || !back || !frontRepeat || !controls || !btnAgain || !btnHard || !btnGood || !btnEasy || !categorySelect || !btnReset || !window.ChemData || !window.ChemData.nomenclature) return;
 
     const nomData = window.ChemData.nomenclature;
     let isFlipped = false;
@@ -1790,55 +1903,59 @@ function bindNomenclatureActions() {
         renderCard();
     });
 
-    const STATE_KEY = 'chem_nomen_srs_state_v2';
-    let srsState = JSON.parse(localStorage.getItem(STATE_KEY)) || {
+    const allNomenCardIds = [];
+    Object.values(nomData).forEach((cards) => {
+        cards.forEach((c) => {
+            allNomenCardIds.push(`${c.formula}-F2N`);
+            allNomenCardIds.push(`${c.formula}-N2F`);
+        });
+    });
+
+    let parsedState = null;
+    try {
+        parsedState = JSON.parse(localStorage.getItem(CHEM_NOMEN_SRS_STATE_KEY) || "null");
+    } catch {
+        parsedState = null;
+    }
+
+    let srsState = {
         intervals: {},
         dueDates: {},
         easeFactors: {},
-        lapses: {}
+        lapses: {},
+        streaks: {},
+        lastSeen: {},
+        ...(parsedState || {})
     };
 
+    const recentlyShown = [];
+
     function saveState() {
-        localStorage.setItem(STATE_KEY, JSON.stringify(srsState));
+        localStorage.setItem(CHEM_NOMEN_SRS_STATE_KEY, JSON.stringify(srsState));
+        registerChemDeckState("nomen", srsState, allNomenCardIds);
     }
 
     function calculateFutureInterval(cardId, grade) {
         const currentInterval = srsState.intervals[cardId] || 0;
         const currentEase = srsState.easeFactors[cardId] || 2.5;
 
-        let newInterval;
+        let newInterval = 0;
         if (grade === 0) {
-            newInterval = currentInterval >= 7 ? Math.round(currentInterval * 0.5) : 0;
+            newInterval = currentInterval >= 7 ? Math.round(currentInterval * 0.35) : 0;
         } else if (grade === 1) {
             if (currentInterval === 0) newInterval = 1;
             else if (currentInterval === 1) newInterval = 2;
             else newInterval = Math.round(currentInterval * 1.2);
         } else if (grade === 2) {
-            if (currentInterval === 0) newInterval = 1;
+            if (currentInterval === 0) newInterval = 2;
             else if (currentInterval === 1) newInterval = 3;
             else newInterval = Math.round(currentInterval * currentEase);
         } else if (grade === 3) {
-            if (currentInterval === 0) newInterval = 3;
-            else if (currentInterval === 1) newInterval = 5;
-            else newInterval = Math.round(currentInterval * currentEase * 1.3);
+            if (currentInterval === 0) newInterval = 4;
+            else if (currentInterval === 1) newInterval = 6;
+            else newInterval = Math.round(currentInterval * currentEase * 1.45) + 1;
         }
         return newInterval;
-    }
-
-    function formatInterval(days) {
-        if (days === 0) return "< 1m";
-        if (days < 30) return days + "d";
-        if (days < 365) return Math.round(days / 30) + "mo";
-        return Math.round(days / 365) + "y";
-    }
-
-    function shuffleArray(array) {
-        const arr = [...array];
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
     }
 
     function getNextCard() {
@@ -1851,6 +1968,8 @@ function bindNomenclatureActions() {
             allCards.push({ ...c, direction: 'N2F', id: c.formula + '-N2F' });
         });
 
+        if (allCards.length === 0) return { id: "Done-F2N", formula: "Done", name: "Change category!", direction: 'F2N' };
+
         let dueCards = allCards.filter(c => {
             const due = srsState.dueDates[c.id];
             return due && due <= now;
@@ -1858,23 +1977,64 @@ function bindNomenclatureActions() {
 
         let newCards = allCards.filter(c => !srsState.dueDates[c.id]);
 
-        let pool;
-        if (dueCards.length > 0) {
-            pool = shuffleArray(dueCards);
-        } else if (newCards.length > 0) {
-            pool = shuffleArray(newCards);
-        } else {
-            pool = shuffleArray(allCards);
+        let fallbackPool = allCards.filter((c) => (srsState.intervals[c.id] || 0) < 14);
+        if (fallbackPool.length === 0) fallbackPool = allCards;
+
+        fallbackPool.sort((a, b) => {
+            const lastSeenA = srsState.lastSeen[a.id] || 0;
+            const lastSeenB = srsState.lastSeen[b.id] || 0;
+            if (lastSeenA !== lastSeenB) return lastSeenA - lastSeenB;
+
+            const easeA = srsState.easeFactors[a.id] || 2.5;
+            const easeB = srsState.easeFactors[b.id] || 2.5;
+            if (easeA !== easeB) return easeA - easeB;
+
+            const lapsesA = srsState.lapses[a.id] || 0;
+            const lapsesB = srsState.lapses[b.id] || 0;
+            return lapsesB - lapsesA;
+        });
+
+        const cooldownSize = Math.min(3, allCards.length - 1);
+        if (cooldownSize > 0 && recentlyShown.length > 0) {
+            const filteredDue = dueCards.filter(c => !recentlyShown.includes(c.id));
+            if (filteredDue.length > 0) dueCards = filteredDue;
+
+            const filteredNew = newCards.filter(c => !recentlyShown.includes(c.id));
+            if (filteredNew.length > 0) newCards = filteredNew;
+
+            const filteredFallback = fallbackPool.filter(c => !recentlyShown.includes(c.id));
+            if (filteredFallback.length > 0) fallbackPool = filteredFallback;
         }
 
-        if (pool.length === 0) return { id: "Done-F2N", formula: "Done", name: "Change category!", direction: 'F2N' };
-        return pool[0];
+        if (dueCards.length > 0) return shuffleArray(dueCards)[0];
+        if (newCards.length > 0) return shuffleArray(newCards)[0];
+        return fallbackPool[0];
+    }
+
+    function updateCardStats(cardId) {
+        if (!statInterval || !statStreak || !statLapses) return;
+        statInterval.textContent = formatRelativeDueText(srsState.dueDates[cardId]);
+        statStreak.textContent = `${srsState.streaks[cardId] || 0} 🔥`;
+        statLapses.textContent = `${srsState.lapses[cardId] || 0}`;
     }
 
     function renderCard() {
         currentCardData = getNextCard();
         isFlipped = false;
         
+        if (currentCardData && currentCardData.id !== "Done-F2N") {
+            const idx = recentlyShown.indexOf(currentCardData.id);
+            if (idx > -1) recentlyShown.splice(idx, 1);
+            recentlyShown.push(currentCardData.id);
+            
+            const poolData = nomData[currentCategory] || [];
+            const allCardsCount = poolData.length * 2;
+            const maxCooldown = Math.min(3, allCardsCount - 1);
+            while (recentlyShown.length > Math.max(0, maxCooldown)) {
+                recentlyShown.shift();
+            }
+        }
+
         const fFmt = formatFormula(currentCardData.formula);
         
         if (currentCardData.direction === 'F2N') {
@@ -1895,6 +2055,8 @@ function bindNomenclatureActions() {
                 fcRule.classList.add("hidden");
             }
         }
+
+        updateCardStats(currentCardData.id);
         
         card.classList.remove("flipped");
         controls.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
@@ -1908,10 +2070,16 @@ function bindNomenclatureActions() {
 
         if (grade === 0) ease = Math.max(1.3, ease - 0.2);
         else if (grade === 1) ease = Math.max(1.3, ease - 0.15);
-        else if (grade === 3) ease += 0.15;
+        else if (grade === 3) ease = Math.min(3.0, ease + 0.12);
 
         if (grade === 0) {
             srsState.lapses[cardId] = (srsState.lapses[cardId] || 0) + 1;
+        }
+
+        if (grade >= 2) {
+            srsState.streaks[cardId] = (srsState.streaks[cardId] || 0) + 1;
+        } else {
+            srsState.streaks[cardId] = 0;
         }
 
         let nextDue = Date.now();
@@ -1926,13 +2094,13 @@ function bindNomenclatureActions() {
         srsState.intervals[cardId] = newInterval;
         srsState.dueDates[cardId] = nextDue;
         srsState.easeFactors[cardId] = ease;
+        srsState.lastSeen[cardId] = Date.now();
         
         saveState();
+        applySessionGamification(grade);
 
-        if (grade >= 2) {
-            if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'nomenclature') {
-                completeActiveSandboxHandshake();
-            }
+        if (grade >= 2 && window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'nomenclature') {
+            completeActiveSandboxHandshake();
         }
         
         // FIX: hide controls and unflip BEFORE rendering next card to avoid flashing answers
@@ -1945,6 +2113,7 @@ function bindNomenclatureActions() {
         }, 400); // Wait 400ms for CSS flip transition to finish
     }
 
+    registerChemDeckState("nomen", srsState, allNomenCardIds);
     renderCard();
 
     card.addEventListener("click", () => {
@@ -1970,12 +2139,577 @@ function bindNomenclatureActions() {
     btnGood.addEventListener("click", (e) => { e.stopPropagation(); handleGrade(2); });
     btnEasy.addEventListener("click", (e) => { e.stopPropagation(); handleGrade(3); });
 
+    btnReset.addEventListener("click", () => {
+        if (!confirm("Reset all Nomenclature SRS progress for all categories?")) return;
+        localStorage.removeItem(CHEM_NOMEN_SRS_STATE_KEY);
+        srsState = {
+            intervals: {},
+            dueDates: {},
+            easeFactors: {},
+            lapses: {},
+            streaks: {},
+            lastSeen: {}
+        };
+        saveState();
+        renderCard();
+    });
+
     if (fcAskTutor) {
         fcAskTutor.addEventListener("click", (e) => {
             e.stopPropagation();
             window.ChemTutor.invoke(`I am struggling with flashcard: Formula '${currentCardData.formula}', Name '${currentCardData.name}'. Explain rule, prefix/suffix, or provide a mnemonic hook.`, controls, `The user is practicing Chemical Nomenclature flashcards in category "${currentCategory}". Current formula: ${currentCardData.formula}, name: ${currentCardData.name}.`);
         });
     }
+
+    document.addEventListener("keydown", (e) => {
+        const nomenclView = document.getElementById("view-nomenclature");
+        const srsPanel = document.getElementById("panel-nomen-srs");
+        if (!nomenclView || !srsPanel || nomenclView.classList.contains("hidden-tab") || srsPanel.classList.contains("hidden-tab")) return;
+
+        // Bypassing input elements to allow normal typing
+        if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA" || document.activeElement.isContentEditable)) return;
+
+        if (e.code === "Space" || e.key === " ") {
+            if (!isFlipped) {
+                e.preventDefault();
+                card.click();
+            }
+        } else if (["1", "2", "3", "4"].includes(e.key)) {
+            if (isFlipped) {
+                e.preventDefault();
+                const grade = parseInt(e.key) - 1;
+                handleGrade(grade);
+            }
+        }
+    });
+}
+
+function bindPolyatomicSubTabs() {
+    const srsTabBtn = document.getElementById("subnav-nomen-srs");
+    const polyTabBtn = document.getElementById("subnav-nomen-polyatomic");
+    const srsPanel = document.getElementById("panel-nomen-srs");
+    const polyPanel = document.getElementById("panel-nomen-polyatomic");
+
+    if (!srsTabBtn || !polyTabBtn || !srsPanel || !polyPanel) return;
+
+    srsTabBtn.addEventListener("click", () => {
+        srsPanel.classList.remove("hidden-tab");
+        polyPanel.classList.add("hidden-tab");
+
+        srsTabBtn.className = "px-5 py-2.5 text-sm font-bold border-b-2 border-amber-500 text-amber-700 dark:text-amber-400 transition-all focus:outline-none";
+        polyTabBtn.className = "px-5 py-2.5 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition-all focus:outline-none";
+
+        srsTabBtn.setAttribute("aria-selected", "true");
+        polyTabBtn.setAttribute("aria-selected", "false");
+    });
+
+    polyTabBtn.addEventListener("click", () => {
+        polyPanel.classList.remove("hidden-tab");
+        srsPanel.classList.add("hidden-tab");
+
+        polyTabBtn.className = "px-5 py-2.5 text-sm font-bold border-b-2 border-amber-500 text-amber-700 dark:text-amber-400 transition-all focus:outline-none";
+        srsTabBtn.className = "px-5 py-2.5 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition-all focus:outline-none";
+
+        polyTabBtn.setAttribute("aria-selected", "true");
+        srsTabBtn.setAttribute("aria-selected", "false");
+
+        if (window.buildPolyatomicDeck) {
+            window.buildPolyatomicDeck(false);
+        }
+    });
+}
+
+function bindPolyatomicIonsActions() {
+    const card = document.getElementById("poly-fc-card");
+    const frontText = document.getElementById("poly-fc-front");
+    const backText = document.getElementById("poly-fc-back");
+    const frontBadge = document.getElementById("poly-front-group-badge");
+    const backBadge = document.getElementById("poly-back-group-badge");
+    const backTitle = document.getElementById("poly-fc-back-title");
+    const controls = document.getElementById("poly-fc-controls");
+    
+    const btnStruggle = document.getElementById("btn-poly-struggle");
+    const btnHard = document.getElementById("btn-poly-hard");
+    const btnGood = document.getElementById("btn-poly-good");
+    const btnEasy = document.getElementById("btn-poly-easy");
+    const btnPolyAskTutor = document.getElementById("btn-poly-ask-tutor");
+
+    const intStruggle = document.getElementById("poly-int-struggle");
+    const intHard = document.getElementById("poly-int-hard");
+    const intGood = document.getElementById("poly-int-good");
+    const intEasy = document.getElementById("poly-int-easy");
+    
+    const btnShuffle = document.getElementById("btn-poly-shuffle");
+    const btnReset = document.getElementById("btn-poly-reset");
+    const btnRestart = document.getElementById("btn-poly-restart");
+    
+    const btnModeN2F = document.getElementById("btn-poly-mode-n2f");
+    const btnModeF2N = document.getElementById("btn-poly-mode-f2n");
+    const groupSelect = document.getElementById("poly-group-select");
+    
+    const progressRatio = document.getElementById("poly-progress-ratio");
+    const progressLabel = document.getElementById("poly-progress-label");
+    const progressBar = document.getElementById("poly-progress-bar");
+    const trackerGrid = document.getElementById("poly-ions-tracker-grid");
+    const victoryPanel = document.getElementById("poly-victory-panel");
+    const polyStatInterval = document.getElementById("poly-stat-interval");
+    const polyStatStreak = document.getElementById("poly-stat-streak");
+    const polyStatLapses = document.getElementById("poly-stat-lapses");
+
+    if (!card || !frontText || !backText || !frontBadge || !backBadge || !backTitle || !controls || !btnStruggle || !btnHard || !btnGood || !btnEasy || !btnShuffle || !btnReset || !btnRestart || !btnModeN2F || !btnModeF2N || !groupSelect || !progressRatio || !progressBar || !trackerGrid || !victoryPanel || !window.ChemData || !window.ChemData.polyatomicIons) return;
+
+    let studyMode = "N2F";
+    let currentFilter = "all";
+    let currentCard = null;
+    let isCardFlipped = false;
+
+    const allIons = window.ChemData.polyatomicIons;
+    const polyRecentlyShown = [];
+
+    function safeJsonParse(raw, fallback) {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return fallback;
+        }
+    }
+
+    function createDefaultPolyState() {
+        return {
+            intervals: {},
+            dueDates: {},
+            easeFactors: {},
+            lapses: {},
+            streaks: {},
+            lastSeen: {}
+        };
+    }
+
+    function getPolyCardId(ion) {
+        return ion.name;
+    }
+
+    function initializePolySrsState() {
+        const existing = safeJsonParse(localStorage.getItem(CHEM_POLY_SRS_STATE_KEY), null);
+        if (existing) {
+            return {
+                ...createDefaultPolyState(),
+                ...existing
+            };
+        }
+
+        const state = createDefaultPolyState();
+        const legacyMastered = safeJsonParse(localStorage.getItem(CHEM_POLY_LEGACY_KEY), []);
+        if (!Array.isArray(legacyMastered) || legacyMastered.length === 0) return state;
+
+        const now = Date.now();
+        allIons.forEach((ion) => {
+            if (!legacyMastered.includes(ion.name)) return;
+            const cardId = getPolyCardId(ion);
+            state.intervals[cardId] = 21;
+            state.dueDates[cardId] = now + (21 * 24 * 60 * 60 * 1000);
+            state.easeFactors[cardId] = 2.8;
+            state.streaks[cardId] = 5;
+            state.lapses[cardId] = 0;
+            state.lastSeen[cardId] = now;
+        });
+
+        localStorage.setItem(CHEM_POLY_SRS_STATE_KEY, JSON.stringify(state));
+        return state;
+    }
+
+    let polySrsState = initializePolySrsState();
+    const allPolyCardIds = allIons.map((ion) => getPolyCardId(ion));
+
+    function savePolyState() {
+        localStorage.setItem(CHEM_POLY_SRS_STATE_KEY, JSON.stringify(polySrsState));
+        registerChemDeckState("poly", polySrsState, allPolyCardIds);
+    }
+
+    function getFilteredIons() {
+        return allIons.filter((ion) => currentFilter === "all" || ion.charge === currentFilter);
+    }
+
+    function calculatePolyFutureInterval(cardId, grade) {
+        const currentInterval = polySrsState.intervals[cardId] || 0;
+        const currentEase = polySrsState.easeFactors[cardId] || 2.5;
+
+        if (grade === 0) {
+            return currentInterval >= 7 ? Math.round(currentInterval * 0.35) : 0;
+        }
+        if (grade === 1) {
+            if (currentInterval === 0) return 1;
+            if (currentInterval === 1) return 2;
+            return Math.round(currentInterval * 1.2);
+        }
+        if (grade === 2) {
+            if (currentInterval === 0) return 2;
+            if (currentInterval === 1) return 3;
+            return Math.round(currentInterval * currentEase);
+        }
+        if (grade === 3) {
+            if (currentInterval === 0) return 4;
+            if (currentInterval === 1) return 6;
+            return Math.round(currentInterval * currentEase * 1.45) + 1;
+        }
+        return 0;
+    }
+
+    function getNextPolyCard() {
+        const candidates = getFilteredIons().map((ion) => ({
+            ...ion,
+            id: getPolyCardId(ion)
+        }));
+
+        if (candidates.length === 0) return null;
+
+        const now = Date.now();
+        let due = candidates.filter((c) => {
+            const dueAt = polySrsState.dueDates[c.id];
+            return dueAt && dueAt <= now;
+        });
+
+        let newCards = candidates.filter((c) => !polySrsState.dueDates[c.id]);
+
+        let fallback = candidates.filter((c) => (polySrsState.intervals[c.id] || 0) < 14);
+        if (fallback.length === 0) fallback = candidates;
+
+        fallback.sort((a, b) => {
+            const lastSeenA = polySrsState.lastSeen[a.id] || 0;
+            const lastSeenB = polySrsState.lastSeen[b.id] || 0;
+            if (lastSeenA !== lastSeenB) return lastSeenA - lastSeenB;
+
+            const easeA = polySrsState.easeFactors[a.id] || 2.5;
+            const easeB = polySrsState.easeFactors[b.id] || 2.5;
+            if (easeA !== easeB) return easeA - easeB;
+
+            const lapsesA = polySrsState.lapses[a.id] || 0;
+            const lapsesB = polySrsState.lapses[b.id] || 0;
+            return lapsesB - lapsesA;
+        });
+
+        const cooldownSize = Math.min(3, candidates.length - 1);
+        if (cooldownSize > 0 && polyRecentlyShown.length > 0) {
+            const filteredDue = due.filter(c => !polyRecentlyShown.includes(c.id));
+            if (filteredDue.length > 0) due = filteredDue;
+
+            const filteredNew = newCards.filter(c => !polyRecentlyShown.includes(c.id));
+            if (filteredNew.length > 0) newCards = filteredNew;
+
+            const filteredFallback = fallback.filter(c => !polyRecentlyShown.includes(c.id));
+            if (filteredFallback.length > 0) fallback = filteredFallback;
+        }
+
+        if (due.length > 0) return shuffleArray(due)[0];
+        if (newCards.length > 0) return shuffleArray(newCards)[0];
+        return fallback[0];
+    }
+
+    function updatePolyStats(cardId) {
+        if (!polyStatInterval || !polyStatStreak || !polyStatLapses) return;
+        polyStatInterval.textContent = formatRelativeDueText(polySrsState.dueDates[cardId]);
+        polyStatStreak.textContent = `${polySrsState.streaks[cardId] || 0} 🔥`;
+        polyStatLapses.textContent = `${polySrsState.lapses[cardId] || 0}`;
+    }
+
+    function getFilteredProgressSummary() {
+        const ions = getFilteredIons();
+        const total = ions.length;
+        const dueCount = ions.filter((ion) => {
+            const dueAt = polySrsState.dueDates[getPolyCardId(ion)];
+            return dueAt && dueAt <= Date.now();
+        }).length;
+
+        let strengthSum = 0;
+        ions.forEach((ion) => {
+            const cardId = getPolyCardId(ion);
+            strengthSum += calculateCardStrength(
+                polySrsState.intervals[cardId] || 0,
+                polySrsState.easeFactors[cardId] || 2.5
+            );
+        });
+
+        return {
+            total,
+            dueCount,
+            masteryPercent: total > 0 ? Math.round((strengthSum / total) * 100) : 0
+        };
+    }
+
+    function renderTracker() {
+        const filteredIons = getFilteredIons();
+        trackerGrid.innerHTML = "";
+        filteredIons.forEach((ion) => {
+            const cardId = getPolyCardId(ion);
+            const interval = polySrsState.intervals[cardId] || 0;
+            const dueAt = polySrsState.dueDates[cardId] || 0;
+
+            let chipClass = "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold border";
+            let icon = "<i class=\"fa-regular fa-circle text-[9px] shrink-0 ml-1\"></i>";
+
+            if (interval >= 14 && dueAt > Date.now()) {
+                chipClass += " bg-emerald-500/10 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+                icon = "<i class=\"fa-solid fa-circle-check text-[10px] shrink-0 ml-1 text-emerald-500\"></i>";
+            } else if (dueAt && dueAt <= Date.now()) {
+                chipClass += " bg-rose-500/10 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border-rose-500/20";
+                icon = "<i class=\"fa-solid fa-clock text-[10px] shrink-0 ml-1 text-rose-500\"></i>";
+            } else if (interval > 0) {
+                chipClass += " bg-amber-500/10 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border-amber-500/20";
+                icon = "<i class=\"fa-solid fa-graduation-cap text-[10px] shrink-0 ml-1 text-amber-500\"></i>";
+            } else {
+                chipClass += " bg-gray-50 dark:bg-[#1a1d27] text-gray-500 dark:text-gray-400 border-gray-200 dark:border-[#363a52]";
+            }
+
+            const chip = document.createElement("div");
+            chip.className = chipClass;
+            chip.innerHTML = `<span class="truncate">${ion.name}</span>${icon}`;
+            trackerGrid.appendChild(chip);
+        });
+    }
+
+    function renderPolyCard() {
+        currentCard = getNextPolyCard();
+        isCardFlipped = false;
+
+        if (currentCard) {
+            const idx = polyRecentlyShown.indexOf(currentCard.id);
+            if (idx > -1) polyRecentlyShown.splice(idx, 1);
+            polyRecentlyShown.push(currentCard.id);
+            
+            const maxCooldown = Math.min(3, getFilteredIons().length - 1);
+            while (polyRecentlyShown.length > Math.max(0, maxCooldown)) {
+                polyRecentlyShown.shift();
+            }
+        }
+
+        card.classList.remove("flipped");
+        controls.classList.add("opacity-0", "pointer-events-none", "translate-y-4");
+        controls.classList.remove("opacity-100", "pointer-events-auto", "translate-y-0");
+
+        const { total, dueCount, masteryPercent } = getFilteredProgressSummary();
+        if (progressLabel) {
+            progressLabel.textContent = "Mastery Strength";
+        }
+        progressRatio.textContent = total > 0 ? `${masteryPercent}% • ${dueCount} due` : "No cards";
+        progressBar.style.width = `${masteryPercent}%`;
+
+        if (!currentCard) {
+            card.classList.add("hidden");
+            controls.classList.add("hidden");
+            victoryPanel.classList.remove("hidden");
+            return;
+        }
+
+        card.classList.remove("hidden");
+        controls.classList.remove("hidden");
+        victoryPanel.classList.add("hidden");
+
+        if (studyMode === "N2F") {
+            frontText.textContent = currentCard.name;
+            backTitle.textContent = "Chemical Formula";
+            backText.innerHTML = currentCard.htmlFormula;
+        } else {
+            frontText.innerHTML = currentCard.htmlFormula;
+            backTitle.textContent = "Ion Name";
+            backText.textContent = currentCard.name;
+        }
+
+        frontBadge.textContent = currentCard.group;
+        backBadge.textContent = currentCard.group;
+
+        updatePolyStats(currentCard.id);
+        renderTracker();
+    }
+
+    function setModeUi() {
+        if (studyMode === "N2F") {
+            btnModeN2F.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white dark:bg-[#1a1d27] text-amber-700 dark:text-amber-400 shadow-sm focus:outline-none";
+            btnModeF2N.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white focus:outline-none";
+        } else {
+            btnModeF2N.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white dark:bg-[#1a1d27] text-amber-700 dark:text-amber-400 shadow-sm focus:outline-none";
+            btnModeN2F.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white focus:outline-none";
+        }
+    }
+
+    function handlePolyGrade(grade) {
+        if (!currentCard) return;
+        const cardId = currentCard.id;
+        const newInterval = calculatePolyFutureInterval(cardId, grade);
+        let ease = polySrsState.easeFactors[cardId] || 2.5;
+
+        if (grade === 0) ease = Math.max(1.3, ease - 0.2);
+        else if (grade === 1) ease = Math.max(1.3, ease - 0.15);
+        else if (grade === 3) ease = Math.min(3.0, ease + 0.12);
+
+        if (grade === 0) {
+            polySrsState.lapses[cardId] = (polySrsState.lapses[cardId] || 0) + 1;
+        }
+
+        if (grade >= 2) {
+            polySrsState.streaks[cardId] = (polySrsState.streaks[cardId] || 0) + 1;
+        } else {
+            polySrsState.streaks[cardId] = 0;
+        }
+
+        let nextDue = Date.now();
+        if (newInterval > 0) {
+            const d = new Date();
+            if (d.getHours() < 4) d.setDate(d.getDate() - 1);
+            d.setDate(d.getDate() + newInterval);
+            d.setHours(4, 0, 0, 0);
+            nextDue = d.getTime();
+        }
+
+        polySrsState.intervals[cardId] = newInterval;
+        polySrsState.easeFactors[cardId] = ease;
+        polySrsState.dueDates[cardId] = nextDue;
+        polySrsState.lastSeen[cardId] = Date.now();
+
+        savePolyState();
+        applySessionGamification(grade);
+
+        if (grade >= 2 && window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === "nomenclature") {
+            completeActiveSandboxHandshake();
+        }
+
+        card.classList.remove("flipped");
+        controls.classList.add("opacity-0", "pointer-events-none", "translate-y-4");
+        controls.classList.remove("opacity-100", "pointer-events-auto", "translate-y-0");
+        isCardFlipped = false;
+
+        setTimeout(() => {
+            renderPolyCard();
+        }, 400);
+    }
+
+    function flipCard() {
+        if (!currentCard) return;
+        isCardFlipped = !isCardFlipped;
+        if (isCardFlipped) {
+            card.classList.add("flipped");
+            
+            // Calculate and display intervals
+            const currentIntervals = [];
+            for (let i = 0; i < 4; i++) {
+                currentIntervals[i] = calculatePolyFutureInterval(currentCard.id, i);
+            }
+            if (intStruggle) intStruggle.textContent = formatInterval(currentIntervals[0]);
+            if (intHard) intHard.textContent = formatInterval(currentIntervals[1]);
+            if (intGood) intGood.textContent = formatInterval(currentIntervals[2]);
+            if (intEasy) intEasy.textContent = formatInterval(currentIntervals[3]);
+
+            controls.classList.remove("opacity-0", "pointer-events-none", "translate-y-4");
+            controls.classList.add("opacity-100", "pointer-events-auto", "translate-y-0");
+        } else {
+            card.classList.remove("flipped");
+            controls.classList.add("opacity-0", "pointer-events-none", "translate-y-4");
+            controls.classList.remove("opacity-100", "pointer-events-auto", "translate-y-0");
+        }
+    }
+
+    card.addEventListener("click", flipCard);
+
+    document.addEventListener("keydown", (e) => {
+        const nomenclView = document.getElementById("view-nomenclature");
+        const polyPanel = document.getElementById("panel-nomen-polyatomic");
+        if (!nomenclView || !polyPanel || nomenclView.classList.contains("hidden-tab") || polyPanel.classList.contains("hidden-tab")) return;
+
+        // Bypassing input elements to allow normal typing
+        if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA" || document.activeElement.isContentEditable)) return;
+
+        if (e.code === "Space" || e.key === " ") {
+            if (!isCardFlipped) {
+                e.preventDefault();
+                flipCard();
+            }
+        } else if (["1", "2", "3", "4"].includes(e.key)) {
+            if (isCardFlipped) {
+                e.preventDefault();
+                const grade = parseInt(e.key) - 1;
+                handlePolyGrade(grade);
+            }
+        }
+    });
+
+    btnModeN2F.addEventListener("click", () => {
+        if (studyMode === "N2F") return;
+        studyMode = "N2F";
+        setModeUi();
+        renderPolyCard();
+    });
+
+    btnModeF2N.addEventListener("click", () => {
+        if (studyMode === "F2N") return;
+        studyMode = "F2N";
+        setModeUi();
+        renderPolyCard();
+    });
+
+    groupSelect.addEventListener("change", (e) => {
+        currentFilter = e.target.value;
+        renderPolyCard();
+    });
+
+    btnShuffle.addEventListener("click", () => {
+        if (!currentCard) return;
+
+        // Shuffle-like effect: add a slight due-time offset so a different eligible card is selected next.
+        const cardId = currentCard.id;
+        polySrsState.dueDates[cardId] = Date.now() + (20 * 60 * 1000);
+        savePolyState();
+        renderPolyCard();
+    });
+
+    btnReset.addEventListener("click", () => {
+        if (!confirm("Reset all Polyatomic SRS progress for this module?")) return;
+        localStorage.removeItem(CHEM_POLY_SRS_STATE_KEY);
+        polySrsState = createDefaultPolyState();
+        savePolyState();
+        renderPolyCard();
+    });
+
+    btnRestart.addEventListener("click", () => {
+        polySrsState = createDefaultPolyState();
+        savePolyState();
+        renderPolyCard();
+    });
+
+    btnStruggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        handlePolyGrade(0);
+    });
+
+    btnHard.addEventListener("click", (e) => {
+        e.stopPropagation();
+        handlePolyGrade(1);
+    });
+
+    btnGood.addEventListener("click", (e) => {
+        e.stopPropagation();
+        handlePolyGrade(2);
+    });
+
+    btnEasy.addEventListener("click", (e) => {
+        e.stopPropagation();
+        handlePolyGrade(3);
+    });
+
+    if (btnPolyAskTutor) {
+        btnPolyAskTutor.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!currentCard) return;
+            window.ChemTutor.invoke(
+                `I am struggling with polyatomic ion: Name '${currentCard.name}', Formula '${currentCard.formula}'. Explain charge, rules, or provide a mnemonic hook.`,
+                controls,
+                `The user is practicing Polyatomic Ions flashcards. Current ion: ${currentCard.name}, formula: ${currentCard.formula}, charge: ${currentCard.charge}, group: ${currentCard.group}.`
+            );
+        });
+    }
+
+    registerChemDeckState("poly", polySrsState, allPolyCardIds);
+    setModeUi();
+    renderPolyCard();
+    window.buildPolyatomicDeck = () => renderPolyCard();
 }
 
 function bindLabActions() {
