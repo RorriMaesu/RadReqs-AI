@@ -1968,17 +1968,12 @@ async function openMiniChat(card, grade = null) {
     let assistantText = '', bubbleEl = null, firstToken = true;
 
     try {
-        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-            method: 'POST', signal: ctrl.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Go.' }],
-                stream: true,
-                options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 2048 }
-            })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { response: res } = await requestOllamaWithModelFallback('/api/chat', (model) => ({
+            model,
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: 'Go.' }],
+            stream: true,
+            options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 2048 }
+        }));
         const reader  = res.body.getReader();
         const decoder = new TextDecoder();
         while (true) {
@@ -2023,20 +2018,15 @@ async function sendMiniChatMessage() {
     state.miniChatAbortCtrl = ctrl;
     let assistantText = '', bubbleEl = null, firstToken = true;
     try {
-        const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-            method: 'POST', signal: ctrl.signal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                messages: [
-                    { role: 'system', content: 'You are Dr. Lex, a concise medical terminology tutor. Answer in 2-4 sentences.' },
-                    ...state.miniChatHistory
-                ],
-                stream: true,
-                options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 2048 }
-            })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const { response: res } = await requestOllamaWithModelFallback('/api/chat', (model) => ({
+            model,
+            messages: [
+                { role: 'system', content: 'You are Dr. Lex, a concise medical terminology tutor. Answer in 2-4 sentences.' },
+                ...state.miniChatHistory
+            ],
+            stream: true,
+            options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 2048 }
+        }));
         const reader  = res.body.getReader();
         const decoder = new TextDecoder();
         while (true) {
@@ -2547,21 +2537,16 @@ Evaluate if the user's translation is semantically correct. It does not need to 
 Return ONLY a valid JSON object in this exact format: {"isCorrect": true/false, "feedback": "Brief 1-sentence explanation"}`;
 
     try {
-        const response = await fetch('http://localhost:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                prompt: prompt,
-                stream: false,
-                format: 'json',
-                options: {
-                    num_ctx: 512,
-                    num_predict: 100
-                }
-            })
-        });
-        if (!response.ok) throw new Error('Ollama not responding properly');
+        const { response } = await requestOllamaWithModelFallback('/api/generate', (model) => ({
+            model,
+            prompt,
+            stream: false,
+            format: 'json',
+            options: {
+                num_ctx: 512,
+                num_predict: 100
+            }
+        }));
         const data = await response.json();
         const jsonString = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
         return JSON.parse(jsonString);
@@ -2581,18 +2566,13 @@ Determine if the student's answer correctly captures the meaning of this abbrevi
 Return ONLY a valid JSON object: {"isCorrect": true/false, "feedback": "One encouraging sentence of feedback"}`;
 
     try {
-        const response = await fetch('http://localhost:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                prompt: prompt,
-                stream: false,
-                format: 'json',
-                options: { num_ctx: 512, num_predict: 100 }
-            })
-        });
-        if (!response.ok) throw new Error('Ollama not responding');
+        const { response } = await requestOllamaWithModelFallback('/api/generate', (model) => ({
+            model,
+            prompt,
+            stream: false,
+            format: 'json',
+            options: { num_ctx: 512, num_predict: 100 }
+        }));
         const data = await response.json();
         const jsonString = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
         return JSON.parse(jsonString);
@@ -3058,8 +3038,88 @@ function nextPluralChallenge() {
 // ==========================================
 // FEATURE G: AI TUTOR CHATBOT
 // ==========================================
-const TUTOR_MODEL = localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
 const OLLAMA_URL  = 'http://localhost:11434';
+
+function getTutorModel() {
+    return localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
+}
+
+function setTutorModel(model) {
+    if (!model || typeof model !== 'string') return;
+    localStorage.setItem('syngnosia_tutor_model', model);
+}
+
+async function getAvailableOllamaModels() {
+    const response = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) return [];
+    const data = await response.json();
+    if (!Array.isArray(data?.models)) return [];
+    return data.models
+        .map((m) => (typeof m?.name === 'string' ? m.name : ''))
+        .filter(Boolean);
+}
+
+function pickBestTutorModel(requestedModel, availableModels) {
+    if (!Array.isArray(availableModels) || availableModels.length === 0) return requestedModel;
+    if (availableModels.includes(requestedModel)) return requestedModel;
+
+    const startsWith = availableModels.find((name) => name.startsWith(requestedModel));
+    if (startsWith) return startsWith;
+
+    const gemma = availableModels.find((name) => name.toLowerCase().includes('gemma'));
+    if (gemma) return gemma;
+
+    return availableModels[0];
+}
+
+async function resolveTutorModel() {
+    const requestedModel = getTutorModel();
+    try {
+        const availableModels = await getAvailableOllamaModels();
+        const selectedModel = pickBestTutorModel(requestedModel, availableModels);
+        if (selectedModel && selectedModel !== requestedModel) {
+            setTutorModel(selectedModel);
+        }
+        return selectedModel;
+    } catch {
+        return requestedModel;
+    }
+}
+
+function responseLooksLikeModelNotFound(status, bodyText) {
+    if (status !== 404) return false;
+    const text = (bodyText || '').toLowerCase();
+    return text.includes('model') && text.includes('not found');
+}
+
+async function requestOllamaWithModelFallback(path, buildBody) {
+    let model = getTutorModel();
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const response = await fetch(`${OLLAMA_URL}${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(buildBody(model))
+        });
+
+        if (response.ok) {
+            return { response, model };
+        }
+
+        const errorText = await response.text();
+        if (attempt === 0 && responseLooksLikeModelNotFound(response.status, errorText)) {
+            const fallbackModel = await resolveTutorModel();
+            if (fallbackModel && fallbackModel !== model) {
+                model = fallbackModel;
+                continue;
+            }
+        }
+
+        throw new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ''}`);
+    }
+
+    throw new Error('Unable to query local Ollama after fallback attempt.');
+}
 
 function buildTutorSystemPrompt() {
     const sys = state.activeSystem;
@@ -3204,18 +3264,12 @@ async function sendChatMessage() {
     let bubbleEl      = null;
 
     try {
-        const response = await fetch(`${OLLAMA_URL}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                messages,
-                stream: true,
-                options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 4096 }
-            })
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const { response } = await requestOllamaWithModelFallback('/api/chat', (model) => ({
+            model,
+            messages,
+            stream: true,
+            options: { temperature: 1.0, top_p: 0.95, top_k: 64, num_ctx: 4096 }
+        }));
 
         const reader  = response.body.getReader();
         const decoder = new TextDecoder();
@@ -3242,9 +3296,10 @@ async function sendChatMessage() {
                 if (data.done) break;
             }
         }
-    } catch {
+    } catch (err) {
         removeTypingIndicator();
-        appendChatBubble('assistant', 'Sorry, I had trouble connecting to Ollama. Make sure it\'s running and try again.');
+        const reason = err && err.message ? err.message : 'Unknown error';
+        appendChatBubble('assistant', `Sorry, I had trouble connecting to Ollama. ${reason}`);
         checkOllamaStatus();
     }
 
@@ -3935,18 +3990,13 @@ Return ONLY valid JSON with no extra text: {"prefix": "string or null", "roots":
 Use notation like "cardi/o", "my/o", "hyper-", "-itis", "-megaly". Use null for absent prefix/suffix and [] for absent roots.`;
 
     try {
-        const response = await fetch(`${OLLAMA_URL}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                prompt,
-                stream: false,
-                format: 'json',
-                options: { num_ctx: 768, num_predict: 200 }
-            })
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const { response } = await requestOllamaWithModelFallback('/api/generate', (model) => ({
+            model,
+            prompt,
+            stream: false,
+            format: 'json',
+            options: { num_ctx: 768, num_predict: 200 }
+        }));
         const data    = await response.json();
         const jsonStr = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
         const parsed  = JSON.parse(jsonStr);
@@ -4022,18 +4072,13 @@ Provide: 1) exactly two real clinical words that prominently use this morpheme, 
 Return ONLY valid JSON: {"examples": ["clinicalword1", "clinicalword2"], "mnemonic": "one concise memory tip"}`;
 
     try {
-        const response = await fetch(`${OLLAMA_URL}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: TUTOR_MODEL,
-                prompt,
-                stream: false,
-                format: 'json',
-                options: { num_ctx: 512, num_predict: 150 }
-            })
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const { response } = await requestOllamaWithModelFallback('/api/generate', (model) => ({
+            model,
+            prompt,
+            stream: false,
+            format: 'json',
+            options: { num_ctx: 512, num_predict: 150 }
+        }));
         const data    = await response.json();
         const jsonStr = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
         const parsed  = JSON.parse(jsonStr);
@@ -4071,17 +4116,14 @@ async function correctDictSearchQuery(query) {
         `Which of these did the user most likely mean? Reply ONLY with valid JSON: ` +
         `{"corrected": "exact term from the list, or null if none is a close match"}`;
 
-    const bodyStr = JSON.stringify({
-        model: TUTOR_MODEL, prompt, stream: false, format: 'json',
-        options: { num_ctx: 512, num_predict: 40 }
-    });
-
     async function attempt(signal) {
-        const r = await fetch(`${OLLAMA_URL}/api/generate`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            signal, body: bodyStr
-        });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { response: r } = await requestOllamaWithModelFallback('/api/generate', (model) => ({
+            model,
+            prompt,
+            stream: false,
+            format: 'json',
+            options: { num_ctx: 512, num_predict: 40 }
+        }));
         const d = await r.json();
         const p = JSON.parse(d.response);
         return (p.corrected && String(p.corrected).trim()) || null;

@@ -39,9 +39,18 @@ echo "Selected Model: $MODEL"
 echo "=============================================="
 echo ""
 
-echo "Opening RadReqs-AI..."
-open "https://RorriMaesu.github.io/RadReqs-AI/?model=$MODEL"
-
 echo "Downloading AI Model (this may take a few minutes the first time)..."
 echo "The terminal will automatically close when finished."
-ollama pull $MODEL
+if ! ollama pull "$MODEL"; then
+    echo "Selected model pull failed. Falling back to gemma4:e4b..."
+    MODEL="gemma4:e4b"
+    if ! ollama pull "$MODEL"; then
+        echo "gemma4:e4b pull failed. Falling back to gemma4:e2b..."
+        MODEL="gemma4:e2b"
+        ollama pull "$MODEL"
+    fi
+fi
+
+echo ""
+echo "Opening RadReqs-AI with model: $MODEL"
+open "https://RorriMaesu.github.io/RadReqs-AI/?model=$MODEL"

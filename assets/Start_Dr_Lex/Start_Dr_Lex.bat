@@ -55,9 +55,20 @@ echo Selected Model: !MODEL!
 echo ==============================================
 echo.
 
-echo Opening RadReqs-AI...
-start "" "https://RorriMaesu.github.io/RadReqs-AI/?model=!MODEL!"
-
 echo Downloading AI Model (this may take a few minutes the first time)...
-echo The terminal will automatically close when finished.
 ollama pull !MODEL!
+if errorlevel 1 (
+    echo Selected model pull failed. Falling back to gemma4:e4b...
+    set "MODEL=gemma4:e4b"
+    ollama pull !MODEL!
+    if errorlevel 1 (
+        echo gemma4:e4b pull failed. Falling back to gemma4:e2b...
+        set "MODEL=gemma4:e2b"
+        ollama pull !MODEL!
+    )
+)
+
+echo.
+echo Opening RadReqs-AI with model !MODEL!...
+start "" "https://RorriMaesu.github.io/RadReqs-AI/?model=!MODEL!"
+echo The terminal will automatically close when finished.
