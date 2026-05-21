@@ -16,8 +16,6 @@
         matrix: {}
     };
 
-    const lectureGenerationInFlight = new Map();
-
     const els = {};
 
     function cacheDom() {
@@ -252,7 +250,7 @@ In clinical medicine, understanding **${lesson.concept}** is essential for patie
 When explaining these chemistry foundations to patients (as in the Feynman defense: *"${lesson.feynman_prompt}"*), always use accessible analogies. Breaking down complex atomic or molecular reactions into everyday phenomena helps patients understand their treatment and reduces anxiety.`;
     }
 
-    function renderLectureContent(lesson, lectureText, isOfflineFallback = false) {
+    function renderLectureContent(lesson, lectureText) {
         let parsedLecture = '';
         try {
             parsedLecture = window.marked ? window.marked.parse(lectureText) : lectureText;
@@ -275,11 +273,6 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
 
                 <div class="border-t border-slate-100 dark:border-slate-800/60 pt-4">
                     <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-3">Micro-Lecture</div>
-                    ${isOfflineFallback ? `
-                    <div class="mb-3 border border-amber-500/30 bg-amber-500/10 rounded p-2.5 text-[11px] text-amber-600 dark:text-amber-400">
-                        Local Ollama is unavailable in this environment. Displaying an offline lecture fallback.
-                    </div>
-                    ` : ''}
                     <div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-4 markdown-body">
                         ${parsedLecture}
                     </div>
@@ -412,24 +405,14 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
             }, 600);
 
         } catch (err) {
-            const isHostedFallback = err && err.code === 'OLLAMA_UNAVAILABLE';
-            if (isHostedFallback) {
-                console.info('Lecture generation using offline fallback:', err.message);
-            } else {
-                console.warn('Lecture generation failed, using offline fallback:', err);
-            }
-            const mockText = generateOfflineMockLecture(lesson);
-            localStorage.setItem(`chemistry_lesson_lecture_${lesson.id}`, mockText);
-            updateStepUI('generate', 'warning', err && err.message ? err.message : 'Generation failed, switching to offline lecture.');
-            updateStepUI('render', 'success', 'Offline lecture fallback loaded.');
-            setTimeout(() => {
-                renderLectureContent(lesson, mockText, true);
-            }, 400);
+            console.error('Lecture generation failed:', err);
+            updateStepUI('generate', 'error', err.message);
+            renderGenerationFailure(lesson, err.message);
         }
     }
 
     async function ensureLectureContent() {
-        const { lesson } = appState;
+        const lesson = appState.lesson;
         if (!lesson) return;
 
         const cacheKey = `chemistry_lesson_lecture_${lesson.id}`;
@@ -440,18 +423,7 @@ When explaining these chemistry foundations to patients (as in the Feynman defen
             return;
         }
 
-        if (lectureGenerationInFlight.has(lesson.id)) {
-            await lectureGenerationInFlight.get(lesson.id);
-            return;
-        }
-
-        const generationPromise = generateLecture(lesson)
-            .finally(() => {
-                lectureGenerationInFlight.delete(lesson.id);
-            });
-
-        lectureGenerationInFlight.set(lesson.id, generationPromise);
-        await generationPromise;
+        await generateLecture(lesson);
     }
 
     function renderStage1() {
