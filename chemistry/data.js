@@ -140,6 +140,10 @@ const ChemData = {
         volume: [
             { factor: 1000, from: "L", to: "mL" },
             { factor: 1, from: "mL", to: "cm3" }
+        ],
+        temperature: [
+            { type: "formula", from: "°C", to: "K", formula: "x + 273.15", inverseFormula: "x - 273.15", display: "(x + 273.15) K", displayInverse: "(x - 273.15) °C" },
+            { type: "formula", from: "°C", to: "°F", formula: "x * 9/5 + 32", inverseFormula: "(x - 32) * 5/9", display: "(x * 1.8 + 32) °F", displayInverse: "((x - 32) / 1.8) °C" }
         ]
     },
 

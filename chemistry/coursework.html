@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 104Z - Clinical Chemistry Coursework</title>
+    <script>
+        (function() {
+            var pref = localStorage.getItem('chemistry_darkmode');
+            if (pref === null || pref === 'true') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <!-- Tailwind CSS HTML CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Marked.js for markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Custom scrollbar for clinical slickness */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; /* slate-900 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; /* slate-700 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981; /* emerald-500 */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-screen flex flex-col font-sans overflow-hidden">
+
+    <!-- Global Clinical Header -->
+    <header class="bg-white border-b border-slate-200 dark:bg-slate-950 dark:border-slate-800 px-6 py-4 flex items-center justify-between shadow-sm dark:shadow-md shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 rounded border border-emerald-500/20">
+                <i class="fa-solid fa-flask-vial text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-emerald-600 dark:text-emerald-400">CH 104Z / 124Z</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Clinical Chemistry Mastery</p>
+            </div>
+        </div>
+
+        <!-- Progress Tracker & Stats -->
+        <div class="flex-1 max-w-xl mx-8 hidden md:block">
+            <div class="flex justify-between items-center text-xs mb-1.5 px-1">
+                <span class="text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Syllabus Progression</span>
+                <span class="text-emerald-600 dark:text-emerald-400 font-bold" id="progress-val">12% Completed</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 border border-slate-300 dark:border-slate-700 overflow-hidden">
+                <div id="progress-bar" class="bg-gradient-to-r from-emerald-600 to-emerald-400 h-2 rounded-full transition-all duration-500 ease-out" style="width: 12%"></div>
+            </div>
+        </div>
+
+        <!-- Navigation & Warning Button -->
+        <div class="flex items-center space-x-4">
+            <nav class="flex items-center space-x-1 mr-4">
+                <a href="index.html" class="px-3 py-1.5 rounded text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-house mr-2"></i>Skills Lab
+                </a>
+                <a href="#" class="px-3 py-1.5 rounded text-sm font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 transition shadow-inner">
+                    <i class="fa-solid fa-graduation-cap mr-2"></i>Coursework
+                </a>
+                <a href="assignments.html" class="px-3 py-1.5 rounded text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-clipboard-list mr-2"></i>Homework Binder
+                </a>
+            </nav>
+
+            <!-- Theme Toggle Button -->
+            <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white flex items-center justify-center shadow-sm transition-colors shrink-0">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+
+            <button id="btn-restart-lesson" class="bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30 px-3 py-1.5 rounded text-xs font-semibold flex items-center space-x-2 transition duration-200 mr-2" title="Resets the lesson progress and restarts the conversation from Stage 1.">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Restart Lesson</span>
+            </button>
+
+            <button id="btn-regenerate" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 border border-amber-500/20 dark:border-amber-500/30 px-3 py-1.5 rounded text-xs font-semibold flex items-center space-x-2 transition duration-200" title="Resets state and requests a fresh prompt response from local model.">
+                <i class="fa-solid fa-arrows-rotate animate-spin-hover"></i>
+                <span>↻ Regenerate Lesson</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="flex-1 flex max-h-[calc(100vh flex-grow)] overflow-hidden">
+        
+        <!-- Sidebar: Navigation & Skill Tree -->
+        <aside class="w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Clinical Syllabus</h3>
+                <span class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded font-mono" id="sidebar-lesson-count">0/30 Lessons</span>
+            </div>
+            
+            <!-- Dynamic Skill Tree Accordion (Populated via mastery.js) -->
+            <div id="sidebar-skill-tree" class="flex-1 overflow-y-auto p-3 space-y-3">
+                <!-- Fallback Loading Indicator -->
+                <div class="flex items-center justify-center p-8 space-x-2 text-slate-500">
+                    <i class="fa-solid fa-circle-notch animate-spin"></i>
+                    <span class="text-xs font-medium">Parsing syllabus...</span>
+                </div>
+            </div>
+            
+            <!-- Sidebar Footer -->
+            <div class="p-3 bg-slate-50/80 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-500 space-y-1">
+                <div class="flex justify-between">
+                    <span>Active Session:</span>
+                    <span class="text-slate-700 dark:text-slate-300 font-mono" id="session-status">STABLE</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Environment:</span>
+                    <span class="text-emerald-600 dark:text-emerald-500 font-bold font-mono">CH104Z-CLINICAL</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace (Split-view) -->
+        <main class="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 relative">
+            
+            <!-- Phase Indicator / Ribbon -->
+            <div class="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 px-6 py-2.5 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs uppercase font-mono text-slate-500 dark:text-slate-400">Target Concept:</span>
+                    <h2 class="text-sm font-bold text-slate-800 dark:text-white tracking-wide" id="active-lesson-title">Loading...</h2>
+                </div>
+                
+                <!-- Stage Step Indicators -->
+                <div class="flex items-center space-x-2">
+                    <div id="stage-dot-1" class="flex items-center space-x-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
+                        <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" id="dot-1"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">1. Lecture</span>
+                    </div>
+                    <i class="fa-solid fa-angle-right text-slate-400 dark:text-slate-600 text-xs"></i>
+                    <div id="stage-dot-2" class="flex items-center space-x-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
+                        <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" id="dot-2"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">2. Socratic</span>
+                    </div>
+                    <i class="fa-solid fa-angle-right text-slate-400 dark:text-slate-600 text-xs"></i>
+                    <div id="stage-dot-3" class="flex items-center space-x-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
+                        <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" id="dot-3"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">3. Sandbox</span>
+                    </div>
+                    <i class="fa-solid fa-angle-right text-slate-400 dark:text-slate-600 text-xs"></i>
+                    <div id="stage-dot-4" class="flex items-center space-x-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
+                        <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" id="dot-4"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider">4. Feynman</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vertical Work Area Split -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                
+                <!-- Top Half: Micro-Lecture Panel -->
+                <div class="h-2/5 min-h-[180px] max-h-[350px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden relative">
+                    <div class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <i class="fa-solid fa-book-open-reader text-emerald-500"></i>
+                            <span>Clinical Micro-Lecture & Physiological Relevance</span>
+                        </div>
+                        <span class="text-[10px] text-emerald-600 dark:text-emerald-500 font-mono bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/10">CH 104Z Lecture</span>
+                    </div>
+                    
+                    <!-- Scrollable Micro-Lecture Content -->
+                    <div id="lecture-container" class="flex-1 p-5 overflow-y-auto prose dark:prose-invert prose-emerald max-w-none text-slate-700 dark:text-slate-300 text-sm leading-relaxed space-y-4">
+                        <!-- Instantiated by coursework.js -->
+                        <div class="text-slate-500 text-xs flex items-center justify-center h-full space-x-2">
+                            <i class="fa-solid fa-circle-notch animate-spin"></i>
+                            <span>Awaiting lesson generation...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Half: Chat-log UI for Socratic / Feynman Interaction -->
+                <div class="flex-grow flex flex-col bg-white dark:bg-slate-950 overflow-hidden relative">
+                    
+                    <!-- Chat Header -->
+                    <div class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            <i class="fa-solid fa-messages text-emerald-500"></i>
+                            <span id="chat-header-title">Socratic Clinical Interaction</span>
+                        </div>
+                        <div class="flex items-center space-x-3 text-[10px] font-mono">
+                            <span class="text-slate-505 dark:text-slate-500">Mode:</span>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50" id="current-mode-badge">SOCRATIC CHECK</span>
+                        </div>
+                    </div>
+
+                    <!-- Chat Message Area -->
+                    <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 flex flex-col">
+                        <!-- Predefined prompt injection fallback / messages -->
+                    </div>
+
+                    <!-- Handshake Interaction Overlay (Specific for Stage 3 Sandbox) -->
+                    <div id="sandbox-handshake" class="hidden absolute inset-0 bg-white/95 dark:bg-slate-950/95 flex-col items-center justify-center p-6 text-center z-20 backdrop-blur-sm transition-all duration-300">
+                        <div class="w-16 h-16 bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-full flex items-center justify-center border border-blue-500/20 mb-4 animate-pulse">
+                            <i class="fa-solid fa-gamepad text-2xl"></i>
+                        </div>
+                        <h4 class="text-base font-bold text-slate-800 dark:text-white mb-2">Stage 3: Interactive Sandbox Handshake Map</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-md mb-6">
+                            To pass Stage 3, click the button below to open the specific master interactive tool in a separate tab. Test the calculations, then return here. The system will automatically detect when you finish!
+                        </p>
+                        <div class="flex space-x-4">
+                            <a id="sandbox-link" href="#" target="_blank" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 font-semibold rounded text-sm shadow-lg text-white hover:scale-105 transition duration-200">
+                                <i class="fa-solid fa-up-right-from-square mr-2"></i>Open Master Sandbox Calculator
+                            </a>
+                        </div>
+                        <p class="text-[10px] text-slate-500 mt-4 font-mono">Listening for passed_sandbox = true in localStorage...</p>
+                    </div>
+
+                    <!-- Speech / Keyboard Toggle Area for State 4 (Feynman) -->
+                    <div id="input-container" class="p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 shrink-0">
+                        <div class="flex items-center justify-between text-xs text-slate-500 mb-1 px-1">
+                            <div class="flex items-center space-x-2">
+                                <span id="input-instructions">Respond to Socratic Question...</span>
+                            </div>
+                            <!-- speech-recognition elements hidden unless State 4 active -->
+                            <div id="feynman-speech-controls" class="hidden items-center space-x-2">
+                                <button id="btn-toggle-input-mode" class="text-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                                    <i class="fa-solid fa-keyboard mr-1"></i> <span id="toggle-input-text">Switch to Speech API</span>
+                                </button>
+                                <span id="speech-indicator" class="text-[10px] text-red-500 hidden items-center space-x-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+                                    <span>LISTENING</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Chat & Input Form -->
+                        <form id="chat-form" class="flex items-stretch space-x-2">
+                            <textarea id="chat-input" rows="2" class="flex-grow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none transition" placeholder="Type clinical Socratic response here..."></textarea>
+                            
+                            <div class="flex flex-col justify-between space-y-1.5 shrink-0">
+                                <button type="submit" id="btn-send" class="flex-grow bg-emerald-600 hover:bg-emerald-500 text-white px-4 rounded flex items-center justify-center transition hover:scale-[1.02] active:scale-[0.98]">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </button>
+                                <!-- Mic Button for Speech recognition in Stage 4 -->
+                                <button type="button" id="btn-mic" class="hidden bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 hover:border-red-500/40 text-slate-600 dark:text-slate-300 p-2.5 rounded border border-slate-300 dark:border-slate-700 transition">
+                                    <i class="fa-solid fa-microphone text-sm"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Master CTA UX Handoff Panel -->
+                    <div id="master-cta-overlay" class="hidden absolute inset-0 bg-white/98 dark:bg-slate-950/98 flex-col items-center justify-center p-6 text-center z-30 backdrop-blur-md transition-all duration-300">
+                        <div class="w-20 h-20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center border border-emerald-500/20 dark:border-emerald-500/30 mb-4 shadow-sm dark:shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-pulse">
+                            <i class="fa-solid fa-award text-3xl"></i>
+                        </div>
+                        <h3 class="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent mb-2">THEORY MASTERED</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 max-w-sm mb-6">
+                            Excellent Socratic and intellectual work! Your theory for this lesson is verified. Proceed to the Homework Binder to finalize your clinical credentials.
+                        </p>
+                        <a href="assignments.html" class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded shadow-md dark:shadow-lg transition hover:scale-[1.03] duration-200">
+                            <i class="fa-solid fa-file-signature mr-2"></i>Proceed to Homework Binder
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts (Defer execution or modular structure) -->
+    <script src="mastery.js"></script>
+    <script src="ai-tutor.js"></script>
+    <script src="coursework.js"></script>
+</body>
+</html>

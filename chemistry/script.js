@@ -23,6 +23,16 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCompetencyMap();
     renderLearningStatus();
     renderDiagnosticState();
+
+    // Initialize mastery progress calculation from masteryMatrix
+    updateIndexMasteryProgress();
+
+    // Bind global syllabus/mastery matrix change events
+    window.addEventListener('syllabusLoaded', updateIndexMasteryProgress);
+    window.addEventListener('masteryMatrixChanged', updateIndexMasteryProgress);
+
+    // Handle coursework sandbox handshake parameters
+    handleCourseworkSandboxHandshake();
 });
 
 function getDefaultLearningState() {
@@ -69,10 +79,27 @@ function bindDarkModeToggle() {
     const btn = document.getElementById("btn-darkmode");
     if (!btn) return;
 
+    const updateDarkModeUi = () => {
+        const isDark = document.documentElement.classList.contains("dark");
+        const icon = btn.querySelector("i");
+        if (icon) {
+            if (isDark) {
+                icon.className = "fa-solid fa-sun";
+                btn.title = "Toggle Light Mode";
+            } else {
+                icon.className = "fa-solid fa-moon";
+                btn.title = "Toggle Dark Mode";
+            }
+        }
+    };
+
+    updateDarkModeUi();
+
     btn.addEventListener("click", () => {
         const root = document.documentElement;
         root.classList.toggle("dark");
         localStorage.setItem("chemistry_darkmode", String(root.classList.contains("dark")));
+        updateDarkModeUi();
     });
 }
 
@@ -333,18 +360,45 @@ function mountConversionOptions() {
     // Populate Factor Bank
     Object.values(window.ChemData.conversions).forEach((group) => {
         group.forEach((edge) => {
-            // Forward factor
-            const f1 = document.createElement("option");
-            f1.value = JSON.stringify({ numVal: edge.factor, numUnit: edge.from, denVal: 1, denUnit: edge.to });
-            f1.textContent = `${edge.factor} ${edge.from} / 1 ${edge.to}`;
-            
-            // Reverse factor
-            const f2 = document.createElement("option");
-            f2.value = JSON.stringify({ numVal: 1, numUnit: edge.to, denVal: edge.factor, denUnit: edge.from });
-            f2.textContent = `1 ${edge.to} / ${edge.factor} ${edge.from}`;
-            
-            factorBank.appendChild(f1);
-            factorBank.appendChild(f2);
+            if (edge.type === "formula") {
+                // Forward formula option
+                const f1 = document.createElement("option");
+                f1.value = JSON.stringify({
+                    type: "formula",
+                    formula: edge.formula,
+                    numUnit: edge.to,
+                    denUnit: edge.from,
+                    display: edge.display
+                });
+                f1.textContent = `${edge.display} / 1 ${edge.from}`;
+
+                // Reverse formula option
+                const f2 = document.createElement("option");
+                f2.value = JSON.stringify({
+                    type: "formula",
+                    formula: edge.inverseFormula,
+                    numUnit: edge.from,
+                    denUnit: edge.to,
+                    display: edge.displayInverse
+                });
+                f2.textContent = `${edge.displayInverse} / 1 ${edge.to}`;
+
+                factorBank.appendChild(f1);
+                factorBank.appendChild(f2);
+            } else {
+                // Forward factor option (e.g. 1000 g / 1 kg)
+                const f1 = document.createElement("option");
+                f1.value = JSON.stringify({ numVal: edge.factor, numUnit: edge.to, denVal: 1, denUnit: edge.from });
+                f1.textContent = `${edge.factor} ${edge.to} / 1 ${edge.from}`;
+                
+                // Reverse factor option (e.g. 1 kg / 1000 g)
+                const f2 = document.createElement("option");
+                f2.value = JSON.stringify({ numVal: 1, numUnit: edge.from, denVal: edge.factor, denUnit: edge.to });
+                f2.textContent = `1 ${edge.from} / ${edge.factor} ${edge.to}`;
+                
+                factorBank.appendChild(f1);
+                factorBank.appendChild(f2);
+            }
         });
     });
 }
@@ -692,6 +746,9 @@ function bindMolarMassActions() {
 
             if (Math.abs(userVal - molarSession.totalMass) / molarSession.totalMass < 0.05) {
                 recordCompetencyAttempt("mole-concept", true);
+                if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'molar') {
+                    completeActiveSandboxHandshake();
+                }
                 stepsDiv.classList.add("hidden");
                 output.classList.remove("hidden");
                 setStatus(output, `Excellent! Step-by-step solve complete. ${molarSession.formula.toUpperCase()} molar mass is ${userVal.toFixed(4)} g/mol`, "ok");
@@ -842,10 +899,17 @@ function bindConversionActions() {
         daChain.forEach((factor, idx) => {
             const frac = document.createElement("div");
             frac.className = "flex flex-col items-center justify-center px-4 relative";
-            frac.innerHTML = `
-                <div class="text-gray-800 font-bold border-b-2 border-gray-800 px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">${factor.numVal} ${factor.numUnit}</div>
-                <div class="text-gray-800 font-bold px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">${factor.denVal} ${factor.denUnit}</div>
-            `;
+            if (factor.type === "formula") {
+                frac.innerHTML = `
+                    <div class="text-gray-800 font-bold border-b-2 border-gray-800 px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">${factor.display}</div>
+                    <div class="text-gray-800 font-bold px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">1 ${factor.denUnit}</div>
+                `;
+            } else {
+                frac.innerHTML = `
+                    <div class="text-gray-800 font-bold border-b-2 border-gray-800 px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">${factor.numVal} ${factor.numUnit}</div>
+                    <div class="text-gray-800 font-bold px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">${factor.denVal} ${factor.denUnit}</div>
+                `;
+            }
             chainContainer.appendChild(frac);
             
             if (idx < daChain.length - 1) {
@@ -899,20 +963,33 @@ function bindConversionActions() {
             }
             
             // Apply mathematics
-            finalValue = (finalValue * factor.numVal) / factor.denVal;
-            // The unit transitions to the numerator's unit
-            currentUnit = factor.numUnit;
+            if (factor.type === "formula") {
+                const expr = factor.formula.replace(/x/g, `(${finalValue})`);
+                try {
+                    finalValue = new Function(`return ${expr}`)();
+                } catch (e) {
+                    setStatus(output, `Error evaluating step ${i + 1} formula: ${e.message}`, "error");
+                    return;
+                }
+                currentUnit = factor.numUnit;
+            } else {
+                finalValue = (finalValue * factor.numVal) / factor.denVal;
+                currentUnit = factor.numUnit;
+            }
         }
         
         if (currentUnit !== toSelect.value) {
             setStatus(output, `Chain valid so far, but you ended up with '${currentUnit}' instead of the target '${toSelect.value}'.`, "warn");
             recordCompetencyAttempt("dim-analysis", false);
-            window.ChemTutor.invoke(`I successfully cancelled all my units, but I ended up with '${currentUnit}' instead of my final target unit '${toSelect.value}'. Guidd me on what additional conversion steps I need.`, document.getElementById("da-output"), `The user is practicing Dimensional Analysis. Target unit: ${toSelect.value}. Current chain of conversion factors applied: ${JSON.stringify(daChain)}.`);
+            window.ChemTutor.invoke(`I successfully cancelled all my units, but I ended up with '${currentUnit}' instead of my final target unit '${toSelect.value}'. Guide me on what additional conversion steps I need.`, document.getElementById("da-output"), `The user is practicing Dimensional Analysis. Target unit: ${toSelect.value}. Current chain of conversion factors applied: ${JSON.stringify(daChain)}.`);
             return;
         }
         
         setStatus(output, `Correct! The units cross-cancel perfectly. Result: ${finalValue.toPrecision(6)} ${toSelect.value}`, "ok");
         recordCompetencyAttempt("dim-analysis", true);
+        if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'dimensions') {
+            completeActiveSandboxHandshake();
+        }
     });
 }
 
@@ -1100,6 +1177,9 @@ function bindStoichActions() {
             if (userSigFigs === reqSigFigs) {
                 setStatus(output, `Correct! The calculation yields exactly ${userVal} ${currentRxn.activeScenario.unit}.`, "ok");
                 recordCompetencyAttempt("stoich-setup", true);
+                if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'stoich') {
+                    completeActiveSandboxHandshake();
+                }
             } else {
                 setStatus(output, `Mathematically correct, but check your Significant Figures! You provided ${userSigFigs} sig figs, but ${reqSigFigs} are required.`, "warn");
                 recordCompetencyAttempt("stoich-setup", false);
@@ -1206,6 +1286,9 @@ function bindSigFigActions() {
         const userVal = inputEl.value.trim();
         if (userVal === currentSession.expectedString || parseFloat(userVal) === parseFloat(currentSession.expectedString)) {
             setStatus(output, `Correct! The proper sig fig rounded answer is ${currentSession.expectedString}.`, "ok");
+            if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'sigfigs') {
+                completeActiveSandboxHandshake();
+            }
         } else {
             setStatus(output, `Incorrect. The correctly rounded answer is ${currentSession.expectedString}.`, "error");
             window.ChemTutor.invoke(`I am trying to calculate significant figures for the math problem: ${problemEl.textContent}. I inputted ${userVal}. Explain rules for rounding significant figures involving ${problemEl.textContent.includes('+') ? 'addition' : 'multiplication'}, and why the answer should be ${currentSession.expectedString}.`, output, `The user is practicing Significant Figures math. The problem is ${problemEl.textContent} = ${currentSession.rawVal}. The correct rounded answer is ${currentSession.expectedString}.`);
@@ -1405,6 +1488,12 @@ function bindNomenclatureActions() {
         srsState.easeFactors[cardId] = ease;
         
         saveState();
+
+        if (grade >= 2) {
+            if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'nomenclature') {
+                completeActiveSandboxHandshake();
+            }
+        }
         
         // FIX: hide controls and unflip BEFORE rendering next card to avoid flashing answers
         card.classList.remove("flipped");
@@ -1596,6 +1685,9 @@ function bindLabActions() {
 
         setStatus(output, `Excellent! Reading ${readingRaw} is accurate and correctly matches the ${labSession.spec.decimalPlaces} decimal place(s) required by the instrument's uncertainty.`, "ok");
         recordCompetencyAttempt("measurement-precision", true);
+        if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'lab') {
+            completeActiveSandboxHandshake();
+        }
         labSession = null;
     });
 }
@@ -1881,3 +1973,271 @@ window.ChemTutor = (() => {
         }
     };
 })();
+
+function updateIndexMasteryProgress() {
+    const matrixRaw = localStorage.getItem('masteryMatrix');
+    if (!matrixRaw) return;
+
+    try {
+        const matrix = JSON.parse(matrixRaw);
+        
+        let totalLessons = 30; // fallback default
+        let masteredCount = 0;
+        let activeCount = 0;
+        
+        if (window.syllabusData) {
+            totalLessons = 0;
+            window.syllabusData.modules.forEach(mod => {
+                window.syllabusData.lessonsByModule[mod.id].forEach(l => {
+                    totalLessons++;
+                    const status = matrix[l.id];
+                    if (status) {
+                        if (status.state === 3 || status.state === 4) { // STATE_MASTERED = 3, STATE_RUSTED = 4
+                            masteredCount++;
+                        }
+                        if (status.state >= 1) { // STATE_ACTIVE, STATE_HW_PENDING, STATE_MASTERED, STATE_RUSTED
+                            activeCount++;
+                        }
+                    }
+                });
+            });
+        } else {
+            Object.values(matrix).forEach(item => {
+                if (item) {
+                    if (item.state === 3 || item.state === 4) {
+                        masteredCount++;
+                    }
+                    if (item.state >= 1) {
+                        activeCount++;
+                    }
+                }
+            });
+        }
+        
+        const cwPercentage = totalLessons > 0 ? Math.round((activeCount / totalLessons) * 100) : 0;
+        const hwPercentage = totalLessons > 0 ? Math.round((masteredCount / totalLessons) * 100) : 0;
+        
+        const cwBar = document.getElementById('index-cw-progress-bar');
+        const cwVal = document.getElementById('index-cw-progress-val');
+        const hwBar = document.getElementById('index-hw-progress-bar');
+        const hwVal = document.getElementById('index-hw-progress-val');
+        
+        if (cwBar) cwBar.style.width = `${cwPercentage}%`;
+        if (cwVal) cwVal.textContent = `${cwPercentage}% Unlocked`;
+        if (hwBar) hwBar.style.width = `${hwPercentage}%`;
+        if (hwVal) hwVal.textContent = `${hwPercentage}% Accredited`;
+    } catch (e) {
+        console.error("Error updating index mastery progress:", e);
+    }
+}
+
+// ==========================================
+// COURSEWORK SANDBOX HANDSHAKE SYSTEM
+// ==========================================
+
+function handleCourseworkSandboxHandshake() {
+    const params = new URLSearchParams(window.location.search);
+    const lessonId = params.get('lessonId');
+    const target = params.get('target');
+    
+    if (!lessonId || !target) return;
+    
+    // Store globally so the tools can check and report completion
+    window.activeSandboxHandshake = { lessonId, target };
+    
+    // Map target to tab
+    const tabId = getTabForTarget(target);
+    if (tabId && typeof window.activateChemTab === 'function') {
+        window.activateChemTab(tabId);
+    }
+    
+    // Pre-populate temperature converter inputs if matching target
+    if (tabId === 'dimensions' && target.toLowerCase().includes('temperature')) {
+        const fromSelect = document.getElementById('da-from');
+        const toSelect = document.getElementById('da-to');
+        const valueInput = document.getElementById('da-value');
+        if (fromSelect && toSelect && valueInput) {
+            fromSelect.value = '°C';
+            toSelect.value = 'K';
+            valueInput.value = '25';
+        }
+    }
+    
+    // Show a beautiful, premium instruction banner
+    showSandboxHandshakeBanner(lessonId, target, tabId);
+}
+
+function showSandboxHandshakeBanner(lessonId, target, tabId) {
+    const existing = document.getElementById('sandbox-handshake-banner');
+    if (existing) existing.remove();
+    
+    // Inject custom animation styles if they do not exist
+    const styleId = 'sandbox-handshake-styles';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            @keyframes slideDown {
+                from { transform: translateY(-100%); }
+                to { transform: translateY(0); }
+            }
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes fadeOutDown {
+                from { opacity: 1; transform: translateY(0); }
+                to { opacity: 0; transform: translateY(20px); }
+            }
+            .animate-slide-down {
+                animation: slideDown 0.3s ease-out forwards;
+            }
+            .animate-fade-in-up {
+                animation: fadeInUp 0.4s ease-out forwards;
+            }
+            .animate-fade-out-down {
+                animation: fadeOutDown 0.4s ease-in forwards;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    const banner = document.createElement('div');
+    banner.id = 'sandbox-handshake-banner';
+    banner.className = 'fixed top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-3 px-4 shadow-xl z-50 flex items-center justify-between border-b border-blue-400 font-sans animate-slide-down';
+    
+    const friendlyTabs = {
+        'nomenclature': 'Nomenclature Flashcards',
+        'molar': 'Molar Mass Calculator',
+        'dimensions': 'Dimensional Analysis Builder',
+        'stoich': 'Reaction & Stoichiometry',
+        'sigfigs': 'Significant Figures Math Trainer',
+        'lab': 'Lab Precision Trainer'
+    };
+    
+    const targetDescriptions = {
+        'temperature-converter': 'perform a unit conversion in the Dimensional Analysis tab to test temperature conversions.',
+        'meniscus-reader-simulator': 'select an instrument like a Graduated Cylinder in the Lab Precision tab and submit a correct meniscus reading.',
+        'notation-slider': 'perform a metric unit conversion factor in the Dimensional Analysis tab to test scaling powers.',
+        'sig-fig-calculator': 'generate a math problem in the Significant Figures tab and input the correct rounded answer.',
+        'dimensional-analysis-sandbox': 'set up a multi-step unit conversion chain (e.g. kg to g to mg) in the Dimensional Analysis Builder and verify it.',
+        'density-visualizer': 'calculate a conversion involving metric density units (g/mL) in the Dimensional Analysis tab.',
+        'specific-heat-grapher': 'select a glassware instrument and practice scale precision reading in the Lab Precision tab.',
+        'atom-builder': 'select the Analytical Balance in the Lab Precision tab and successfully submit a reading.',
+        'electron-jump-animator': 'select the Burette in the Lab Precision tab and read the scale level carefully.',
+        'periodic-table-explorer': 'study naming rules and flip a card in the Nomenclature Flashcards tab.',
+        'ion-charge-calculator': 'review polyatomic ion charges in the Nomenclature Flashcards tab.',
+        'half-life-grapher': 'practice reading lab instrument scales in the Lab Precision tab.',
+        'shielding-simulator': 'practice reading instrument scales at different levels in the Lab Precision tab.',
+        'electronegativity-scale': 'practice covalent compound naming card groups in the Nomenclature tab.',
+        'criss-cross-sandbox': 'balance a chemical equation successfully in the Reaction & Stoichiometry tab.',
+        'polarity-visualizer': 'practice covalent compound flashcards in the Nomenclature tab.',
+        'vsepr-3d-viewer': 'study molecular names and geometry naming rules in the Nomenclature tab.',
+        'dna-imf-zipper': 'review polyatomic naming rules in the Nomenclature tab.',
+        'nomenclature-builder': 'study chemical names and rate a nomenclature flashcard as Good or Easy.',
+        'mole-visualizer': 'calculate the molar mass of a molecule (e.g., CO2 or H2O) in the Molar Mass tab.',
+        'gram-to-mole-grader': 'complete a step-by-step molar mass calculation in the Molar Mass tab.',
+        'equation-seesaw': 'load a reaction and balance it correctly in the Reaction & Stoichiometry tab.',
+        'solubility-precipitate-sandbox': 'load a precipitation reaction and balance its coefficients in the Reaction & Stoichiometry tab.',
+        'recipe-ratio-tool': 'solve a stoichiometry math problem yield in the Reaction & Stoichiometry tab.',
+        'stoichiometry-grader': 'calculate the correct theoretical yield for a balanced equation in the Reaction & Stoichiometry tab.',
+        'limiting-reactant-sandbox': 'balance an equation and solve its limiting reactant yield problem in the Reaction & Stoichiometry tab.',
+        'boyles-law-syringe': 'select the 10 mL Graduated Cylinder and read its meniscus level in the Lab Precision tab.',
+        'osmosis-cell-simulator': 'practice reading analytical balance measurements in the Lab Precision tab.',
+        'dilution-calculator': 'read the meniscus level of a 50 mL Graduated Cylinder in the Lab Precision tab.',
+        'activation-energy-graph': 'load a reaction and check the balanced counts in the Reaction & Stoichiometry tab.',
+        'le-chatelier-seesaw': 'balance a reversible reaction seesaw in the Reaction & Stoichiometry tab.',
+        'ph-buffer-visualizer': 'select the Lab Thermometer and read its temperature scale in the Lab Precision tab.',
+        'carbon-chain-builder': 'select the Organic Category and practice naming cards in the Nomenclature tab.',
+        'macromolecule-sorter': 'review organic compound chains in the Nomenclature Flashcards.',
+        'free-radical-visualizer': 'practice balancing a decomposition reaction in the Reaction & Stoichiometry tab.',
+        'radiation-dna-damage-sim': 'balance any reaction and solve its stoichiometry yield in the Reaction & Stoichiometry tab.'
+    };
+    
+    const tabName = friendlyTabs[tabId] || 'Skills Lab';
+    const action = targetDescriptions[target] || 'interact with the calculations and submit a correct solution.';
+    
+    banner.innerHTML = `
+        <div class="flex items-center space-x-3">
+            <div class="bg-white/20 p-1.5 rounded-full text-white">
+                <i class="fa-solid fa-gamepad animate-bounce"></i>
+            </div>
+            <div class="text-sm col-span-1">
+                <span class="font-bold">Active Coursework Handshake (Lesson ${escapeHtml(lessonId)}):</span> 
+                In the <span class="underline font-semibold">${escapeHtml(tabName)}</span> tool, please <span class="font-semibold text-yellow-300">${action}</span>
+            </div>
+        </div>
+        <button id="btn-close-handshake-banner" class="text-white/80 hover:text-white transition ml-4 text-xs font-semibold px-2 py-1 bg-white/10 rounded hover:bg-white/20">
+            Cancel
+        </button>
+    `;
+    
+    document.body.appendChild(banner);
+    document.body.style.paddingTop = '52px';
+    
+    document.getElementById('btn-close-handshake-banner').addEventListener('click', () => {
+        banner.remove();
+        document.body.style.paddingTop = '';
+        window.activeSandboxHandshake = null;
+    });
+}
+
+function completeActiveSandboxHandshake() {
+    if (!window.activeSandboxHandshake) return;
+    
+    const { lessonId } = window.activeSandboxHandshake;
+    
+    // Set in localStorage to trigger storage listener on coursework tab
+    localStorage.setItem(`sandbox_complete_${lessonId}`, 'true');
+    
+    // Show premium success toast
+    showSandboxSuccessToast(lessonId);
+    
+    // Clean up
+    window.activeSandboxHandshake = null;
+    const banner = document.getElementById('sandbox-handshake-banner');
+    if (banner) banner.remove();
+    document.body.style.paddingTop = '';
+}
+
+function showSandboxSuccessToast(lessonId) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-5 right-5 bg-emerald-600 text-white p-4 rounded-xl shadow-2xl z-50 flex items-center space-x-3 border border-emerald-400 font-sans animate-fade-in-up max-w-sm';
+    toast.innerHTML = `
+        <div class="bg-white/20 p-2 rounded-full text-white text-lg">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+            <h5 class="font-bold text-sm">Sandbox Stage Unlocked!</h5>
+            <p class="text-xs text-emerald-100">You completed the handshake for Lesson ${escapeHtml(lessonId)}. Return to the coursework tab to proceed.</p>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.add('animate-fade-out-down');
+        setTimeout(() => toast.remove(), 500);
+    }, 6000);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+}
+
+function getTabForTarget(target) {
+    if (!target) return 'dashboard';
+    const t = target.toLowerCase();
+    if (t.includes('nomenclature') || t.includes('naming')) return 'nomenclature';
+    if (t.includes('mole-visualizer') || t.includes('gram-to-mole') || t.includes('molar-mass') || t.includes('mole-concept')) return 'molar';
+    if (t.includes('dimensional-analysis') || t.includes('dimensions') || t.includes('density') || t.includes('specific-heat') || t.includes('notation-slider') || t.includes('temperature-converter')) return 'dimensions';
+    if (t.includes('stoichiometry') || t.includes('stoich') || t.includes('reactant') || t.includes('equation') || t.includes('ratio') || t.includes('solubility') || t.includes('le-chatelier') || t.includes('equilibrium')) return 'stoich';
+    if (t.includes('sig-fig') || t.includes('sigfig')) return 'sigfigs';
+    if (t.includes('meniscus') || t.includes('precision') || t.includes('shielding') || t.includes('half-life') || t.includes('diffusion') || t.includes('osmosis') || t.includes('dilution') || t.includes('activation-energy') || t.includes('buffer') || t.includes('ph-')) return 'lab';
+    if (t.includes('atom-builder') || t.includes('electron-jump') || t.includes('periodic-table') || t.includes('ion-charge') || t.includes('electronegativity') || t.includes('polarity') || t.includes('vsepr') || t.includes('dna-') || t.includes('carbon-chain') || t.includes('macromolecule') || t.includes('free-radical') || t.includes('radiation-dna')) return 'lab';
+    return 'dashboard';
+}

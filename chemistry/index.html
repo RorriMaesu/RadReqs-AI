@@ -130,8 +130,18 @@
                 </h1>
             </div>
 
+            <!-- Desktop quick links in header -->
+            <div class="hidden md:flex items-center gap-3">
+                <a href="coursework.html" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:border-amber-500/30 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-graduation-cap"></i> Coursework
+                </a>
+                <a href="assignments.html" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 hover:border-emerald-500/30 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-clipboard-list"></i> Homework Binder
+                </a>
+            </div>
+
             <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 flex items-center justify-center shadow-sm transition-colors shrink-0">
+                <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white flex items-center justify-center shadow-sm transition-colors shrink-0">
                     <i class="fa-solid fa-moon"></i>
                 </button>
             </div>
@@ -195,6 +205,83 @@
                 <button id="btn-next-diagnostic" class="hidden px-4 py-2 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Next</button>
             </div>
         </section>
+
+        <!-- Clinical Mastery Portal Bridge -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Coursework Card -->
+            <div class="bg-white dark:bg-[#1a1d27] rounded-3xl border border-gray-100 dark:border-[#363a52] p-6 sm:p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 dark:bg-amber-500/5 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-amber-500/20 transition-colors"></div>
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                            <i class="fa-solid fa-graduation-cap text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Clinical Coursework</h3>
+                            <span class="text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider font-mono block">Theory & Socratic Portal</span>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
+                        Access the interactive clinical syllabus, read micro-lectures, complete socratic dialogues with Prof. Beaker, and interact with sandbox math modules.
+                    </p>
+                </div>
+                
+                <div class="mt-auto">
+                    <!-- Progress Bar for Coursework -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1 px-1">
+                            <span>Syllabus Progress</span>
+                            <span id="index-cw-progress-val" class="font-bold text-amber-600 dark:text-amber-400">0% Mastered</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                            <div id="index-cw-progress-bar" class="bg-gradient-to-r from-amber-500 to-amber-600 h-1.5 rounded-full transition-all duration-555 ease-out" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <a href="coursework.html" class="w-full py-3 rounded-2xl font-bold text-white bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500 transition-colors shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
+                        <span>Launch Coursework</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Homework Binder Card -->
+            <div class="bg-white dark:bg-[#1a1d27] rounded-3xl border border-gray-100 dark:border-[#363a52] p-6 sm:p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-emerald-500/20 transition-colors"></div>
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                            <i class="fa-solid fa-clipboard-list text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Homework Binder</h3>
+                            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider font-mono block">Grader & Accreditation</span>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
+                        Complete your clinical worksheets and dosage calculation problems. Grade equations dynamically with the strict grade calculator to unlock credentials.
+                    </p>
+                </div>
+                
+                <div class="mt-auto">
+                    <!-- Progress Bar for Homework -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1 px-1">
+                            <span>Accreditation Status</span>
+                            <span id="index-hw-progress-val" class="font-bold text-emerald-600 dark:text-emerald-400">0% Accredited</span>
+                        </div>
+                        <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+                            <div id="index-hw-progress-bar" class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-1.5 rounded-full transition-all duration-555 ease-out" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <a href="assignments.html" class="w-full py-3 rounded-2xl font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                        <span>Open Homework Binder</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
 
         <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6 fade-in">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Step 2: Competency Map</h3>
@@ -631,6 +718,7 @@
         </div>
     </nav>
 
+    <script src="mastery.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
 </body>
