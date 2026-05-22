@@ -1445,71 +1445,120 @@
                 </div>
             </details>
 
-            <div id="stoich-balancer-container" class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-4">
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="font-bold text-gray-800 text-sm uppercase tracking-wide">1. Balance the Equation</h4>
-                    <button id="btn-load-reaction" class="text-amber-600 text-sm font-bold hover:underline">New Reaction &rarr;</button>
-                </div>
-                <div id="stoich-equation" class="flex flex-wrap items-center justify-center gap-3 text-lg font-bold">
-                    <span class="text-gray-400 italic text-sm">Load a reaction to begin...</span>
-                </div>
-                <div id="stoich-balance-status" class="mt-4 text-center text-sm font-bold hidden"></div>
-                <div class="flex justify-center mt-4">
-                    <button id="btn-check-balance" class="hidden px-6 py-2 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Check Balance</button>
-                </div>
-            </div>
-            
-            <div id="stoich-scenario-container" class="hidden bg-white border border-amber-200 rounded-xl p-5 mb-4">
-                <h4 class="font-bold text-amber-800 mb-2 text-sm uppercase tracking-wide">2. Solve the Problem</h4>
-                <p id="stoich-prompt" class="text-gray-800 font-medium mb-4 text-sm"></p>
-                
-                <!-- Stoichiometry Scratch Pad Widget -->
-                <div class="mt-4 mb-6 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
-                    <button type="button" id="btn-toggle-scratchpad" class="w-full px-4 py-3 flex justify-between items-center bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider select-none hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors">
-                        <span class="flex items-center gap-1.5">
-                            <i class="fa-solid fa-calculator"></i> Stoichiometry Scratch Pad
-                        </span>
-                        <span id="scratchpad-toggle-icon" class="text-slate-500 font-bold transition-transform duration-200">▲</span>
-                    </button>
-                    <div id="scratchpad-content" class="p-4 space-y-4">
-                        <div class="flex justify-between items-center gap-2">
-                            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Record and calculate molecular quantities step-by-step:</span>
-                            <button type="button" id="btn-scratchpad-import" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
-                                <i class="fa-solid fa-file-import"></i> Auto-fill Masses
+            <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] gap-4 xl:items-start">
+                <div class="min-w-0">
+                    <div id="stoich-balancer-container" class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-bold text-gray-800 text-sm uppercase tracking-wide">1. Balance the Equation</h4>
+                            <div class="flex items-center gap-2">
+                                <button id="btn-stoich-tutor-toggle" class="text-violet-700 text-sm font-bold hover:underline inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-robot text-[10px]"></i>
+                                    Ask Tutor
+                                </button>
+                                <button id="btn-load-reaction" class="text-amber-600 text-sm font-bold hover:underline">New Reaction &rarr;</button>
+                            </div>
+                        </div>
+                        <div id="stoich-equation" class="flex flex-wrap items-center justify-center gap-3 text-lg font-bold">
+                            <span class="text-gray-400 italic text-sm">Load a reaction to begin...</span>
+                        </div>
+                        <div id="stoich-balance-status" class="mt-4 text-center text-sm font-bold hidden"></div>
+                        <div class="flex justify-center mt-4">
+                            <button id="btn-check-balance" class="hidden px-6 py-2 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Check Balance</button>
+                        </div>
+                    </div>
+                    
+                    <div id="stoich-scenario-container" class="hidden bg-white border border-amber-200 rounded-xl p-5 mb-4">
+                        <h4 class="font-bold text-amber-800 mb-2 text-sm uppercase tracking-wide">2. Solve the Problem</h4>
+                        <p id="stoich-prompt" class="text-gray-800 font-medium mb-4 text-sm"></p>
+                        
+                        <!-- Stoichiometry Scratch Pad Widget -->
+                        <div class="mt-4 mb-6 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900/50">
+                            <button type="button" id="btn-toggle-scratchpad" class="w-full px-4 py-3 flex justify-between items-center bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider select-none hover:bg-slate-200/50 dark:hover:bg-slate-700/50 transition-colors">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-calculator"></i> Stoichiometry Scratch Pad
+                                </span>
+                                <span id="scratchpad-toggle-icon" class="text-slate-500 font-bold transition-transform duration-200">▲</span>
                             </button>
+                            <div id="scratchpad-content" class="p-4 space-y-4">
+                                <div class="flex justify-between items-center gap-2">
+                                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Record and calculate molecular quantities step-by-step:</span>
+                                    <button type="button" id="btn-scratchpad-import" class="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1">
+                                        <i class="fa-solid fa-file-import"></i> Auto-fill Masses
+                                    </button>
+                                </div>
+                                
+                                <!-- Dynamic Scratch Pad Table -->
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left border-collapse min-w-[500px]">
+                                        <thead>
+                                            <tr class="border-b border-slate-200 dark:border-slate-700 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
+                                                <th class="pb-2">Formula</th>
+                                                <th class="pb-2 w-28">Molar Mass</th>
+                                                <th class="pb-2 w-24">Mass (g)</th>
+                                                <th class="pb-2 w-28">Moles (mol)</th>
+                                                <th class="pb-2 w-24 text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="scratchpad-tbody" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                            <!-- Populated dynamically via JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- General Notepad -->
+                                <div class="space-y-1.5">
+                                    <label for="scratchpad-notes" class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Scratchpad Notes</label>
+                                    <textarea id="scratchpad-notes" rows="2" class="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 font-mono resize-y" placeholder="Write down molecular ratios, conversion paths, or scratch notes here..."></textarea>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <!-- Dynamic Scratch Pad Table -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse min-w-[500px]">
-                                <thead>
-                                    <tr class="border-b border-slate-200 dark:border-slate-700 text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                                        <th class="pb-2">Formula</th>
-                                        <th class="pb-2 w-28">Molar Mass</th>
-                                        <th class="pb-2 w-24">Mass (g)</th>
-                                        <th class="pb-2 w-28">Moles (mol)</th>
-                                        <th class="pb-2 w-24 text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="scratchpad-tbody" class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                    <!-- Populated dynamically via JS -->
-                                </tbody>
-                            </table>
+
+                        <div class="flex gap-2 w-full max-w-sm">
+                            <input id="stoich-reading" type="text" class="flex-grow border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Your Answer (e.g. 15.0 g)">
+                            <button id="btn-check-stoich" class="py-3 px-6 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Submit</button>
                         </div>
-                        
-                        <!-- General Notepad -->
-                        <div class="space-y-1.5">
-                            <label for="scratchpad-notes" class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Scratchpad Notes</label>
-                            <textarea id="scratchpad-notes" rows="2" class="w-full text-xs p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 font-mono resize-y" placeholder="Write down molecular ratios, conversion paths, or scratch notes here..."></textarea>
-                        </div>
+                        <div id="stoich-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm text-gray-700"></div>
                     </div>
                 </div>
 
-                <div class="flex gap-2 w-full max-w-sm">
-                    <input id="stoich-reading" type="text" class="flex-grow border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Your Answer (e.g. 15.0 g)">
-                    <button id="btn-check-stoich" class="py-3 px-6 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Submit</button>
+                <div id="stoich-tutor-panel" class="hidden w-full min-w-0 xl:sticky xl:top-0 xl:self-start">
+                    <div class="bg-white dark:bg-slate-950 rounded-3xl border border-violet-100 dark:border-slate-800 shadow-2xl shadow-violet-900/10 dark:shadow-black/30 overflow-hidden flex flex-col h-[70vh] sm:h-[72vh] xl:h-[min(75vh,40rem)] max-h-[75vh] min-h-0">
+                    <div class="px-4 py-3 bg-violet-50 dark:bg-slate-900 border-b border-violet-100 dark:border-slate-800 flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-robot text-[11px]"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-sm font-extrabold text-violet-900 dark:text-violet-200">Stoich Tutor</span>
+                                        <span id="stoich-tutor-status" class="text-[10px] font-bold uppercase tracking-wider text-violet-500 dark:text-violet-300">Closed</span>
+                                    </div>
+                                    <p id="stoich-tutor-context" class="text-[11px] text-violet-700/80 dark:text-slate-300 mt-0.5 line-clamp-2">Open the panel to ask about the current reaction.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button id="btn-stoich-tutor-minimize" class="w-8 h-8 rounded-full flex items-center justify-center text-violet-500 hover:text-violet-700 hover:bg-violet-100 dark:hover:bg-slate-800 transition-colors" title="Minimize">
+                                <i class="fa-solid fa-minus text-xs"></i>
+                            </button>
+                            <button id="btn-stoich-tutor-close" class="w-8 h-8 rounded-full flex items-center justify-center text-violet-500 hover:text-violet-700 hover:bg-violet-100 dark:hover:bg-slate-800 transition-colors" title="Close">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="stoich-tutor-messages" class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-slate-50 dark:bg-slate-950"></div>
+                    <div class="shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-950 p-3">
+                        <textarea id="stoich-tutor-input" rows="2" placeholder="Ask about the current reaction, limiting reactant, or sig figs..." class="w-full resize-none rounded-2xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 px-3 py-2.5 text-sm text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"></textarea>
+                        <div class="mt-3 flex items-center justify-between gap-2">
+                            <button id="btn-stoich-tutor-clear" class="text-xs font-bold text-gray-400 hover:text-rose-500 transition-colors">Clear</button>
+                            <button id="btn-stoich-tutor-send" class="px-4 py-2 rounded-xl font-bold text-white bg-violet-600 hover:bg-violet-700 transition-colors shadow-sm shadow-violet-600/20 inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                                Send
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div id="stoich-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm text-gray-700"></div>
             </div>
         </section>
 

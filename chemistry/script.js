@@ -2991,8 +2991,70 @@ function bindStoichActions() {
     
     if (!btnLoad || !window.ChemData || !window.ChemData.stoichiometry) return;
 
+    if (window.StoichTutor && typeof window.StoichTutor.bindUi === 'function') {
+        window.StoichTutor.bindUi();
+    }
+
     let currentRxn = null;
     let inputs = [];
+
+    function getStoichTutorContext(extra = {}) {
+        const rxn = currentRxn;
+        const equationText = rxn
+            ? `${rxn.reactants.map((r, i) => `${inputs[i]?.value || 1}${r}`).join(' + ')} -> ${rxn.products.map((p, i) => `${inputs[rxn.reactants.length + i]?.value || 1}${p}`).join(' + ')}`
+            : '';
+
+        const balancedEquationText = rxn && Array.isArray(rxn.coefficients)
+            ? `${rxn.reactants.map((r, i) => `${rxn.coefficients[i]}${r}`).join(' + ')} -> ${rxn.products.map((p, i) => `${rxn.coefficients[rxn.reactants.length + i]}${p}`).join(' + ')}`
+            : '';
+
+        return {
+            module: 'stoichiometry',
+            reactionId: rxn ? rxn.id : null,
+            equationText,
+            balancedEquationText,
+            userCoefficients: Array.isArray(inputs)
+                ? inputs.map((inp, idx) => ({
+                    index: idx,
+                    value: inp ? inp.value : '',
+                    formula: rxn
+                        ? (idx < rxn.reactants.length ? rxn.reactants[idx] : rxn.products[idx - rxn.reactants.length])
+                        : ''
+                }))
+                : [],
+            activeScenario: rxn && rxn.activeScenario ? {
+                prompt: rxn.activeScenario.prompt,
+                correctAnswer: rxn.activeScenario.correctAnswer,
+                unit: rxn.activeScenario.unit,
+                sigFigs: rxn.activeScenario.sigFigs,
+                molarMasses: rxn.activeScenario.molarMasses,
+                m1: rxn.activeScenario.m1,
+                m2: rxn.activeScenario.m2
+            } : null,
+            balanceStatus: statusDiv ? statusDiv.textContent : '',
+            problemStatus: output ? output.textContent : '',
+            scratchpadOpen: !document.getElementById('scratchpad-content')?.classList.contains('hidden'),
+            ...extra
+        };
+    }
+
+    function syncStoichTutorContext(extra = {}) {
+        if (window.StoichTutor && typeof window.StoichTutor.refreshContext === 'function') {
+            window.StoichTutor.refreshContext({ ...getStoichTutorContext(), ...extra });
+        }
+    }
+
+    function openStoichTutor(prompt, extra = {}) {
+        const context = getStoichTutorContext(extra);
+        if (window.StoichTutor && typeof window.StoichTutor.ask === 'function') {
+            window.StoichTutor.ask(prompt, context);
+            return;
+        }
+        if (window.ChemTutor && typeof window.ChemTutor.invoke === 'function') {
+            const anchor = output || statusDiv || equationContainer;
+            window.ChemTutor.invoke(prompt, anchor, `Stoichiometry context: ${JSON.stringify(context)}`);
+        }
+    }
 
     btnLoad.addEventListener("click", () => {
         const rxns = window.ChemData.stoichiometry.reactions;
@@ -3004,6 +3066,7 @@ function bindStoichActions() {
         btnCheckBalance.classList.remove("hidden");
         scenarioContainer.classList.add("hidden");
         output.classList.add("hidden");
+        syncStoichTutorContext({ lastEvent: 'new-reaction-loaded' });
 
         const buildPart = (molecules) => {
             const wrap = document.createElement("div");
@@ -3134,24 +3197,21 @@ function bindStoichActions() {
             scenarioContainer.classList.remove("hidden");
             promptEl.textContent = currentRxn.activeScenario.prompt;
             readingInput.value = "";
+            syncStoichTutorContext({ lastEvent: 'scenario-generated' });
             if (typeof initScratchpad === "function") {
                 initScratchpad(currentRxn, currentRxn.activeScenario);
             }
         } else {
             statusDiv.textContent = "Not balanced yet. Check coefficients.";
             statusDiv.className = "mt-4 text-center text-sm font-bold text-rose-600";
-            
-            // Add Chatbot Hook for Balancing Error
-            if (window.ChemTutor) {
-                let eqStrUser = currentRxn.reactants.map((r, i) => `${inputs[i].value}${r}`).join(" + ") + " -> " + 
-                                currentRxn.products.map((p, i) => `${inputs[currentRxn.reactants.length + i].value}${p}`).join(" + ");
-                                
-                window.ChemTutor.invoke(
-                    `I am trying to balance a chemical equation, but my attempt is incorrect. I tried: ${eqStrUser}. Walk me through how to count the atoms on both sides and balance this correctly.`, 
-                    statusDiv, 
-                    `The user is practicing balancing chemical equations. Their incorrect attempt is: ${eqStrUser}. Guide them step-by-step on how to balance it.`
-                );
-            }
+            syncStoichTutorContext({ lastEvent: 'balance-check-failed' });
+
+            const eqStrUser = currentRxn.reactants.map((r, i) => `${inputs[i].value}${r}`).join(" + ") + " -> " + 
+                            currentRxn.products.map((p, i) => `${inputs[currentRxn.reactants.length + i].value}${p}`).join(" + ");
+            openStoichTutor(
+                `I am trying to balance a chemical equation, but my attempt is incorrect. I tried: ${eqStrUser}. Walk me through how to count the atoms on both sides and balance this correctly.`,
+                { lastEvent: 'balance-check-failed', lastAttempt: eqStrUser }
+            );
         }
     });
 
@@ -3182,36 +3242,31 @@ function bindStoichActions() {
             if (userSigFigs === reqSigFigs) {
                 setStatus(output, `Correct! The calculation yields exactly ${userVal} ${currentRxn.activeScenario.unit}.`, "ok");
                 recordCompetencyAttempt("stoich-setup", true);
+                syncStoichTutorContext({ lastEvent: 'stoich-correct' });
                 if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'stoich') {
                     completeActiveSandboxHandshake();
                 }
             } else {
                 setStatus(output, `Mathematically correct, but check your Significant Figures! You provided ${userSigFigs} sig figs, but ${reqSigFigs} are required.`, "warn");
                 recordCompetencyAttempt("stoich-setup", false);
-                
-                // Add Chatbot Hook for Sig Fig Error
-                if (window.ChemTutor) {
-                    window.ChemTutor.invoke(
-                        `I am solving a stoichiometry problem. My calculation of ${userVal} was mathematically correct, but I used ${userSigFigs} significant figures instead of ${reqSigFigs}. Explain how to determine the correct significant figures for this problem.`, 
-                        output, 
-                        `The user is practicing Stoichiometry. Problem: "${currentRxn.activeScenario.prompt}". Correct answer is ${exact}. They got the math right but the sig figs wrong. Expected sig figs: ${reqSigFigs}. ${currentRxn.activeScenario.molarMasses}`
-                    );
-                }
+                syncStoichTutorContext({ lastEvent: 'sig-fig-mismatch' });
+                openStoichTutor(
+                    `I am solving a stoichiometry problem. My calculation of ${userVal} was mathematically correct, but I used ${userSigFigs} significant figures instead of ${reqSigFigs}. Explain how to determine the correct significant figures for this problem.`,
+                    { lastEvent: 'sig-fig-mismatch', expectedSigFigs: reqSigFigs, userSigFigs }
+                );
             }
         } else {
             setStatus(output, `Incorrect. Please double check molar masses, limiting reactants, and mole ratios. Recalculate and try again.`, "error");
             recordCompetencyAttempt("stoich-setup", false);
-            
-            // Add Chatbot Hook for Math/Logic Error
-            if (window.ChemTutor) {
-                window.ChemTutor.invoke(
-                    `I am solving a stoichiometry problem: "${currentRxn.activeScenario.prompt}". I calculated ${userVal} but it is incorrect. Walk me through the steps to solve this: identifying the balanced equation, finding the limiting reactant (if applicable), and converting to the final yield.`, 
-                    output, 
-                    `The user is practicing Stoichiometry. The balanced equation is ${eqStr}. ${currentRxn.activeScenario.molarMasses}. Problem: "${currentRxn.activeScenario.prompt}". The correct theoretical yield is ${exact} ${currentRxn.activeScenario.unit}. Guide them step-by-step to reach this answer.`
-                );
-            }
+            syncStoichTutorContext({ lastEvent: 'yield-mismatch' });
+            openStoichTutor(
+                `I am solving a stoichiometry problem: "${currentRxn.activeScenario.prompt}". I calculated ${userVal} but it is incorrect. Walk me through the steps to solve this: identifying the balanced equation, finding the limiting reactant (if applicable), and converting to the final yield.`,
+                { lastEvent: 'yield-mismatch', equation: eqStr, correctAnswer: exact }
+            );
         }
     });
+
+    syncStoichTutorContext({ lastEvent: 'stoich-ready' });
 
     // Toggle scratch pad visibility
     const btnToggleScratch = document.getElementById("btn-toggle-scratchpad");
@@ -5087,8 +5142,399 @@ function setStatus(element, text, kind) {
         element.classList.add("text-green-700");
         return;
     }
+
     element.classList.add("text-gray-700");
 }
+
+function escapeStoichTutorHtml(text) {
+    return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function renderStoichTutorMarkdown(text) {
+    if (typeof text !== 'string') return '';
+
+    // Escape first to keep model output safe, then selectively transform known syntax.
+    let html = escapeStoichTutorHtml(text);
+    const codeBlocks = [];
+
+    html = html.replace(/```(?:javascript|js|chemistry|html|css)?\n([\s\S]*?)\n```/g, (match, code) => {
+        const id = `__STOICH_CODE_BLOCK_${codeBlocks.length}__`;
+        codeBlocks.push(`<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg my-2 overflow-x-auto font-mono text-xs">${code}</pre>`);
+        return id;
+    });
+
+    html = html.replace(/`([^`\n]+?)`/g, (match, code) => {
+        const id = `__STOICH_CODE_BLOCK_${codeBlocks.length}__`;
+        codeBlocks.push(`<code class="bg-gray-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-1 py-0.5 rounded font-mono text-xs">${code}</code>`);
+        return id;
+    });
+
+    if (window.CLINICAL_TUTOR && typeof window.CLINICAL_TUTOR.cleanMathAndLaTeX === 'function') {
+        html = window.CLINICAL_TUTOR.cleanMathAndLaTeX(html);
+    } else {
+        html = html
+            .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
+            .replace(/\\text\{([^{}]+)\}/g, '$1')
+            .replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
+            .replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>')
+            .replace(/([A-Za-z0-9)])_([0-9]+|[a-z]{1,2})/g, '$1<sub>$2</sub>')
+            .replace(/([A-Za-z0-9)])\^([0-9+\-]+)/g, '$1<sup>$2</sup>')
+            .replace(/\\rightarrow/g, '→')
+            .replace(/\\to/g, '→')
+            .replace(/\\times/g, '×')
+            .replace(/\\cdot/g, '·')
+            .replace(/\$\$/g, '')
+            .replace(/\$/g, '')
+            .replace(/\\([#*_`[\]()])/g, '$1');
+    }
+
+    html = html.replace(/^####\s+(.*)$/gm, '<h4 class="font-bold text-gray-800 dark:text-gray-200 mt-3 mb-1">$1</h4>');
+    html = html.replace(/^###\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
+    html = html.replace(/^##\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
+    html = html.replace(/^#\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
+
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+    html = html.replace(/^[\*\-]\s+(.*)$/gm, '<li class="ml-5 list-disc marker:text-violet-500">$1</li>');
+    html = html.replace(/\n/g, '<br>');
+    html = html.replace(/<\/(h3|h4|div|li)><br>/g, '</$1>');
+    html = html.replace(/<br><li/g, '<li');
+    html = html.replace(/(<br>\s*){2,}/g, '<br><br>');
+
+    codeBlocks.forEach((codeHtml, index) => {
+        html = html.replace(`__STOICH_CODE_BLOCK_${index}__`, codeHtml);
+    });
+
+    return html;
+}
+
+window.StoichTutor = (() => {
+    const OLLAMA_URL = 'http://localhost:11434';
+    const MAX_TURNS = 20;
+
+    let contextProvider = null;
+    let panelEl = null;
+    let messagesEl = null;
+    let inputEl = null;
+    let statusEl = null;
+    let contextEl = null;
+    let toggleBtnEl = null;
+    let sendBtnEl = null;
+    let clearBtnEl = null;
+    let closeBtnEl = null;
+    let minimizeBtnEl = null;
+
+    let openState = false;
+    let busyState = false;
+    let history = [];
+    let currentContext = {};
+
+    function getModel() {
+        return localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
+    }
+
+    function ensureElements() {
+        if (panelEl && messagesEl && inputEl && statusEl && contextEl) return true;
+
+        panelEl = document.getElementById('stoich-tutor-panel');
+        messagesEl = document.getElementById('stoich-tutor-messages');
+        inputEl = document.getElementById('stoich-tutor-input');
+        statusEl = document.getElementById('stoich-tutor-status');
+        contextEl = document.getElementById('stoich-tutor-context');
+        toggleBtnEl = document.getElementById('btn-stoich-tutor-toggle');
+        sendBtnEl = document.getElementById('btn-stoich-tutor-send');
+        clearBtnEl = document.getElementById('btn-stoich-tutor-clear');
+        closeBtnEl = document.getElementById('btn-stoich-tutor-close');
+        minimizeBtnEl = document.getElementById('btn-stoich-tutor-minimize');
+
+        return Boolean(panelEl && messagesEl && inputEl && statusEl && contextEl);
+    }
+
+    function setStatusLabel(text, tone) {
+        if (!statusEl) return;
+        statusEl.textContent = text;
+        statusEl.className = 'text-[10px] font-bold uppercase tracking-wider';
+        if (tone === 'busy') statusEl.classList.add('text-amber-500');
+        else if (tone === 'error') statusEl.classList.add('text-rose-500');
+        else if (tone === 'ready') statusEl.classList.add('text-emerald-600');
+        else statusEl.classList.add('text-violet-500');
+    }
+
+    function setToggleLabel() {
+        if (!toggleBtnEl) return;
+        toggleBtnEl.innerHTML = openState
+            ? '<i class="fa-solid fa-robot text-[10px]"></i> Hide Tutor'
+            : '<i class="fa-solid fa-robot text-[10px]"></i> Ask Tutor';
+    }
+
+    function summarizeContext(ctx) {
+        if (!ctx) return 'Open the panel to ask about the current reaction.';
+        const parts = [];
+        if (ctx.equationText) parts.push(ctx.equationText);
+        if (ctx.activeScenario?.prompt) parts.push(ctx.activeScenario.prompt);
+        if (ctx.lastEvent) parts.push(`Last event: ${ctx.lastEvent}`);
+        return parts.slice(0, 2).join(' | ') || 'Open the panel to ask about the current reaction.';
+    }
+
+    function buildSystemPrompt(ctx) {
+        const payload = JSON.stringify(ctx || {});
+        return [
+            'You are Stoich Tutor, a chemistry assistant for balancing equations and stoichiometry.',
+            'Be concise, step-by-step, and focus on the current reaction state.',
+            'Explain why each coefficient, mole ratio, or significant figure decision is correct.',
+            'If the student is stuck, ask one targeted question at a time.',
+            'Formatting rule: avoid LaTeX delimiters and commands (such as $, $$, \\text{}, \\frac{}, and code fences).',
+            'Use plain readable chemistry notation in markdown/text (for example: C3H8 + O2 -> CO2 + H2O).',
+            `Current Stoichiometry Context: ${payload}`
+        ].join(' ');
+    }
+
+    function renderEmptyState() {
+        if (!messagesEl) return;
+        messagesEl.innerHTML = `
+            <div id="stoich-tutor-empty" class="rounded-2xl border border-dashed border-violet-200 bg-white p-4 text-sm text-gray-600">
+                <p class="font-semibold text-gray-800 mb-1">Ready when you are.</p>
+                <p>Ask about the current reaction, the balanced equation, limiting reactants, or significant figures.</p>
+            </div>`;
+    }
+
+    function appendBubble(role, text) {
+        if (!messagesEl) return null;
+        const empty = messagesEl.querySelector('#stoich-tutor-empty');
+        if (empty) empty.remove();
+        const wrap = document.createElement('div');
+        const bubble = document.createElement('div');
+
+        if (role === 'user') {
+            wrap.className = 'flex justify-end';
+            bubble.className = 'max-w-[86%] min-w-0 break-words overflow-hidden bg-violet-600 text-white px-4 py-3 rounded-3xl rounded-br-lg text-sm font-medium leading-relaxed whitespace-pre-wrap';
+        } else {
+            wrap.className = 'flex justify-start';
+            bubble.className = 'max-w-[88%] min-w-0 break-words overflow-hidden bg-white border border-gray-100 shadow-sm px-4 py-3 rounded-3xl rounded-bl-lg text-sm font-medium leading-relaxed text-gray-800 whitespace-pre-wrap';
+        }
+
+        bubble.innerHTML = renderStoichTutorMarkdown(text);
+        wrap.appendChild(bubble);
+        messagesEl.appendChild(wrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return bubble;
+    }
+
+    function ensureEmptyState() {
+        if (!messagesEl) return;
+        if (messagesEl.children.length === 0) {
+            renderEmptyState();
+        }
+    }
+
+    function updateContext(ctx) {
+        currentContext = ctx || {};
+        if (contextEl) contextEl.textContent = summarizeContext(currentContext);
+        if (openState) setStatusLabel(busyState ? 'Busy' : 'Ready', busyState ? 'busy' : 'ready');
+        setToggleLabel();
+    }
+
+    function registerContextProvider(provider) {
+        contextProvider = typeof provider === 'function' ? provider : null;
+        refreshContext();
+    }
+
+    function refreshContext(extra = {}) {
+        const base = contextProvider ? (contextProvider() || {}) : {};
+        updateContext({ ...base, ...extra });
+    }
+
+    function open(options = {}) {
+        if (!ensureElements()) return;
+        panelEl.classList.remove('hidden');
+        openState = true;
+        setToggleLabel();
+        refreshContext();
+        setStatusLabel(busyState ? 'Busy' : 'Ready', busyState ? 'busy' : 'ready');
+        ensureEmptyState();
+        if (options.focus !== false) {
+            inputEl.focus();
+        }
+    }
+
+    function close() {
+        if (!ensureElements()) return;
+        panelEl.classList.add('hidden');
+        openState = false;
+        setToggleLabel();
+    }
+
+    function toggle() {
+        if (openState) close();
+        else open();
+    }
+
+    function clear() {
+        history = [];
+        if (messagesEl) {
+            messagesEl.innerHTML = '';
+            renderEmptyState();
+        }
+        refreshContext();
+    }
+
+    async function sendMessage(userText, options = {}) {
+        const text = typeof userText === 'string' ? userText.trim() : '';
+        if (!text || busyState) return;
+
+        if (!openState) open({ focus: false });
+        refreshContext(options.extraContext || {});
+
+        appendBubble('user', text);
+        history.push({ role: 'user', content: text });
+        if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
+
+        if (inputEl) {
+            inputEl.value = '';
+            inputEl.style.height = 'auto';
+        }
+
+        busyState = true;
+        if (sendBtnEl) sendBtnEl.disabled = true;
+        if (inputEl) inputEl.disabled = true;
+        setStatusLabel('Busy', 'busy');
+
+        const messages = [
+            { role: 'system', content: buildSystemPrompt(currentContext) },
+            ...history
+        ];
+
+        const typingWrap = document.createElement('div');
+        typingWrap.id = 'stoich-tutor-typing';
+        typingWrap.className = 'flex justify-start';
+        typingWrap.innerHTML = '<div class="max-w-[88%] min-w-0 break-words overflow-hidden bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm px-4 py-3 rounded-3xl rounded-bl-lg flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:0ms"></span><span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:150ms"></span><span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:300ms"></span></div>';
+        messagesEl.appendChild(typingWrap);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
+        let assistantText = '';
+        let firstToken = true;
+        let bubble = null;
+
+        try {
+            const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: getModel(),
+                    messages,
+                    stream: true,
+                    options: { temperature: 0.7, top_p: 0.95, top_k: 64, num_ctx: 4096 }
+                })
+            });
+
+            if (!response.ok || !response.body) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
+                for (const line of lines) {
+                    let data;
+                    try {
+                        data = JSON.parse(line);
+                    } catch {
+                        continue;
+                    }
+                    const token = data.message?.content;
+                    if (token) {
+                        if (firstToken) {
+                            typingWrap.remove();
+                            bubble = appendBubble('assistant', '');
+                            firstToken = false;
+                        }
+                        assistantText += token;
+                        if (bubble) bubble.innerHTML = renderStoichTutorMarkdown(assistantText);
+                        messagesEl.scrollTop = messagesEl.scrollHeight;
+                    }
+                    if (data.done) break;
+                }
+            }
+
+            if (assistantText) {
+                history.push({ role: 'assistant', content: assistantText });
+                if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
+            }
+        } catch (err) {
+            typingWrap.remove();
+            appendBubble('assistant', `Sorry, I could not connect to the local tutor service. ${err && err.message ? err.message : 'Please try again.'}`);
+        } finally {
+            busyState = false;
+            if (sendBtnEl) sendBtnEl.disabled = false;
+            if (inputEl) inputEl.disabled = false;
+            setStatusLabel('Ready', 'ready');
+            setToggleLabel();
+            if (inputEl) inputEl.focus();
+        }
+    }
+
+    function ask(prompt, extraContext = {}) {
+        if (!prompt) return;
+        if (!openState) open({ focus: false });
+        refreshContext(extraContext);
+        return sendMessage(prompt, { extraContext });
+    }
+
+    function bindUi() {
+        if (!ensureElements()) return;
+        if (toggleBtnEl && !toggleBtnEl.dataset.stoichTutorBound) {
+            toggleBtnEl.addEventListener('click', toggle);
+            toggleBtnEl.dataset.stoichTutorBound = 'true';
+        }
+        if (sendBtnEl && !sendBtnEl.dataset.stoichTutorBound) {
+            sendBtnEl.addEventListener('click', () => sendMessage(inputEl ? inputEl.value : ''));
+            sendBtnEl.dataset.stoichTutorBound = 'true';
+        }
+        if (inputEl && !inputEl.dataset.stoichTutorBound) {
+            inputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(inputEl.value);
+                }
+            });
+            inputEl.dataset.stoichTutorBound = 'true';
+        }
+        if (clearBtnEl && !clearBtnEl.dataset.stoichTutorBound) {
+            clearBtnEl.addEventListener('click', clear);
+            clearBtnEl.dataset.stoichTutorBound = 'true';
+        }
+        if (closeBtnEl && !closeBtnEl.dataset.stoichTutorBound) {
+            closeBtnEl.addEventListener('click', close);
+            closeBtnEl.dataset.stoichTutorBound = 'true';
+        }
+        if (minimizeBtnEl && !minimizeBtnEl.dataset.stoichTutorBound) {
+            minimizeBtnEl.addEventListener('click', close);
+            minimizeBtnEl.dataset.stoichTutorBound = 'true';
+        }
+        renderEmptyState();
+        setToggleLabel();
+    }
+
+    return {
+        bindUi,
+        registerContextProvider,
+        refreshContext,
+        updateContext,
+        open,
+        close,
+        toggle,
+        clear,
+        ask,
+        sendMessage
+    };
+})();
 
 // --- GLOBAL INLINE AI TUTOR ---
 window.ChemTutor = (() => {
