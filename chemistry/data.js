@@ -135,15 +135,120 @@ const ChemData = {
     conversions: {
         mass: [
             { factor: 1000, from: "kg", to: "g" },
-            { factor: 1000, from: "g", to: "mg" }
+            { factor: 1000, from: "g", to: "mg" },
+            { factor: 1000, from: "mg", to: "mcg" }
         ],
         volume: [
             { factor: 1000, from: "L", to: "mL" },
             { factor: 1, from: "mL", to: "cm3" }
         ],
+        flowRate: [
+            { factor: 0.001, from: "mL/min", to: "L/min" },
+            { factor: 60, from: "L/min", to: "L/h" }
+        ],
+        density: [
+            { factor: 1, from: "g/mL", to: "kg/L" },
+            { factor: 1000, from: "g/cm^3", to: "kg/m^3" }
+        ],
         temperature: [
             { type: "formula", from: "°C", to: "K", formula: "x + 273.15", inverseFormula: "x - 273.15", display: "(x + 273.15) K", displayInverse: "(x - 273.15) °C" },
             { type: "formula", from: "°C", to: "°F", formula: "x * 9/5 + 32", inverseFormula: "(x - 32) * 5/9", display: "(x * 1.8 + 32) °F", displayInverse: "((x - 32) / 1.8) °C" }
+        ]
+    },
+
+    daTutorial: {
+        intro: "Dimensional analysis lets chemists translate quantities safely and consistently by tracking units, not just numbers.",
+        lessons: [
+            {
+                id: "da-lesson-1",
+                title: "Foundations: Why Unit Cancellation Works",
+                objective: "Convert a mass quantity using a valid two-factor chain and explain why each factor is legal.",
+                startValue: "2.50",
+                fromUnit: "kg",
+                toUnit: "mg",
+                steps: [
+                    {
+                        type: "setup",
+                        explanation: "Identify the given quantity and the target unit before choosing any conversion factors.",
+                        why: "You cannot pick correct factors unless you know exactly where you are starting and where you need to end."
+                    },
+                    {
+                        type: "factor",
+                        factor: { numVal: 1000, numUnit: "g", denVal: 1, denUnit: "kg" },
+                        explanation: "First bridge from kilograms to grams with 1000 g / 1 kg.",
+                        why: "The denominator unit must match the current unit (kg) so kg cancels cleanly."
+                    },
+                    {
+                        type: "factor",
+                        factor: { numVal: 1000, numUnit: "mg", denVal: 1, denUnit: "g" },
+                        explanation: "Then bridge from grams to milligrams with 1000 mg / 1 g.",
+                        why: "After step 1, grams is now your current unit. Matching g in the denominator keeps cancellation valid."
+                    },
+                    {
+                        type: "evaluate",
+                        explanation: "Evaluate the full chain and verify the final unit is mg.",
+                        why: "A correct number is not enough in chemistry. The final unit must also match the target requested in the prompt."
+                    }
+                ]
+            },
+            {
+                id: "da-lesson-2",
+                title: "Compound Units: Flow Rate Conversion",
+                objective: "Convert mL/min to L/h while preserving numerator and denominator meaning.",
+                startValue: "125.0",
+                fromUnit: "mL/min",
+                toUnit: "L/h",
+                steps: [
+                    {
+                        type: "setup",
+                        explanation: "Treat the rate as a single compound unit and map the target rate unit before building factors.",
+                        why: "Rates encode two dimensions at once. You must convert both parts without destroying the unit meaning."
+                    },
+                    {
+                        type: "factor",
+                        factor: { numVal: 0.001, numUnit: "L/min", denVal: 1, denUnit: "mL/min" },
+                        explanation: "Convert the volume part of the rate first using L/min over mL/min.",
+                        why: "This changes the numerator scale while keeping time in minutes unchanged for now."
+                    },
+                    {
+                        type: "factor",
+                        factor: { numVal: 60, numUnit: "L/h", denVal: 1, denUnit: "L/min" },
+                        explanation: "Convert minutes to hours by bridging L/min to L/h.",
+                        why: "This is a legal equivalence because 1 h = 60 min, applied in rate form."
+                    },
+                    {
+                        type: "evaluate",
+                        explanation: "Evaluate and confirm the final rate unit is L/h.",
+                        why: "Rate problems are high-risk in labs and medicine. Unit validation is a safety check, not optional formatting."
+                    }
+                ]
+            },
+            {
+                id: "da-lesson-3",
+                title: "Equation-Based Conversion: Celsius to Kelvin",
+                objective: "Distinguish ratio-based conversion from offset-based conversion for temperature.",
+                startValue: "25.0",
+                fromUnit: "°C",
+                toUnit: "K",
+                steps: [
+                    {
+                        type: "setup",
+                        explanation: "Identify this as an equation-based conversion, not a pure ratio conversion.",
+                        why: "Temperature scales can include an offset (zero point shift), so multiplication alone is incomplete."
+                    },
+                    {
+                        type: "factor",
+                        factor: { type: "formula", formula: "x + 273.15", numUnit: "K", denUnit: "°C", display: "(x + 273.15) K" },
+                        explanation: "Apply the Celsius-to-Kelvin equation conversion step.",
+                        why: "Kelvin and Celsius differ by an additive offset of 273.15."
+                    },
+                    {
+                        type: "evaluate",
+                        explanation: "Evaluate and check that the final unit is Kelvin.",
+                        why: "Equation-based steps still require the same discipline: correct math and correct target units."
+                    }
+                ]
+            }
         ]
     },
 
@@ -582,7 +687,7 @@ const ChemData = {
             },
             {
                 id: "dq3",
-                competencyId: "dim-analysis",
+                competencyId: "measurement-precision",
                 prompt: "Apply significant figure rules: 12.11 + 2.0 - 1.053 = ?",
                 choices: ["13", "13.1", "13.06", "13.057"],
                 correctIndex: 1
@@ -618,9 +723,9 @@ const ChemData = {
             {
                 id: "dq8",
                 competencyId: "dim-analysis",
-                prompt: "Which element has the highest first ionization energy?",
-                choices: ["Sodium (Na)", "Chlorine (Cl)", "Fluorine (F)", "Lithium (Li)"],
-                correctIndex: 2
+                prompt: "Convert 72.0 km/h to m/s using dimensional analysis.",
+                choices: ["2.00 m/s", "20.0 m/s", "25.9 m/s", "259 m/s"],
+                correctIndex: 1
             },
             {
                 id: "dq9",
@@ -695,9 +800,9 @@ const ChemData = {
             {
                 id: "dq19",
                 competencyId: "measurement-precision",
-                prompt: "What is the oxidation state of sulfur in sulfate, SO4^2-?",
-                choices: ["+4", "+6", "-2", "+2"],
-                correctIndex: 1
+                prompt: "A graduated cylinder has 0.1 mL scale marks. To what place should you report a measured volume?",
+                choices: ["Nearest 1 mL", "Nearest 0.1 mL", "Nearest 0.01 mL", "Nearest 0.001 mL"],
+                correctIndex: 2
             },
             {
                 id: "dq20",

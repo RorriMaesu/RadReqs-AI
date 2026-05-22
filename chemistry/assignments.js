@@ -366,28 +366,28 @@
         for (let i = 0; i < 10; i++) {
             const style = randomInt(1, 3);
             if (style === 1) {
-                const ml = randomInt(50, 5000);
-                const l = ml / 1000;
+                const kg = randomFloat(0.2, 7.5, 3);
+                const mg = kg * 1000000;
                 questions.push({
-                    question: `Convert ${ml} milliliters (mL) to liters (L). (3 decimals)`,
-                    correctAnswer: l,
-                    tolerance: 0.001
+                    question: `Convert ${kg.toFixed(3)} kilograms (kg) to milligrams (mg). Set it up as a factor-label chain (kg -> g -> mg).`,
+                    correctAnswer: mg,
+                    tolerance: Math.max(0.1, Math.abs(mg) * 0.00001)
                 });
             } else if (style === 2) {
-                const gMl = randomFloat(1.5, 19.3, 2);
-                const kgL = gMl;
+                const gCm3 = randomFloat(0.65, 19.30, 3);
+                const kgM3 = gCm3 * 1000;
                 questions.push({
-                    question: `The density of a liquid chemical compound is ${gMl.toFixed(2)} g/mL. What is this density in kilograms per liter (kg/L)? (2 decimals)`,
-                    correctAnswer: kgL,
-                    tolerance: 0.01
+                    question: `A material has density ${gCm3.toFixed(3)} g/cm^3. Convert this to kg/m^3 using dimensional analysis.`,
+                    correctAnswer: kgM3,
+                    tolerance: Math.max(0.5, Math.abs(kgM3) * 0.0001)
                 });
             } else {
-                const mcg = randomInt(100, 95000);
-                const g = mcg / 1000000;
+                const mlMin = randomFloat(12.0, 950.0, 1);
+                const lHr = (mlMin / 1000) * 60;
                 questions.push({
-                    question: `An analytical experiment calls for ${mcg} micrograms (mcg) of a catalyst. How many grams (g) of the catalyst is this? (6 decimals)`,
-                    correctAnswer: g,
-                    tolerance: 0.000001
+                    question: `An IV infusion runs at ${mlMin.toFixed(1)} mL/min. Convert this rate to L/h using a conversion-factor chain.`,
+                    correctAnswer: lHr,
+                    tolerance: 0.01
                 });
             }
         }

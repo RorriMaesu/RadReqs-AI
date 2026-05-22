@@ -110,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
     mountLabEquipment();
     bindMolarMassActions();
     bindConversionActions();
+    bindDaTutorialActions();
     bindStoichActions();
     bindSigFigActions();
     bindNomenclatureActions();
@@ -135,6 +136,1602 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initialize global tooltips for interactive chemical formulas
     initGlobalTooltip();
 });
+
+const daTutorialState = {
+    lessons: [],
+    lessonIdx: 0,
+    stepIdx: 0,
+    mode: "watch",
+    isPlaying: false,
+    timerId: null
+};
+
+function bindDaTutorialActions() {
+    const modeSelect = document.getElementById("da-mode");
+    const lessonSelect = document.getElementById("da-lesson");
+    const btnStart = document.getElementById("btn-da-start-tutorial");
+    const btnPlay = document.getElementById("btn-da-play");
+    const btnPause = document.getElementById("btn-da-pause");
+    const btnNext = document.getElementById("btn-da-next-step");
+    const btnReset = document.getElementById("btn-da-reset-tutorial");
+    const btnAsk = document.getElementById("btn-da-ask-step-tutor");
+    const progress = document.getElementById("da-tutorial-progress");
+    const stepExplanation = document.getElementById("da-step-explanation");
+    const stepWhy = document.getElementById("da-step-why");
+    const valueInput = document.getElementById("da-value");
+    const fromSelect = document.getElementById("da-from");
+    const toSelect = document.getElementById("da-to");
+    const factorBank = document.getElementById("da-factor-bank");
+    const btnAddFactor = document.getElementById("btn-add-factor");
+    const btnCheck = document.getElementById("btn-check-da");
+    const btnResetChain = document.getElementById("btn-reset-da");
+    const tutorAnchor = document.getElementById("da-tutor-anchor");
+    const chainContainer = document.getElementById("da-chain");
+    const currentStepChip = document.getElementById("da-current-step-chip");
+    const currentStepTarget = document.getElementById("da-current-step-target");
+    const dimensionsSection = document.getElementById("view-dimensions");
+    const outputPanel = document.getElementById("da-output");
+    const stickyHeader = document.querySelector("header.glass-panel");
+    const floatExplainer = document.getElementById("da-step-float");
+    const floatExplainerKicker = document.getElementById("da-step-float-kicker");
+    const floatExplainerText = document.getElementById("da-step-float-text");
+    const floatExplainerWhy = document.getElementById("da-step-float-why");
+    const floatExplainerControls = document.getElementById("da-step-float-controls");
+    const btnPopupNext = document.getElementById("btn-da-popup-next");
+    const tutorialPicker = document.getElementById("da-tutorial-picker");
+    const tutorialPickerHeader = document.getElementById("da-tutorial-picker-header");
+    const tutorialPickerOptions = document.getElementById("da-tutorial-picker-options");
+
+    let pendingCenterRaf = null;
+    let pendingCenterTimer = null;
+    let cameraPathTimer = null;
+    let explainerTimer = null;
+    let explainerRaf = null;
+    let lastCameraPoint = null;
+    let explainerAnchor = null;
+    let explainerPlacementOptions = null;
+    let latestExplainerTitle = "Current Step";
+    let explainerDismissedForStep = false;
+    let guidedMicroActions = null;
+    let guidedMicroIndex = -1;
+    let watchMicroActions = null;
+    let watchMicroDwellMs = [];
+    let watchMicroIndex = -1;
+    let watchMicroTimerId = null;
+    const tutorialActionTimers = [];
+    const WATCH_STEP_INTERVAL_MS = 4200;
+    const WATCH_TRANSITION_MIN_MS = 2000;
+    const POPUP_READING_WPM = 160;
+    const POPUP_READING_BUFFER_SECONDS = 1.2;
+    const POPUP_MIN_SECONDS = 4;
+    const POPUP_MAX_SECONDS = 14;
+    const FACTOR_POPUP_MESSAGES = {
+        open: {
+            explanation: "Open the conversion-factor dropdown to locate the next legal bridge.",
+            why: "We choose a factor whose denominator matches the current unit so cancellation remains valid."
+        },
+        select: {
+            explanation: "Select the factor option that has the current unit in the denominator.",
+            why: "Correct orientation matters: wrong denominator blocks cancellation and breaks dimensional logic."
+        },
+        add: {
+            explanation: "Now press Add Factor to append this conversion to the chain.",
+            why: "Adding one verified factor at a time prevents hidden mistakes in multi-step conversions."
+        },
+        inserted: {
+            explanation: "Factor inserted. Verify the previous unit cancels and track the new current unit.",
+            why: "Dimensional analysis is a unit-audit process: every factor should reduce uncertainty, not add it."
+        }
+    };
+    let cameraPathLayer = null;
+    let cameraPathSvg = null;
+    let cameraPathStroke = null;
+    let cameraPathArrow = null;
+
+    if (!modeSelect || !lessonSelect || !btnStart || !btnPlay || !btnPause || !btnNext || !btnReset || !btnAsk) return;
+    if (!window.ChemData?.daTutorial?.lessons || window.ChemData.daTutorial.lessons.length === 0) return;
+
+    daTutorialState.lessons = window.ChemData.daTutorial.lessons;
+
+    function isSmallViewport() {
+        return window.innerWidth < 768;
+    }
+
+    function isGuidedMode() {
+        return (daTutorialState.mode || modeSelect?.value || "watch") === "guided";
+    }
+
+    function updatePopupGuidedControls() {
+        if (!floatExplainerControls || !btnPopupNext) return;
+        const guided = isGuidedMode();
+        const watch = !guided;
+        const showControls = guided || watch;
+        floatExplainerControls.classList.toggle("hidden", !showControls);
+        if (!showControls) return;
+
+        const hasMicroPending = guided
+            ? !!guidedMicroActions
+            : isWatchMicroSequenceActive();
+        btnPopupNext.textContent = hasMicroPending ? "Next Action" : "Next Step";
+        btnPopupNext.disabled = false;
+    }
+
+    function setExplainerContent(titleText, explanationText, whyText) {
+        latestExplainerTitle = titleText || latestExplainerTitle || "Current Step";
+        if (floatExplainerKicker) {
+            floatExplainerKicker.textContent = latestExplainerTitle;
+        }
+        if (floatExplainerText) {
+            floatExplainerText.textContent = explanationText || "";
+        }
+        if (floatExplainerWhy) {
+            floatExplainerWhy.textContent = whyText || "";
+        }
+    }
+
+    function showExplainer() {
+        if (!floatExplainer) return;
+        if (explainerDismissedForStep) return;
+        floatExplainer.classList.remove("hidden");
+        floatExplainer.classList.add("is-visible");
+    }
+
+    function hideExplainer() {
+        if (!floatExplainer) return;
+        floatExplainer.classList.remove("is-visible");
+        floatExplainer.classList.add("hidden");
+    }
+
+    function queueTutorialAction(delayMs, action) {
+        const id = setTimeout(() => {
+            const idx = tutorialActionTimers.indexOf(id);
+            if (idx >= 0) tutorialActionTimers.splice(idx, 1);
+            action();
+        }, delayMs);
+        tutorialActionTimers.push(id);
+        return id;
+    }
+
+    function clearTutorialActions() {
+        while (tutorialActionTimers.length > 0) {
+            const id = tutorialActionTimers.pop();
+            clearTimeout(id);
+        }
+    }
+
+    function isWatchMicroSequenceActive() {
+        return Array.isArray(watchMicroActions) && watchMicroActions.length > 0;
+    }
+
+    function clearWatchMicroActionState() {
+        if (watchMicroTimerId) {
+            clearTimeout(watchMicroTimerId);
+            watchMicroTimerId = null;
+        }
+        watchMicroActions = null;
+        watchMicroDwellMs = [];
+        watchMicroIndex = -1;
+    }
+
+    function finishWatchMicroSequence(postStepDelayMs = WATCH_TRANSITION_MIN_MS) {
+        clearWatchMicroActionState();
+
+        daTutorialState.stepIdx += 1;
+        updateProgress();
+
+        const lesson = getCurrentLesson();
+        if (!lesson) return;
+
+        if (daTutorialState.stepIdx >= lesson.steps.length) {
+            stopPlayback();
+            return;
+        }
+
+        if (!daTutorialState.isPlaying) return;
+        scheduleNextWatchAdvance(Math.max(postStepDelayMs || WATCH_TRANSITION_MIN_MS, WATCH_TRANSITION_MIN_MS));
+    }
+
+    function runNextWatchMicroAction(options = {}) {
+        const scheduleFollowing = options.scheduleFollowing !== false;
+        if (!isWatchMicroSequenceActive()) return false;
+
+        const nextIndex = watchMicroIndex + 1;
+        if (nextIndex >= watchMicroActions.length) {
+            return false;
+        }
+
+        const action = watchMicroActions[nextIndex];
+        const result = typeof action === "function" ? action() : true;
+        if (result === false) {
+            clearWatchMicroActionState();
+            return false;
+        }
+
+        watchMicroIndex = nextIndex;
+        updatePopupGuidedControls();
+
+        const isLastAction = watchMicroIndex >= watchMicroActions.length - 1;
+        if (isLastAction) {
+            const insertedDwellMs = watchMicroDwellMs[Math.max(0, watchMicroIndex)] || WATCH_TRANSITION_MIN_MS;
+            finishWatchMicroSequence(insertedDwellMs);
+            return true;
+        }
+
+        if (scheduleFollowing && daTutorialState.isPlaying) {
+            const dwellMs = watchMicroDwellMs[Math.max(0, watchMicroIndex)] || WATCH_TRANSITION_MIN_MS;
+            if (watchMicroTimerId) {
+                clearTimeout(watchMicroTimerId);
+            }
+            watchMicroTimerId = setTimeout(() => {
+                watchMicroTimerId = null;
+                if (!daTutorialState.isPlaying) return;
+                runNextWatchMicroAction({ scheduleFollowing: true });
+            }, Math.max(dwellMs, 0));
+        }
+
+        return true;
+    }
+
+    function pauseTutorialPlayback() {
+        daTutorialState.isPlaying = false;
+        if (daTutorialState.timerId) {
+            clearInterval(daTutorialState.timerId);
+            daTutorialState.timerId = null;
+        }
+        clearTutorialActions();
+        clearWatchMicroActionState();
+        guidedMicroActions = null;
+        guidedMicroIndex = -1;
+        updatePopupGuidedControls();
+    }
+
+    function failTutorialStep(summary, whyText, focusEl, chipText = "Step Paused", targetText = "Fix highlighted control") {
+        setStatusTexts(summary, whyText);
+        if (focusEl) {
+            applyFocus([focusEl], chipText, targetText, "error");
+            scheduleAutoCenter(focusEl || dimensionsSection, null, focusEl || dimensionsSection);
+        } else {
+            setFocusRail(chipText, targetText, "error");
+            scheduleAutoCenter(dimensionsSection, null, dimensionsSection);
+        }
+        pauseTutorialPlayback();
+    }
+
+    function dispatchCommitEvents(el) {
+        if (!el) return;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    function verifySetupCommit(lesson) {
+        if (!lesson) return false;
+        const expectedValue = String(lesson.startValue ?? "");
+        return (
+            String(valueInput?.value ?? "") === expectedValue &&
+            String(fromSelect?.value ?? "") === String(lesson.fromUnit ?? "") &&
+            String(toSelect?.value ?? "") === String(lesson.toUnit ?? "")
+        );
+    }
+
+    function countWords(text) {
+        if (!text) return 0;
+        return String(text)
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .length;
+    }
+
+    function getWatchSpeedMultiplier() {
+        return 1;
+    }
+
+    function clampNumber(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function getPopupReadMetrics(explanationText, whyText) {
+        const words = countWords(explanationText) + countWords(whyText);
+        if (words <= 0) {
+            return {
+                words: 0,
+                seconds: WATCH_TRANSITION_MIN_MS / 1000,
+                ms: WATCH_TRANSITION_MIN_MS
+            };
+        }
+
+        const baseSeconds = (words / POPUP_READING_WPM) * 60;
+        const boundedSeconds = clampNumber(
+            baseSeconds + POPUP_READING_BUFFER_SECONDS,
+            POPUP_MIN_SECONDS,
+            POPUP_MAX_SECONDS
+        );
+        const scaledSeconds = boundedSeconds * getWatchSpeedMultiplier();
+        return {
+            words,
+            seconds: Number(scaledSeconds.toFixed(1)),
+            ms: Math.round(scaledSeconds * 1000)
+        };
+    }
+
+    function computePopupPauseMs(explanationText, whyText) {
+        return getPopupReadMetrics(explanationText, whyText).ms;
+    }
+
+    function logLessonPopupTimingEstimate(lesson) {
+        if (!lesson || !Array.isArray(lesson.steps)) return;
+        const timingRows = [];
+
+        lesson.steps.forEach((step, idx) => {
+            if (!step) return;
+            if (step.type === "setup" || step.type === "evaluate") {
+                const metrics = getPopupReadMetrics(step.explanation, step.why);
+                timingRows.push({
+                    step: idx + 1,
+                    popup: `${step.type}: lesson message`,
+                    words: metrics.words,
+                    pauseSeconds: metrics.seconds
+                });
+                return;
+            }
+
+            if (step.type === "factor") {
+                [
+                    { key: "open", label: "factor: open dropdown" },
+                    { key: "select", label: "factor: select option" },
+                    { key: "add", label: "factor: press add" },
+                    { key: "inserted", label: "factor: inserted check" }
+                ].forEach((entry) => {
+                    const msg = FACTOR_POPUP_MESSAGES[entry.key];
+                    const metrics = getPopupReadMetrics(msg.explanation, msg.why);
+                    timingRows.push({
+                        step: idx + 1,
+                        popup: entry.label,
+                        words: metrics.words,
+                        pauseSeconds: metrics.seconds
+                    });
+                });
+
+                timingRows.push({
+                    step: idx + 1,
+                    popup: "factor: add transition",
+                    words: 0,
+                    pauseSeconds: Number((WATCH_TRANSITION_MIN_MS / 1000).toFixed(1))
+                });
+            }
+        });
+
+        const completeMetrics = getPopupReadMetrics(
+            "Tutorial complete. Try Guided or Practice mode and replay the lesson for active recall.",
+            "Mastery grows when you can predict each next factor before the system shows it."
+        );
+        timingRows.push({
+            step: lesson.steps.length + 1,
+            popup: "complete: lesson summary",
+            words: completeMetrics.words,
+            pauseSeconds: completeMetrics.seconds
+        });
+
+        if (timingRows.length > 0 && typeof console !== "undefined" && typeof console.table === "function") {
+            console.groupCollapsed(`[DA Tutorial Timing] ${lesson.title}`);
+            console.table(timingRows);
+            console.groupEnd();
+        }
+    }
+
+    function animateButtonPress(btn) {
+        if (!btn) return;
+        btn.classList.remove("da-btn-press");
+        void btn.offsetWidth;
+        btn.classList.add("da-btn-press");
+        queueTutorialAction(240, () => {
+            btn.classList.remove("da-btn-press");
+        });
+    }
+
+    function hideTutorialPicker() {
+        if (!tutorialPicker) return;
+        tutorialPicker.classList.remove("is-open");
+        tutorialPicker.classList.add("hidden");
+        tutorialPicker.setAttribute("aria-hidden", "true");
+        if (tutorialPickerOptions) tutorialPickerOptions.innerHTML = "";
+    }
+
+    function isTutorialPickerVisible() {
+        return !!tutorialPicker && tutorialPicker.classList.contains("is-open") && !tutorialPicker.classList.contains("hidden");
+    }
+
+    function formatFactorForDisplay(factor) {
+        if (!factor) return "";
+        if (factor.type === "formula") {
+            return `${factor.display} / 1 ${factor.denUnit}`;
+        }
+        return `${factor.numVal} ${factor.numUnit} / ${factor.denVal} ${factor.denUnit}`;
+    }
+
+    function showTutorialPicker(matchValue, expectedFactor) {
+        if (!tutorialPicker || !tutorialPickerOptions || !factorBank) return [];
+        const factorRect = factorBank.getBoundingClientRect();
+        const margin = 10;
+        const pickerWidth = Math.min(320, Math.max(window.innerWidth - 20, 220));
+        const left = Math.min(Math.max(factorRect.left, margin), Math.max(window.innerWidth - pickerWidth - margin, margin));
+        const top = Math.min(Math.max(factorRect.bottom + 8, getStickyOffset() + 8), Math.max(window.innerHeight - 220, getStickyOffset() + 8));
+
+        tutorialPicker.style.left = `${left}px`;
+        tutorialPicker.style.top = `${top}px`;
+        tutorialPicker.style.width = `${pickerWidth}px`;
+        if (tutorialPickerHeader) tutorialPickerHeader.textContent = "Open Dropdown -> Choose Factor";
+
+        const options = Array.from(factorBank.options)
+            .filter((opt) => !!opt.value)
+            .slice(0, 8);
+        if (matchValue && !options.some((opt) => opt.value === matchValue)) {
+            const targetOption = Array.from(factorBank.options).find((opt) => opt.value === matchValue);
+            if (targetOption) {
+                options.unshift(targetOption);
+            }
+        }
+
+        const selectedOptions = [];
+        tutorialPickerOptions.innerHTML = "";
+        options.forEach((opt) => {
+            const line = document.createElement("div");
+            line.className = "da-tutorial-picker-option";
+            line.textContent = opt.textContent || "Factor";
+            line.dataset.value = opt.value;
+            if (opt.value === matchValue) {
+                line.classList.add("is-target");
+            }
+            tutorialPickerOptions.appendChild(line);
+            selectedOptions.push(line);
+        });
+
+        if (selectedOptions.length === 0) {
+            const fallback = document.createElement("div");
+            fallback.className = "da-tutorial-picker-option is-target";
+            fallback.textContent = formatFactorForDisplay(expectedFactor) || "Expected conversion factor";
+            fallback.dataset.value = matchValue || "";
+            tutorialPickerOptions.appendChild(fallback);
+            selectedOptions.push(fallback);
+        }
+
+        tutorialPicker.classList.remove("hidden");
+        tutorialPicker.setAttribute("aria-hidden", "false");
+        tutorialPicker.classList.add("is-open");
+
+        return selectedOptions;
+    }
+
+    function findFactorMatchValue(factor) {
+        if (!factorBank || !factor) return null;
+        for (const option of factorBank.options) {
+            if (!option.value) continue;
+            try {
+                const parsed = JSON.parse(option.value);
+                if (factor.type === "formula") {
+                    if (
+                        parsed.type === "formula" &&
+                        parsed.formula === factor.formula &&
+                        parsed.numUnit === factor.numUnit &&
+                        parsed.denUnit === factor.denUnit
+                    ) {
+                        return option.value;
+                    }
+                } else if (
+                    parsed.type !== "formula" &&
+                    Number(parsed.numVal) === Number(factor.numVal) &&
+                    Number(parsed.denVal) === Number(factor.denVal) &&
+                    parsed.numUnit === factor.numUnit &&
+                    parsed.denUnit === factor.denUnit
+                ) {
+                    return option.value;
+                }
+            } catch (_err) {
+                // ignore malformed option payloads
+            }
+        }
+        return null;
+    }
+
+    function createFactorMicroActions(factor, matchValue) {
+        let renderedOptions = [];
+        const expectedChainLength = daChain.length + 1;
+
+        const dwellMsByIndex = [
+            Math.max(computePopupPauseMs(FACTOR_POPUP_MESSAGES.open.explanation, FACTOR_POPUP_MESSAGES.open.why) - 2000, WATCH_TRANSITION_MIN_MS),
+            computePopupPauseMs(FACTOR_POPUP_MESSAGES.select.explanation, FACTOR_POPUP_MESSAGES.select.why),
+            computePopupPauseMs(FACTOR_POPUP_MESSAGES.add.explanation, FACTOR_POPUP_MESSAGES.add.why),
+            WATCH_TRANSITION_MIN_MS,
+            computePopupPauseMs(FACTOR_POPUP_MESSAGES.inserted.explanation, FACTOR_POPUP_MESSAGES.inserted.why)
+        ];
+
+        const actions = [
+            () => {
+                setStatusTexts(
+                    FACTOR_POPUP_MESSAGES.open.explanation,
+                    FACTOR_POPUP_MESSAGES.open.why
+                );
+                applyFocus([factorBank], "Open Dropdown", "Factor dropdown", "check");
+                scheduleAutoCenter(factorBank || dimensionsSection, null, factorBank || dimensionsSection);
+                animateButtonPress(factorBank);
+                renderedOptions = showTutorialPicker(matchValue, factor);
+            },
+            () => {
+                setStatusTexts(
+                    FACTOR_POPUP_MESSAGES.select.explanation,
+                    FACTOR_POPUP_MESSAGES.select.why
+                );
+                const targetRow = renderedOptions.find((row) => row.dataset.value === matchValue) || renderedOptions[0];
+                if (targetRow) {
+                    targetRow.classList.add("is-selected");
+                }
+                factorBank.value = matchValue;
+                dispatchCommitEvents(factorBank);
+                if (factorBank.value !== matchValue) {
+                    failTutorialStep(
+                        "Could not commit the selected conversion factor to the real dropdown.",
+                        "Automated mode pauses here to prevent adding the wrong factor.",
+                        factorBank,
+                        "Commit Failed",
+                        "Factor dropdown"
+                    );
+                    return false;
+                }
+                scheduleAutoCenter(factorBank || dimensionsSection, null, factorBank || dimensionsSection);
+                return true;
+            },
+            () => {
+                if (factorBank.value !== matchValue) {
+                    failTutorialStep(
+                        "Factor dropdown is not committed to the expected option.",
+                        "Select commit must succeed before Add Factor can run.",
+                        factorBank,
+                        "Commit Required",
+                        "Factor dropdown"
+                    );
+                    return false;
+                }
+                setStatusTexts(
+                    FACTOR_POPUP_MESSAGES.add.explanation,
+                    FACTOR_POPUP_MESSAGES.add.why
+                );
+                applyFocus([btnAddFactor], "Press Add", "Add Factor button", "active");
+                const pickerVisible = isTutorialPickerVisible();
+                const pressAddExplainerAnchor = factorBank || dimensionsSection;
+
+                let pressAddAnchorPoint = null;
+                if (pickerVisible && tutorialPicker) {
+                    const pickerRect = tutorialPicker.getBoundingClientRect();
+                    const addBtnRect = btnAddFactor ? btnAddFactor.getBoundingClientRect() : null;
+                    const pickerCenterX = pickerRect.left + (pickerRect.width / 2);
+                    const addBtnCenterX = addBtnRect
+                        ? addBtnRect.left + (addBtnRect.width / 2)
+                        : pickerCenterX;
+                    const deltaTowardAdd = addBtnCenterX - pickerCenterX;
+                    const limitedNudge = Math.max(Math.min(deltaTowardAdd * 0.18, 56), -40);
+                    const nudgedX = pickerCenterX + limitedNudge;
+                    const clampedX = Math.min(Math.max(nudgedX, pickerRect.left + 18), pickerRect.right - 18);
+                    const topBandY = Math.max(pickerRect.top + 14, getStickyOffset() + 18);
+                    pressAddAnchorPoint = { x: clampedX, y: topBandY };
+                }
+
+                // Clear the dropdown overlay during the Add step so the button stays unobscured.
+                hideTutorialPicker();
+
+                scheduleAutoCenter(
+                    btnAddFactor || dimensionsSection,
+                    null,
+                    pressAddExplainerAnchor,
+                    {
+                        preferredSide: "above",
+                        extraAvoidEls: [],
+                        anchorPoint: pressAddAnchorPoint,
+                        constrainWithinEl: null,
+                        constrainMargin: 10
+                    }
+                );
+                animateButtonPress(btnAddFactor);
+                return true;
+            },
+            () => {
+                btnAddFactor.click();
+                hideTutorialPicker();
+                if (daChain.length !== expectedChainLength) {
+                    failTutorialStep(
+                        "Add Factor did not update the chain.",
+                        "The tutorial paused because the factor was not actually inserted.",
+                        btnAddFactor,
+                        "Add Failed",
+                        "Add Factor button"
+                    );
+                    return false;
+                }
+                return true;
+            },
+            () => {
+                if (!chainContainer) return;
+                const lastFactor = chainContainer.querySelector('[data-da-role="factor"][data-da-factor-index="' + String(Math.max(daChain.length - 1, 0)) + '"]');
+                if (!lastFactor) {
+                    failTutorialStep(
+                        "Chain visualization did not render the new factor.",
+                        "The factor data was added, but the chain view did not reflect it.",
+                        chainContainer,
+                        "Render Failed",
+                        "Factor chain"
+                    );
+                    return false;
+                }
+                setStatusTexts(
+                    FACTOR_POPUP_MESSAGES.inserted.explanation,
+                    FACTOR_POPUP_MESSAGES.inserted.why
+                );
+                applyFocus([lastFactor], "Factor Added", "Newest chain factor", "ok");
+                scheduleAutoCenter(chainContainer, lastFactor, lastFactor);
+                return true;
+            }
+        ];
+
+        return {
+            actions,
+            dwellMsByIndex
+        };
+    }
+
+    function runGuidedMicroAction() {
+        if (!guidedMicroActions || guidedMicroActions.length === 0) return false;
+
+        guidedMicroIndex += 1;
+        const action = guidedMicroActions[guidedMicroIndex];
+        let actionResult = true;
+        if (typeof action === "function") {
+            actionResult = action();
+        }
+
+        if (actionResult === false) {
+            guidedMicroActions = null;
+            guidedMicroIndex = -1;
+            updatePopupGuidedControls();
+            return false;
+        }
+
+        if (guidedMicroIndex >= guidedMicroActions.length - 1) {
+            guidedMicroActions = null;
+            guidedMicroIndex = -1;
+            daTutorialState.stepIdx += 1;
+            updateProgress();
+
+            const lesson = getCurrentLesson();
+            if (lesson && daTutorialState.stepIdx >= lesson.steps.length) {
+                advanceOneStep();
+            }
+        }
+
+        updatePopupGuidedControls();
+        return true;
+    }
+
+    function playWatchMicroActions(actions, dwellMsByIndex = []) {
+        if (!Array.isArray(actions) || actions.length === 0) return;
+        clearWatchMicroActionState();
+        watchMicroActions = actions;
+        watchMicroDwellMs = Array.isArray(dwellMsByIndex) ? dwellMsByIndex : [];
+        watchMicroIndex = -1;
+        runNextWatchMicroAction({ scheduleFollowing: true });
+    }
+
+    function setStatusTexts(text, whyText) {
+        if (stepExplanation) stepExplanation.textContent = text || "";
+        if (stepWhy) stepWhy.textContent = whyText || "";
+        setExplainerContent(latestExplainerTitle, text, whyText);
+    }
+
+    function cancelPendingAutoCenter() {
+        if (pendingCenterRaf) {
+            cancelAnimationFrame(pendingCenterRaf);
+            pendingCenterRaf = null;
+        }
+        if (pendingCenterTimer) {
+            clearTimeout(pendingCenterTimer);
+            pendingCenterTimer = null;
+        }
+        if (cameraPathTimer) {
+            clearTimeout(cameraPathTimer);
+            cameraPathTimer = null;
+        }
+        if (explainerTimer) {
+            clearTimeout(explainerTimer);
+            explainerTimer = null;
+        }
+        if (explainerRaf) {
+            cancelAnimationFrame(explainerRaf);
+            explainerRaf = null;
+        }
+    }
+
+    function placeExplainerNear(anchorEl, placementOptions = null) {
+        if (!floatExplainer) return;
+        if (explainerDismissedForStep) return;
+
+        const fallbackAnchor = currentStepChip || dimensionsSection;
+        const target = anchorEl || fallbackAnchor;
+        if (!target) return;
+        explainerAnchor = target;
+        explainerPlacementOptions = placementOptions || null;
+
+        const activePlacementOptions = explainerPlacementOptions || {};
+        const {
+            anchorPoint,
+            extraAvoidEls: rawExtraAvoidEls,
+            constrainWithinEl,
+            constrainMargin: rawConstrainMargin,
+            preferredSide
+        } = activePlacementOptions;
+        const anchorPointCandidate = anchorPoint;
+        const hasCustomAnchorPoint = !!anchorPointCandidate
+            && Number.isFinite(anchorPointCandidate.x)
+            && Number.isFinite(anchorPointCandidate.y);
+        const resolvedAnchorPoint = hasCustomAnchorPoint
+            ? clampViewportPoint({ x: anchorPointCandidate.x, y: anchorPointCandidate.y })
+            : null;
+
+        showExplainer();
+
+        const margin = 12;
+        const pointerGap = 10;
+        const stickyOffset = getStickyOffset();
+        const viewTop = stickyOffset + 8;
+        const viewBottom = window.innerHeight - margin;
+        const viewLeft = margin;
+        const viewRight = window.innerWidth - margin;
+
+        const targetRect = resolvedAnchorPoint
+            ? {
+                left: resolvedAnchorPoint.x - 12,
+                right: resolvedAnchorPoint.x + 12,
+                top: resolvedAnchorPoint.y - 12,
+                bottom: resolvedAnchorPoint.y + 12,
+                width: 24,
+                height: 24
+            }
+            : target.getBoundingClientRect();
+
+        if (isSmallViewport()) {
+            const width = Math.max(window.innerWidth - (margin * 2), 220);
+            const top = Math.max(viewTop, window.innerHeight - (floatExplainer.offsetHeight || 130) - margin);
+            floatExplainer.dataset.side = "dock";
+            floatExplainer.style.width = `${width}px`;
+            floatExplainer.style.left = `${viewLeft}px`;
+            floatExplainer.style.top = `${top}px`;
+            return;
+        }
+
+        floatExplainer.style.width = "min(300px, calc(100vw - 24px))";
+        const panelRect = floatExplainer.getBoundingClientRect();
+        const clearRect = {
+            left: targetRect.left - 16,
+            right: targetRect.right + 16,
+            top: targetRect.top - 14,
+            bottom: targetRect.bottom + 14
+        };
+
+        const extraAvoidEls = Array.isArray(rawExtraAvoidEls)
+            ? rawExtraAvoidEls.filter(Boolean)
+            : [];
+
+        const constrainMargin = Number.isFinite(rawConstrainMargin)
+            ? Math.max(rawConstrainMargin, 0)
+            : 0;
+        const constrainRect = constrainWithinEl && typeof constrainWithinEl.getBoundingClientRect === "function"
+            ? constrainWithinEl.getBoundingClientRect()
+            : null;
+
+        const avoidRects = [
+            currentStepTarget,
+            stepExplanation,
+            stepWhy,
+            ...extraAvoidEls
+        ].filter(Boolean).map((el) => {
+            const rect = el.getBoundingClientRect();
+            return {
+                left: rect.left - 6,
+                right: rect.right + 6,
+                top: rect.top - 6,
+                bottom: rect.bottom + 6
+            };
+        });
+
+        function clampRect(left, top) {
+            let clampedLeft = Math.min(Math.max(left, viewLeft), Math.max(viewRight - panelRect.width, viewLeft));
+            const clampedTop = Math.min(Math.max(top, viewTop), Math.max(viewBottom - panelRect.height, viewTop));
+
+            if (constrainRect) {
+                const minWithin = constrainRect.left + constrainMargin;
+                const maxWithin = constrainRect.right - panelRect.width - constrainMargin;
+                if (maxWithin >= minWithin) {
+                    clampedLeft = Math.min(Math.max(clampedLeft, minWithin), maxWithin);
+                }
+            }
+
+            return {
+                left: clampedLeft,
+                top: clampedTop
+            };
+        }
+
+        function overlapArea(a, b) {
+            const dx = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left));
+            const dy = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+            return dx * dy;
+        }
+
+        const centerX = targetRect.left + (targetRect.width / 2);
+        const centerY = targetRect.top + (targetRect.height / 2);
+
+        const horizontalRatio = centerX / Math.max(window.innerWidth, 1);
+        const verticalRatio = centerY / Math.max(window.innerHeight, 1);
+        const sidePriority = horizontalRatio < 0.35
+            ? ["right", "below", "above", "left"]
+            : horizontalRatio > 0.65
+                ? ["left", "below", "above", "right"]
+                : verticalRatio < 0.42
+                    ? ["below", "right", "left", "above"]
+                    : ["above", "right", "left", "below"];
+
+        const normalizedSidePriority = [preferredSide, ...sidePriority]
+            .filter((side) => side === "right" || side === "left" || side === "above" || side === "below")
+            .filter((side, idx, arr) => arr.indexOf(side) === idx);
+
+        const candidates = normalizedSidePriority.map((side) => {
+            if (side === "right") {
+                return { side, left: targetRect.right + pointerGap, top: centerY - (panelRect.height / 2) };
+            }
+            if (side === "left") {
+                return { side, left: targetRect.left - panelRect.width - pointerGap, top: centerY - (panelRect.height / 2) };
+            }
+            if (side === "above") {
+                return { side, left: centerX - (panelRect.width / 2), top: targetRect.top - panelRect.height - pointerGap };
+            }
+            return { side, left: centerX - (panelRect.width / 2), top: targetRect.bottom + pointerGap };
+        });
+
+        const scored = candidates.map((candidate, idx) => {
+            const clamped = clampRect(candidate.left, candidate.top);
+            const box = {
+                left: clamped.left,
+                top: clamped.top,
+                right: clamped.left + panelRect.width,
+                bottom: clamped.top + panelRect.height
+            };
+            const overlap = overlapArea(box, clearRect);
+            const textOverlap = avoidRects.reduce((sum, rect) => sum + overlapArea(box, rect), 0);
+            const move = Math.abs(clamped.left - candidate.left) + Math.abs(clamped.top - candidate.top);
+            const distance = Math.hypot((box.left + panelRect.width / 2) - centerX, (box.top + panelRect.height / 2) - centerY);
+            const score = (overlap * 10000) + (textOverlap * 65) + (move * 9) + distance + (idx * 2);
+            return { ...candidate, ...clamped, overlap, score };
+        }).sort((a, b) => a.score - b.score);
+
+        const best = scored[0];
+        if (!best || best.overlap > 0) {
+            floatExplainer.dataset.side = "dock";
+            const dockLeft = Math.min(Math.max(centerX - (panelRect.width / 2), viewLeft), Math.max(viewRight - panelRect.width, viewLeft));
+            const dockTop = Math.max(viewBottom - panelRect.height, viewTop);
+            floatExplainer.style.left = `${dockLeft}px`;
+            floatExplainer.style.top = `${dockTop}px`;
+            return;
+        }
+
+        floatExplainer.dataset.side = best.side;
+        floatExplainer.style.left = `${best.left}px`;
+        floatExplainer.style.top = `${best.top}px`;
+    }
+
+    function ensureCameraPathLayer() {
+        if (cameraPathLayer) return;
+
+        cameraPathLayer = document.createElement("div");
+        cameraPathLayer.className = "da-camera-path-layer";
+
+        cameraPathSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        cameraPathSvg.setAttribute("class", "da-camera-path-svg");
+        cameraPathSvg.setAttribute("aria-hidden", "true");
+
+        cameraPathStroke = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        cameraPathStroke.setAttribute("class", "da-camera-path-stroke");
+
+        cameraPathArrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        cameraPathArrow.setAttribute("class", "da-camera-path-arrow");
+
+        cameraPathSvg.appendChild(cameraPathStroke);
+        cameraPathSvg.appendChild(cameraPathArrow);
+        cameraPathLayer.appendChild(cameraPathSvg);
+        document.body.appendChild(cameraPathLayer);
+    }
+
+    function clampViewportPoint(point) {
+        const stickyOffset = getStickyOffset();
+        const marginX = 22;
+        const minY = stickyOffset + 14;
+        const maxX = Math.max(window.innerWidth - marginX, marginX);
+        const maxY = Math.max(window.innerHeight - 14, minY);
+
+        return {
+            x: Math.min(Math.max(point.x, marginX), maxX),
+            y: Math.min(Math.max(point.y, minY), maxY)
+        };
+    }
+
+    function getViewportPointForElement(el) {
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        const point = {
+            x: rect.left + (rect.width / 2),
+            y: rect.top + (rect.height / 2)
+        };
+        return clampViewportPoint(point);
+    }
+
+    function drawCameraPathCue(fromPoint, toPoint) {
+        if (!fromPoint || !toPoint) return;
+        ensureCameraPathLayer();
+        if (!cameraPathLayer || !cameraPathSvg || !cameraPathStroke || !cameraPathArrow) return;
+
+        cameraPathSvg.setAttribute("viewBox", `0 0 ${window.innerWidth} ${window.innerHeight}`);
+        cameraPathSvg.setAttribute("width", String(window.innerWidth));
+        cameraPathSvg.setAttribute("height", String(window.innerHeight));
+
+        const midpointX = (fromPoint.x + toPoint.x) / 2;
+        const lift = Math.max(26, Math.min(84, Math.abs(toPoint.x - fromPoint.x) * 0.22 + 18));
+        const controlY = Math.min(fromPoint.y, toPoint.y) - lift;
+
+        cameraPathStroke.setAttribute("d", `M ${fromPoint.x} ${fromPoint.y} Q ${midpointX} ${controlY} ${toPoint.x} ${toPoint.y}`);
+
+        const tangentX = toPoint.x - midpointX;
+        const tangentY = toPoint.y - controlY;
+        const angle = Math.atan2(tangentY, tangentX);
+        const arrowLength = 12;
+        const arrowWidth = 7;
+        const backX = toPoint.x - Math.cos(angle) * arrowLength;
+        const backY = toPoint.y - Math.sin(angle) * arrowLength;
+        const leftX = backX + Math.cos(angle + Math.PI / 2) * arrowWidth;
+        const leftY = backY + Math.sin(angle + Math.PI / 2) * arrowWidth;
+        const rightX = backX + Math.cos(angle - Math.PI / 2) * arrowWidth;
+        const rightY = backY + Math.sin(angle - Math.PI / 2) * arrowWidth;
+
+        cameraPathArrow.setAttribute("points", `${toPoint.x},${toPoint.y} ${leftX},${leftY} ${rightX},${rightY}`);
+
+        cameraPathLayer.classList.remove("is-active");
+        void cameraPathLayer.offsetWidth;
+        cameraPathLayer.classList.add("is-active");
+    }
+
+    function maybeShowCameraPathCue(targetEl, motionProfile) {
+        if (!targetEl) return;
+
+        const currentPoint = getViewportPointForElement(targetEl);
+        if (!currentPoint) return;
+
+        const mode = daTutorialState.mode || modeSelect?.value || "watch";
+        const reducedMotion = motionProfile.behavior === "auto" && motionProfile.delayMs === 0;
+        const shouldDraw = mode === "watch" && !reducedMotion && !!lastCameraPoint;
+
+        if (shouldDraw) {
+            const deltaX = currentPoint.x - lastCameraPoint.x;
+            const deltaY = currentPoint.y - lastCameraPoint.y;
+            const distance = Math.hypot(deltaX, deltaY);
+            if (distance >= 34) {
+                drawCameraPathCue(lastCameraPoint, currentPoint);
+            }
+        }
+
+        lastCameraPoint = currentPoint;
+    }
+
+    function getMotionProfile() {
+        const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reducedMotion) {
+            return { behavior: "auto", delayMs: 0, deadZonePx: 26 };
+        }
+
+        const mode = daTutorialState.mode || modeSelect?.value || "watch";
+        if (mode === "watch") {
+            return { behavior: "smooth", delayMs: 140, deadZonePx: 88 };
+        }
+
+        return { behavior: "auto", delayMs: 35, deadZonePx: 54 };
+    }
+
+    function getStickyOffset() {
+        return stickyHeader ? (stickyHeader.getBoundingClientRect().height + 10) : 0;
+    }
+
+    function getPreferredViewportCenterY() {
+        const stickyOffset = getStickyOffset();
+        return stickyOffset + ((window.innerHeight - stickyOffset) * 0.45);
+    }
+
+    function isNearViewportCenter(el, deadZonePx) {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const elementCenter = rect.top + (rect.height / 2);
+        const preferredCenter = getPreferredViewportCenterY();
+        return Math.abs(elementCenter - preferredCenter) <= deadZonePx;
+    }
+
+    function centerElementInViewport(el, motionProfile) {
+        if (!el) return;
+        if (isNearViewportCenter(el, motionProfile.deadZonePx)) return;
+
+        const rect = el.getBoundingClientRect();
+        const absoluteTop = window.scrollY + rect.top;
+        const preferredCenter = getPreferredViewportCenterY();
+        const targetTop = absoluteTop - preferredCenter + (rect.height / 2);
+        const maxTop = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+        const clampedTop = Math.max(0, Math.min(targetTop, maxTop));
+
+        window.scrollTo({ top: clampedTop, behavior: motionProfile.behavior });
+    }
+
+    function isNearContainerCenter(target, container, deadZonePx) {
+        if (!target || !container) return false;
+        const targetRect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const targetCenter = targetRect.left + (targetRect.width / 2);
+        const containerCenter = containerRect.left + (containerRect.width / 2);
+        return Math.abs(targetCenter - containerCenter) <= deadZonePx;
+    }
+
+    function centerInChain(target, motionProfile) {
+        if (!chainContainer || !target) return;
+        if (isNearContainerCenter(target, chainContainer, motionProfile.deadZonePx)) return;
+
+        const containerRect = chainContainer.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const delta = (targetRect.left + (targetRect.width / 2)) - (containerRect.left + (containerRect.width / 2));
+        const nextLeft = chainContainer.scrollLeft + delta;
+        const maxLeft = Math.max(chainContainer.scrollWidth - chainContainer.clientWidth, 0);
+        const clampedLeft = Math.max(0, Math.min(nextLeft, maxLeft));
+
+        chainContainer.scrollTo({ left: clampedLeft, behavior: motionProfile.behavior });
+    }
+
+    function scheduleAutoCenter(pageTarget, chainTarget = null, explainerTarget = null, explainerOptions = null) {
+        cancelPendingAutoCenter();
+        const motionProfile = getMotionProfile();
+
+        const runCenter = () => {
+            const resolvedPageTarget = pageTarget || dimensionsSection;
+            centerElementInViewport(resolvedPageTarget, motionProfile);
+            if (chainTarget) {
+                centerInChain(chainTarget, motionProfile);
+            }
+
+            const cueTarget = chainTarget || resolvedPageTarget || dimensionsSection;
+            const cueDelay = motionProfile.behavior === "smooth" ? 220 : 40;
+            cameraPathTimer = setTimeout(() => {
+                maybeShowCameraPathCue(cueTarget, motionProfile);
+            }, cueDelay);
+
+            const explainerAnchorEl = explainerTarget || cueTarget || currentStepChip || dimensionsSection;
+            const explainerDelay = motionProfile.behavior === "smooth" ? 250 : 60;
+            explainerTimer = setTimeout(() => {
+                placeExplainerNear(explainerAnchorEl, explainerOptions);
+            }, explainerDelay);
+        };
+
+        if (motionProfile.delayMs > 0) {
+            pendingCenterTimer = setTimeout(() => {
+                pendingCenterRaf = requestAnimationFrame(runCenter);
+            }, motionProfile.delayMs);
+            return;
+        }
+
+        pendingCenterRaf = requestAnimationFrame(runCenter);
+    }
+
+    function setFocusRail(chipText, targetText, tone = "active") {
+        if (currentStepChip) {
+            currentStepChip.textContent = chipText || "Idle";
+            currentStepChip.classList.remove("da-step-chip-active", "da-step-chip-check", "da-step-chip-ok", "da-step-chip-error");
+            currentStepChip.classList.add(
+                tone === "ok" ? "da-step-chip-ok"
+                : tone === "check" ? "da-step-chip-check"
+                : tone === "error" ? "da-step-chip-error"
+                : "da-step-chip-active"
+            );
+        }
+        if (currentStepTarget) {
+            currentStepTarget.textContent = targetText || "Tutorial controls";
+        }
+        latestExplainerTitle = chipText || "Current Step";
+        if (floatExplainerKicker) {
+            floatExplainerKicker.textContent = latestExplainerTitle;
+        }
+    }
+
+    function clearFocusVisuals() {
+        const focusables = [valueInput, fromSelect, toSelect, factorBank, btnAddFactor, btnCheck, btnResetChain, chainContainer]
+            .filter(Boolean);
+        focusables.forEach((el) => {
+            el.classList.remove("da-focus-active", "da-focus-dim");
+        });
+
+        if (chainContainer) {
+            chainContainer.querySelectorAll("[data-da-role]").forEach((node) => {
+                node.classList.remove("da-focus-active", "da-focus-dim");
+            });
+        }
+    }
+
+    function applyFocus(activeElements, chipText, targetText, tone = "active") {
+        clearFocusVisuals();
+        setFocusRail(chipText, targetText, tone);
+
+        const focusables = [valueInput, fromSelect, toSelect, factorBank, btnAddFactor, btnCheck, btnResetChain, chainContainer]
+            .filter(Boolean);
+        focusables.forEach((el) => el.classList.add("da-focus-dim"));
+
+        if (chainContainer) {
+            chainContainer.querySelectorAll("[data-da-role]").forEach((node) => {
+                node.classList.add("da-focus-dim");
+            });
+        }
+
+        const actives = Array.isArray(activeElements) ? activeElements.filter(Boolean) : [activeElements].filter(Boolean);
+        actives.forEach((el) => {
+            el.classList.remove("da-focus-dim");
+            el.classList.add("da-focus-active");
+        });
+    }
+
+    function renderLessonOptions() {
+        lessonSelect.innerHTML = "";
+        daTutorialState.lessons.forEach((lesson, idx) => {
+            const opt = document.createElement("option");
+            opt.value = String(idx);
+            opt.textContent = lesson.title;
+            lessonSelect.appendChild(opt);
+        });
+    }
+
+    function getCurrentLesson() {
+        return daTutorialState.lessons[daTutorialState.lessonIdx] || null;
+    }
+
+    function getCurrentStep() {
+        const lesson = getCurrentLesson();
+        if (!lesson) return null;
+        return lesson.steps[daTutorialState.stepIdx] || null;
+    }
+
+    function updateProgress() {
+        const lesson = getCurrentLesson();
+        const total = lesson?.steps?.length || 0;
+        const now = Math.min(daTutorialState.stepIdx, total);
+        if (progress) progress.textContent = `Step ${now}/${total}`;
+    }
+
+    function stopPlayback(options = {}) {
+        const preserveVisualState = !!options.preserveVisualState;
+        daTutorialState.isPlaying = false;
+        if (daTutorialState.timerId) {
+            clearInterval(daTutorialState.timerId);
+            daTutorialState.timerId = null;
+        }
+        cancelPendingAutoCenter();
+        clearTutorialActions();
+        if (!preserveVisualState) {
+            clearFocusVisuals();
+        }
+        lastCameraPoint = null;
+        if (cameraPathLayer) {
+            cameraPathLayer.classList.remove("is-active");
+        }
+        if (floatExplainer && !preserveVisualState) {
+            hideExplainer();
+        }
+        if (!preserveVisualState) {
+            hideTutorialPicker();
+        }
+        clearWatchMicroActionState();
+        guidedMicroActions = null;
+        guidedMicroIndex = -1;
+        updatePopupGuidedControls();
+    }
+
+    function applyFactorStep(factor) {
+        if (!factorBank || !btnAddFactor) return false;
+        const matchValue = findFactorMatchValue(factor);
+        if (!matchValue) return false;
+
+        const factorPlan = createFactorMicroActions(factor, matchValue);
+        if (isGuidedMode()) {
+            guidedMicroActions = factorPlan.actions;
+            guidedMicroIndex = -1;
+            runGuidedMicroAction();
+            return {
+                ok: true,
+                watchDwellMs: 0
+            };
+        }
+
+        playWatchMicroActions(factorPlan.actions, factorPlan.dwellMsByIndex);
+
+        const totalFactorDwellMs = factorPlan.dwellMsByIndex.reduce((sum, item) => sum + item, 0);
+
+        return {
+            ok: true,
+            watchDwellMs: Math.max(totalFactorDwellMs, WATCH_TRANSITION_MIN_MS)
+        };
+    }
+
+    function executeStep(step) {
+        if (!step) return;
+        const lesson = getCurrentLesson();
+        if (!lesson) return;
+
+        explainerDismissedForStep = false;
+
+        setStatusTexts(step.explanation, step.why);
+
+        if (step.type === "setup") {
+            applyFocus([valueInput, fromSelect, toSelect], "Setup", "Start value + units", "active");
+            if (valueInput) {
+                valueInput.value = lesson.startValue;
+                dispatchCommitEvents(valueInput);
+            }
+            if (fromSelect) {
+                fromSelect.value = lesson.fromUnit;
+                dispatchCommitEvents(fromSelect);
+            }
+            if (toSelect) {
+                toSelect.value = lesson.toUnit;
+                dispatchCommitEvents(toSelect);
+            }
+            if (btnResetChain) btnResetChain.click();
+            if (!verifySetupCommit(lesson)) {
+                if (valueInput) {
+                    valueInput.value = lesson.startValue;
+                    dispatchCommitEvents(valueInput);
+                }
+                if (fromSelect) {
+                    fromSelect.value = lesson.fromUnit;
+                    dispatchCommitEvents(fromSelect);
+                }
+                if (toSelect) {
+                    toSelect.value = lesson.toUnit;
+                    dispatchCommitEvents(toSelect);
+                }
+            }
+            if (!verifySetupCommit(lesson)) {
+                failTutorialStep(
+                    "Setup values did not commit to the form.",
+                    `Expected ${lesson.startValue} ${lesson.fromUnit} -> ${lesson.toUnit}.`,
+                    valueInput || fromSelect || toSelect,
+                    "Setup Failed",
+                    "Given + units"
+                );
+                return;
+            }
+            scheduleAutoCenter(valueInput || fromSelect || toSelect || dimensionsSection, null, valueInput || fromSelect || toSelect || dimensionsSection);
+            return Math.max(computePopupPauseMs(step.explanation, step.why) - 1000, WATCH_TRANSITION_MIN_MS);
+        }
+
+        if (step.type === "factor") {
+            const factorResult = applyFactorStep(step.factor);
+            if (!factorResult || !factorResult.ok) {
+                setStatusTexts(
+                    `Could not locate conversion factor for this scripted step: ${JSON.stringify(step.factor)}.`,
+                    "The lesson script may reference a factor that is not present in the factor bank."
+                );
+                applyFocus([factorBank], "Factor Missing", "Required factor not found", "error");
+                scheduleAutoCenter(factorBank || dimensionsSection, null, factorBank || dimensionsSection);
+                stopPlayback();
+                return WATCH_TRANSITION_MIN_MS;
+            }
+            return factorResult.watchDwellMs;
+        }
+
+        if (step.type === "evaluate") {
+            applyFocus([btnCheck, chainContainer], "Evaluate", "Check result + units", "check");
+            scheduleAutoCenter(btnCheck || chainContainer || dimensionsSection, null, btnCheck || chainContainer || dimensionsSection);
+            animateButtonPress(btnCheck);
+            if (btnCheck) btnCheck.click();
+            const resultTarget = outputPanel && !outputPanel.classList.contains("hidden") ? outputPanel : chainContainer;
+            setStatusTexts(step.explanation, step.why);
+            const finalActives = [btnCheck, resultTarget || chainContainer].filter(Boolean);
+            applyFocus(finalActives, "Result", "Evaluate Chain + final output", "ok");
+            scheduleAutoCenter(btnCheck || resultTarget || dimensionsSection, null, btnCheck || resultTarget || dimensionsSection);
+            return computePopupPauseMs(step.explanation, step.why);
+        }
+
+        return WATCH_TRANSITION_MIN_MS;
+    }
+
+    function handleGuidedNextRequest() {
+        daTutorialState.isPlaying = false;
+        if (daTutorialState.timerId) {
+            clearInterval(daTutorialState.timerId);
+            daTutorialState.timerId = null;
+        }
+        cancelPendingAutoCenter();
+
+        if (guidedMicroActions) {
+            runGuidedMicroAction();
+            return;
+        }
+
+        advanceOneStep();
+        updatePopupGuidedControls();
+    }
+
+    function handleWatchNextRequest() {
+        if (daTutorialState.timerId) {
+            clearTimeout(daTutorialState.timerId);
+            daTutorialState.timerId = null;
+        }
+        cancelPendingAutoCenter();
+
+        // Keep watch mode active: manual next should advance the current actionable unit.
+        daTutorialState.isPlaying = true;
+
+        if (isWatchMicroSequenceActive()) {
+            if (watchMicroTimerId) {
+                clearTimeout(watchMicroTimerId);
+                watchMicroTimerId = null;
+            }
+            runNextWatchMicroAction({ scheduleFollowing: true });
+            return;
+        }
+
+        const dwellMs = advanceOneStep();
+        if (!daTutorialState.isPlaying) return;
+
+        if (isWatchMicroSequenceActive()) return;
+
+        const lesson = getCurrentLesson();
+        if (!lesson || daTutorialState.stepIdx >= lesson.steps.length) return;
+        scheduleNextWatchAdvance(Math.max(dwellMs || WATCH_STEP_INTERVAL_MS, WATCH_TRANSITION_MIN_MS));
+    }
+
+    function handleManualNextRequest() {
+        if (isGuidedMode()) {
+            handleGuidedNextRequest();
+            return;
+        }
+        handleWatchNextRequest();
+    }
+
+    function advanceOneStep() {
+        const lesson = getCurrentLesson();
+        if (!lesson) return WATCH_TRANSITION_MIN_MS;
+
+        if (daTutorialState.stepIdx >= lesson.steps.length) {
+            setStatusTexts(
+                "Tutorial complete. Try Guided or Practice mode and replay the lesson for active recall.",
+                "Mastery grows when you can predict each next factor before the system shows it."
+            );
+            setFocusRail("Complete", "Lesson finished", "ok");
+            scheduleAutoCenter(currentStepChip || dimensionsSection, null, currentStepChip || dimensionsSection);
+            stopPlayback();
+            updateProgress();
+            return computePopupPauseMs(
+                "Tutorial complete. Try Guided or Practice mode and replay the lesson for active recall.",
+                "Mastery grows when you can predict each next factor before the system shows it."
+            );
+        }
+
+        const step = getCurrentStep();
+        const isWatchFactorStep = !!step && step.type === "factor" && !isGuidedMode();
+        const isGuidedFactorStep = !!step && step.type === "factor" && isGuidedMode();
+        const stepDwellMs = executeStep(step);
+        if (isWatchFactorStep && isWatchMicroSequenceActive()) {
+            return WATCH_TRANSITION_MIN_MS;
+        }
+        if (!(isGuidedFactorStep && guidedMicroActions)) {
+            daTutorialState.stepIdx += 1;
+            updateProgress();
+        }
+
+        if (daTutorialState.stepIdx >= lesson.steps.length) {
+            const preserveFinalVisuals = !!step && step.type === "evaluate";
+            stopPlayback({ preserveVisualState: preserveFinalVisuals });
+        }
+
+        return Math.max(stepDwellMs || WATCH_TRANSITION_MIN_MS, WATCH_TRANSITION_MIN_MS);
+    }
+
+    function scheduleNextWatchAdvance(delayMs) {
+        if (!daTutorialState.isPlaying) return;
+        if (daTutorialState.timerId) {
+            clearTimeout(daTutorialState.timerId);
+            daTutorialState.timerId = null;
+        }
+
+        daTutorialState.timerId = setTimeout(() => {
+            daTutorialState.timerId = null;
+            if (!daTutorialState.isPlaying) return;
+
+            const lesson = getCurrentLesson();
+            if (!lesson || daTutorialState.stepIdx >= lesson.steps.length) return;
+
+            const dwellMs = advanceOneStep();
+            if (!daTutorialState.isPlaying) return;
+
+            if (isWatchMicroSequenceActive()) return;
+
+            const updatedLesson = getCurrentLesson();
+            if (!updatedLesson || daTutorialState.stepIdx >= updatedLesson.steps.length) return;
+            scheduleNextWatchAdvance(Math.max(dwellMs || WATCH_STEP_INTERVAL_MS, WATCH_TRANSITION_MIN_MS));
+        }, Math.max(delayMs, 0));
+    }
+
+    function startLesson() {
+        stopPlayback();
+        daTutorialState.lessonIdx = Number(lessonSelect.value || 0);
+        daTutorialState.mode = modeSelect.value || "watch";
+        daTutorialState.stepIdx = 0;
+        explainerDismissedForStep = false;
+        guidedMicroActions = null;
+        guidedMicroIndex = -1;
+        setStatusTexts(
+            "Tutorial started. Use Next Step for Guided/Practice, or Play for Watch mode.",
+            "Each step will explain both the operation and the chemistry reason behind it."
+        );
+        setFocusRail("Ready", "Click Play or Next Step", "active");
+        scheduleAutoCenter(modeSelect || btnStart || dimensionsSection, null, modeSelect || btnStart || dimensionsSection);
+        updateProgress();
+        updatePopupGuidedControls();
+
+        if (daTutorialState.mode === "watch") {
+            const lesson = getCurrentLesson();
+            logLessonPopupTimingEstimate(lesson);
+        }
+
+        if (daTutorialState.mode === "watch") {
+            daTutorialState.isPlaying = true;
+            scheduleNextWatchAdvance(0);
+        } else if (daTutorialState.mode === "guided") {
+            // Guided mode still begins with an explicit setup action so form fields are preloaded.
+            advanceOneStep();
+        }
+    }
+
+    function askAboutCurrentStep() {
+        const lesson = getCurrentLesson();
+        const step = getCurrentStep();
+        if (!lesson || !step) return;
+        if (!window.ChemTutor || typeof window.ChemTutor.invoke !== "function") return;
+
+        const stepNumber = daTutorialState.stepIdx + 1;
+        const systemContext = [
+            "The student is in the Dimensional Analysis guided tutorial.",
+            `Lesson: ${lesson.title}.`,
+            `Mode: ${daTutorialState.mode}.`,
+            `Step Number: ${stepNumber}.`,
+            `Step Type: ${step.type}.`,
+            `Step Explanation: ${step.explanation || ""}.`,
+            `Step Why: ${step.why || ""}.`,
+            `Current start value: ${valueInput?.value || ""}.`,
+            `Current from unit: ${fromSelect?.value || ""}.`,
+            `Current target unit: ${toSelect?.value || ""}.`
+        ].join(" ");
+
+        window.ChemTutor.invoke(
+            `I'm on tutorial step ${stepNumber} (${step.type}). Explain this step and why it is valid using unit-cancellation logic.`,
+            tutorAnchor,
+            systemContext
+        );
+    }
+
+    modeSelect.addEventListener("change", () => {
+        daTutorialState.mode = modeSelect.value;
+        guidedMicroActions = null;
+        guidedMicroIndex = -1;
+        updatePopupGuidedControls();
+    });
+
+    lessonSelect.addEventListener("change", () => {
+        daTutorialState.lessonIdx = Number(lessonSelect.value || 0);
+        daTutorialState.stepIdx = 0;
+        updateProgress();
+        setStatusTexts(
+            "Lesson selected. Click Start Tutorial to initialize the scripted walkthrough.",
+            "The tutorial will set the given value, target unit, and factors for each step."
+        );
+        setFocusRail("Lesson Selected", "Start Tutorial button", "active");
+        scheduleAutoCenter(lessonSelect || btnStart || dimensionsSection, null, lessonSelect || btnStart || dimensionsSection);
+    });
+
+    btnStart.addEventListener("click", startLesson);
+
+    btnPlay.addEventListener("click", () => {
+        if (daTutorialState.isPlaying) return;
+        if (daTutorialState.mode !== "watch") {
+            daTutorialState.mode = "watch";
+            modeSelect.value = "watch";
+        }
+        daTutorialState.isPlaying = true;
+        if (daTutorialState.stepIdx === 0) {
+            scheduleNextWatchAdvance(0);
+            return;
+        }
+        scheduleNextWatchAdvance(WATCH_TRANSITION_MIN_MS);
+    });
+
+    btnPause.addEventListener("click", stopPlayback);
+
+    btnNext.addEventListener("click", () => {
+        handleManualNextRequest();
+    });
+
+    if (btnPopupNext) {
+        btnPopupNext.addEventListener("click", () => {
+            handleManualNextRequest();
+        });
+    }
+
+    btnReset.addEventListener("click", () => {
+        stopPlayback();
+        daTutorialState.stepIdx = 0;
+        if (btnResetChain) btnResetChain.click();
+        updateProgress();
+        setStatusTexts(
+            "Tutorial reset. Click Start Tutorial to replay from step 1.",
+            "Repetition with explanation is how dimensional-analysis fluency develops."
+        );
+        setFocusRail("Reset", "Start Tutorial button", "check");
+        scheduleAutoCenter(btnStart || modeSelect || dimensionsSection, null, btnStart || modeSelect || dimensionsSection);
+    });
+
+    btnAsk.addEventListener("click", askAboutCurrentStep);
+
+    renderLessonOptions();
+    updateProgress();
+    const introText = window.ChemData?.daTutorial?.intro || "";
+    setStatusTexts(
+        introText || "Select a lesson and click Start Tutorial.",
+        "The guided course is designed to teach both procedure and reasoning from beginner level."
+    );
+    setFocusRail("Idle", "Tutorial controls", "active");
+    scheduleAutoCenter(modeSelect || dimensionsSection, null, modeSelect || dimensionsSection);
+    updatePopupGuidedControls();
+
+    window.addEventListener("resize", () => {
+        if (explainerAnchor && floatExplainer && !floatExplainer.classList.contains("hidden")) {
+            placeExplainerNear(explainerAnchor, explainerPlacementOptions);
+        }
+    });
+
+    window.addEventListener("scroll", () => {
+        if (!explainerAnchor || !floatExplainer || floatExplainer.classList.contains("hidden")) return;
+        if (explainerRaf) {
+            cancelAnimationFrame(explainerRaf);
+        }
+        explainerRaf = requestAnimationFrame(() => {
+            placeExplainerNear(explainerAnchor, explainerPlacementOptions);
+            explainerRaf = null;
+        });
+    }, { passive: true });
+
+    document.addEventListener("pointerdown", (event) => {
+        if (!floatExplainer) return;
+
+        const explainerVisible = !floatExplainer.classList.contains("hidden");
+        const pickerVisible = isTutorialPickerVisible();
+        if (!explainerVisible && !pickerVisible) return;
+
+        const clickedInsideExplainer = explainerVisible && floatExplainer.contains(event.target);
+        const clickedInsidePicker = pickerVisible && tutorialPicker && tutorialPicker.contains(event.target);
+        if (clickedInsideExplainer || clickedInsidePicker) return;
+
+        // During autoplay, outside clicks should not dismiss tutorial overlays.
+        if (daTutorialState.isPlaying) return;
+
+        if (!explainerVisible) return;
+        explainerDismissedForStep = true;
+        hideExplainer();
+    });
+}
 
 function getDefaultLearningState() {
     const competencies = window.ChemData?.curriculum?.competencies || [];
@@ -1116,12 +2713,58 @@ function bindConversionActions() {
     const factorBank = document.getElementById("da-factor-bank");
     const btnAddFactor = document.getElementById("btn-add-factor");
     const btnCheckDa = document.getElementById("btn-check-da");
+    const btnDaAskTutor = document.getElementById("btn-da-ask-tutor");
     const btnResetDa = document.getElementById("btn-reset-da");
     const chainContainer = document.getElementById("da-chain");
-    const emptyMsg = document.getElementById("da-chain-empty");
     const output = document.getElementById("da-output");
+    const tutorAnchor = document.getElementById("da-tutor-anchor");
     
     if (!valueInput || !fromSelect || !toSelect || !btnAddFactor || !output || !window.ChemData) return;
+
+    function summarizeFactor(factor) {
+        if (factor.type === "formula") {
+            return `${factor.display} / 1 ${factor.denUnit}`;
+        }
+        return `${factor.numVal} ${factor.numUnit} / ${factor.denVal} ${factor.denUnit}`;
+    }
+
+    function currentUnitAfterSteps(chain, startUnit, stepExclusive) {
+        let unit = startUnit;
+        for (let i = 0; i < stepExclusive; i++) {
+            unit = chain[i].numUnit;
+        }
+        return unit;
+    }
+
+    function buildDaTutorContext(extra = {}) {
+        return {
+            module: "dimensional-analysis",
+            startingValue: valueInput.value,
+            fromUnit: fromSelect.value,
+            targetUnit: toSelect.value,
+            factorChain: daChain.map((factor, idx) => ({
+                step: idx + 1,
+                type: factor.type || "ratio",
+                summary: summarizeFactor(factor),
+                numeratorUnit: factor.numUnit,
+                denominatorUnit: factor.denUnit
+            })),
+            ...extra
+        };
+    }
+
+    function invokeDaTutor(initialPrompt, extra = {}) {
+        if (!window.ChemTutor || typeof window.ChemTutor.invoke !== "function") return;
+        const contextPayload = buildDaTutorContext(extra);
+        const systemContext = [
+            "The user is practicing Dimensional Analysis in Intro Chemistry.",
+            "Tutor objective: diagnose unit-cancellation mistakes first, then arithmetic.",
+            "Use concise scaffolded steps and ask the student for the next correction step.",
+            "Treat temperature as equation-based conversion (offset) rather than pure ratio.",
+            `Context JSON: ${JSON.stringify(contextPayload)}`
+        ].join(" ");
+        window.ChemTutor.invoke(initialPrompt, tutorAnchor || output, systemContext);
+    }
 
     function renderChain() {
         if (daChain.length === 0) {
@@ -1134,6 +2777,7 @@ function bindConversionActions() {
         // Start block
         const startDiv = document.createElement("div");
         startDiv.className = "flex flex-col items-center justify-center px-4 py-2 border-r-2 border-gray-300";
+        startDiv.dataset.daRole = "start";
         startDiv.innerHTML = `<span class="font-bold text-gray-800">${valueInput.value || 0}</span><span class="text-gray-500 font-semibold">${fromSelect.value}</span>`;
         chainContainer.appendChild(startDiv);
         
@@ -1141,6 +2785,8 @@ function bindConversionActions() {
         daChain.forEach((factor, idx) => {
             const frac = document.createElement("div");
             frac.className = "flex flex-col items-center justify-center px-4 relative";
+            frac.dataset.daRole = "factor";
+            frac.dataset.daFactorIndex = String(idx);
             if (factor.type === "formula") {
                 frac.innerHTML = `
                     <div class="text-gray-800 font-bold border-b-2 border-gray-800 px-2 py-1 text-center min-w-[3rem] whitespace-nowrap">${factor.display}</div>
@@ -1157,6 +2803,7 @@ function bindConversionActions() {
             if (idx < daChain.length - 1) {
                 const mult = document.createElement("div");
                 mult.className = "text-xl font-bold text-gray-400 px-1";
+                mult.dataset.daRole = "multiply";
                 mult.innerHTML = "&times;";
                 chainContainer.appendChild(mult);
             }
@@ -1190,17 +2837,37 @@ function bindConversionActions() {
             setStatus(output, "Enter a numeric starting value.", "warn");
             return;
         }
+        if (daChain.length === 0) {
+            setStatus(output, "Build at least one conversion factor before evaluating.", "warn");
+            invokeDaTutor(
+                "I clicked evaluate without a factor chain. Help me set up the first conversion factor correctly.",
+                { errorType: "empty-chain" }
+            );
+            return;
+        }
         
         let currentUnit = fromSelect.value;
         let finalValue = value;
+        const stepLogs = [];
         
         for (let i = 0; i < daChain.length; i++) {
             const factor = daChain[i];
+            const priorValue = finalValue;
             
             if (currentUnit !== factor.denUnit) {
-                setStatus(output, `Mismatch at step ${i + 1}: Cannot cancel '${currentUnit}' with denominator '${factor.denUnit}'.`, "error");
+                setStatus(output, `Mismatch at step ${i + 1}: Cannot cancel '${currentUnit}' with denominator '${factor.denUnit}'. Use a factor whose denominator is '${currentUnit}'.`, "error");
                 recordCompetencyAttempt("dim-analysis", false);
-                window.ChemTutor.invoke(`I am doing a dimensional analysis conversion. At step ${i+1}, my current unit in the numerator is '${currentUnit}', but I tried to use a conversion factor with the denominator '${factor.denUnit}'. Explain why this doesn't cancel out properly.`, document.getElementById("da-output"), `The user is practicing Dimensional Analysis. Target unit: ${toSelect.value}. Current chain of conversion factors applied: ${JSON.stringify(daChain)}.`);
+                invokeDaTutor(
+                    `At step ${i + 1}, my current unit is '${currentUnit}', but my denominator is '${factor.denUnit}'. Explain how to repair this chain using unit cancellation logic.`,
+                    {
+                        errorType: "unit-mismatch",
+                        failedStep: i + 1,
+                        currentUnit,
+                        expectedDenominatorUnit: currentUnit,
+                        providedDenominatorUnit: factor.denUnit,
+                        priorUnitAfterStep: currentUnitAfterSteps(daChain, fromSelect.value, i)
+                    }
+                );
                 return;
             }
             
@@ -1211,11 +2878,23 @@ function bindConversionActions() {
                     finalValue = new Function(`return ${expr}`)();
                 } catch (e) {
                     setStatus(output, `Error evaluating step ${i + 1} formula: ${e.message}`, "error");
+                    invokeDaTutor(
+                        `My formula-based conversion failed at step ${i + 1}. Help me identify the setup error and rebuild this step correctly.`,
+                        {
+                            errorType: "formula-evaluation",
+                            failedStep: i + 1,
+                            expression: factor.formula,
+                            expressionError: e.message,
+                            currentUnit
+                        }
+                    );
                     return;
                 }
+                stepLogs.push(`Step ${i + 1}: ${Number(priorValue.toPrecision(8))} ${factor.denUnit} -> ${Number(finalValue.toPrecision(8))} ${factor.numUnit}`);
                 currentUnit = factor.numUnit;
             } else {
                 finalValue = (finalValue * factor.numVal) / factor.denVal;
+                stepLogs.push(`Step ${i + 1}: ${Number(priorValue.toPrecision(8))} ${factor.denUnit} x (${factor.numVal} ${factor.numUnit} / ${factor.denVal} ${factor.denUnit}) = ${Number(finalValue.toPrecision(8))} ${factor.numUnit}`);
                 currentUnit = factor.numUnit;
             }
         }
@@ -1223,16 +2902,41 @@ function bindConversionActions() {
         if (currentUnit !== toSelect.value) {
             setStatus(output, `Chain valid so far, but you ended up with '${currentUnit}' instead of the target '${toSelect.value}'.`, "warn");
             recordCompetencyAttempt("dim-analysis", false);
-            window.ChemTutor.invoke(`I successfully cancelled all my units, but I ended up with '${currentUnit}' instead of my final target unit '${toSelect.value}'. Guide me on what additional conversion steps I need.`, document.getElementById("da-output"), `The user is practicing Dimensional Analysis. Target unit: ${toSelect.value}. Current chain of conversion factors applied: ${JSON.stringify(daChain)}.`);
+            invokeDaTutor(
+                `My units cancel, but I ended at '${currentUnit}' instead of '${toSelect.value}'. What next factor should I add and why?`,
+                {
+                    errorType: "wrong-target-unit",
+                    finalUnit: currentUnit,
+                    targetUnit: toSelect.value,
+                    finalValueEstimate: Number(finalValue.toPrecision(10))
+                }
+            );
             return;
         }
         
-        setStatus(output, `Correct! The units cross-cancel perfectly. Result: ${finalValue.toPrecision(6)} ${toSelect.value}`, "ok");
+        const finalDisplay = Number(finalValue.toPrecision(10));
+        const chainSummary = stepLogs.length ? ` Steps: ${stepLogs.join(" | ")}` : "";
+        setStatus(output, `Correct! The units cross-cancel perfectly. Result: ${finalDisplay} ${toSelect.value}.${chainSummary}`, "ok");
         recordCompetencyAttempt("dim-analysis", true);
         if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'dimensions') {
             completeActiveSandboxHandshake();
         }
     });
+
+    if (btnDaAskTutor) {
+        btnDaAskTutor.addEventListener("click", () => {
+            output.classList.remove("hidden");
+            invokeDaTutor(
+                "Coach me through this dimensional analysis setup. Check my unit orientation, cancellation logic, and what my next best step should be.",
+                {
+                    errorType: "manual-help-request",
+                    currentKnownUnit: daChain.length > 0
+                        ? daChain[daChain.length - 1].numUnit
+                        : fromSelect.value
+                }
+            );
+        });
+    }
 }
 
 let labSession = null;
@@ -3330,11 +5034,14 @@ function buildConversionGraph(conversions) {
     const graph = {};
     Object.values(conversions).forEach((group) => {
         group.forEach((item) => {
+            if (item.type === "formula") return;
+            const factor = Number(item.factor);
+            if (!Number.isFinite(factor) || factor === 0) return;
             if (!graph[item.from]) graph[item.from] = [];
             if (!graph[item.to]) graph[item.to] = [];
 
-            graph[item.from].push({ to: item.to, multiplier: item.factor });
-            graph[item.to].push({ to: item.from, multiplier: 1 / item.factor });
+            graph[item.from].push({ to: item.to, multiplier: factor });
+            graph[item.to].push({ to: item.from, multiplier: 1 / factor });
         });
     });
     return graph;
@@ -3534,7 +5241,18 @@ window.ChemTutor = (() => {
             if (!containerEl) return;
             // Check if widget already exists here, don't spawn multiple
             if (containerEl.nextElementSibling && containerEl.nextElementSibling.classList?.contains('inline-tutor-widget')) {
-                return; // Already open
+                const existingWidget = containerEl.nextElementSibling;
+                const existingInput = existingWidget.querySelector('.tutor-input');
+                const existingSendBtn = existingWidget.querySelector('.tutor-send');
+                existingWidget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                if (existingInput) {
+                    existingInput.focus();
+                    if (typeof initialPrompt === 'string' && initialPrompt.trim()) {
+                        existingInput.value = initialPrompt.trim();
+                        if (existingSendBtn) existingSendBtn.click();
+                    }
+                }
+                return;
             }
 
             const template = document.getElementById("inline-tutor-template");

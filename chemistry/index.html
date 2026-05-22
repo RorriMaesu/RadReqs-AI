@@ -58,6 +58,334 @@
             background: rgba(22, 25, 40, 0.96);
             border-bottom-color: rgba(45, 50, 80, 0.5);
         }
+        .da-checklist-card {
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #78350f;
+        }
+        .da-checklist-note {
+            color: #92400e;
+        }
+        .dark .da-checklist-card {
+            background-color: rgba(69, 26, 3, 0.6);
+            border-color: #b45309;
+            color: #fef3c7;
+        }
+        .dark .da-checklist-note {
+            color: #fde68a;
+        }
+        @keyframes daFocusPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.28); transform: scale(1); }
+            50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.1); transform: scale(1.01); }
+        }
+        .da-focus-active {
+            position: relative;
+            z-index: 1;
+            outline: 2px solid rgba(37, 99, 235, 0.9);
+            outline-offset: 2px;
+            border-radius: 0.65rem;
+            animation: daFocusPulse 1.2s ease-in-out infinite;
+        }
+        .da-focus-dim {
+            opacity: 0.45;
+            transition: opacity 160ms ease;
+        }
+        .da-focus-rail {
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.08));
+            border: 1px solid rgba(59, 130, 246, 0.25);
+        }
+        .dark .da-focus-rail {
+            background: linear-gradient(90deg, rgba(30, 58, 138, 0.35), rgba(6, 78, 59, 0.24));
+            border-color: rgba(59, 130, 246, 0.35);
+        }
+        .da-step-chip {
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .da-step-chip-active { background: rgba(37, 99, 235, 0.18); color: #1d4ed8; }
+        .da-step-chip-check { background: rgba(245, 158, 11, 0.2); color: #b45309; }
+        .da-step-chip-ok { background: rgba(16, 185, 129, 0.2); color: #047857; }
+        .da-step-chip-error { background: rgba(239, 68, 68, 0.2); color: #b91c1c; }
+        .dark .da-step-chip-active { background: rgba(59, 130, 246, 0.32); color: #bfdbfe; }
+        .dark .da-step-chip-check { background: rgba(245, 158, 11, 0.32); color: #fde68a; }
+        .dark .da-step-chip-ok { background: rgba(16, 185, 129, 0.32); color: #a7f3d0; }
+        .dark .da-step-chip-error { background: rgba(239, 68, 68, 0.32); color: #fecaca; }
+        .da-step-float {
+            position: fixed;
+            z-index: 68;
+            pointer-events: auto;
+            width: min(300px, calc(100vw - 24px));
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            border-radius: 14px;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+            backdrop-filter: blur(6px);
+            padding: 10px 12px;
+            opacity: 0;
+            transform: translateY(6px) scale(0.98);
+            transition: opacity 180ms ease, transform 180ms ease, left 180ms ease, top 180ms ease;
+        }
+        .da-step-float.is-visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .da-step-float::after {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.96);
+            border-left: 1px solid rgba(148, 163, 184, 0.4);
+            border-top: 1px solid rgba(148, 163, 184, 0.4);
+            transform: rotate(45deg);
+        }
+        .da-step-float[data-side="right"]::after {
+            left: -6px;
+            top: calc(50% - 5px);
+        }
+        .da-step-float[data-side="left"]::after {
+            right: -6px;
+            top: calc(50% - 5px);
+            transform: rotate(225deg);
+        }
+        .da-step-float[data-side="above"]::after {
+            left: calc(50% - 5px);
+            bottom: -6px;
+            transform: rotate(225deg);
+        }
+        .da-step-float[data-side="below"]::after {
+            left: calc(50% - 5px);
+            top: -6px;
+        }
+        .da-step-float[data-side="dock"]::after {
+            display: none;
+        }
+        .da-step-float-kicker {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #1d4ed8;
+            margin-bottom: 6px;
+        }
+        .da-step-float-text {
+            font-size: 12px;
+            line-height: 1.35;
+            color: #334155;
+        }
+        .da-step-float-why {
+            margin-top: 6px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #92400e;
+        }
+        .da-step-float-controls {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed rgba(148, 163, 184, 0.45);
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+        .da-step-float-next {
+            border: 1px solid rgba(16, 185, 129, 0.55);
+            background: rgba(16, 185, 129, 0.16);
+            color: #065f46;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            pointer-events: auto;
+        }
+        .da-step-float-next:hover {
+            background: rgba(16, 185, 129, 0.24);
+        }
+        .da-step-float-next:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .dark .da-step-float {
+            background: rgba(15, 23, 42, 0.95);
+            border-color: rgba(71, 85, 105, 0.72);
+            box-shadow: 0 16px 36px rgba(2, 6, 23, 0.52);
+        }
+        .dark .da-step-float::after {
+            background: rgba(15, 23, 42, 0.95);
+            border-color: rgba(71, 85, 105, 0.72);
+        }
+        .dark .da-step-float-kicker {
+            color: #93c5fd;
+        }
+        .dark .da-step-float-text {
+            color: #cbd5e1;
+        }
+        .dark .da-step-float-why {
+            color: #fcd34d;
+        }
+        .dark .da-step-float-controls {
+            border-top-color: rgba(100, 116, 139, 0.5);
+        }
+        .dark .da-step-float-next {
+            border-color: rgba(52, 211, 153, 0.65);
+            background: rgba(6, 78, 59, 0.52);
+            color: #a7f3d0;
+        }
+        .dark .da-step-float-next:hover {
+            background: rgba(6, 95, 70, 0.62);
+        }
+        .da-btn-press {
+            animation: daBtnPress 220ms ease-out;
+        }
+        @keyframes daBtnPress {
+            0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+            40% { transform: translateY(1px) scale(0.97); box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.12); }
+            100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        .da-tutorial-picker {
+            position: fixed;
+            z-index: 66;
+            width: min(320px, calc(100vw - 20px));
+            background: rgba(255, 255, 255, 0.97);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.2);
+            backdrop-filter: blur(6px);
+            padding: 10px;
+            opacity: 0;
+            transform: translateY(-4px) scale(0.98);
+            transition: opacity 150ms ease, transform 150ms ease;
+            pointer-events: none;
+        }
+        .da-tutorial-picker.is-open {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .da-tutorial-picker-header {
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            font-weight: 800;
+            color: #1d4ed8;
+            margin-bottom: 8px;
+        }
+        .da-tutorial-picker-options {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 190px;
+            overflow-y: auto;
+        }
+        .da-tutorial-picker-option {
+            border: 1px solid rgba(203, 213, 225, 0.9);
+            border-radius: 9px;
+            padding: 7px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+            background: rgba(248, 250, 252, 0.85);
+            transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+        }
+        .da-tutorial-picker-option.is-target {
+            border-color: rgba(59, 130, 246, 0.8);
+            background: rgba(219, 234, 254, 0.85);
+        }
+        .da-tutorial-picker-option.is-selected {
+            border-color: rgba(16, 185, 129, 0.85);
+            background: rgba(209, 250, 229, 0.85);
+            transform: translateX(2px);
+        }
+        .dark .da-tutorial-picker {
+            background: rgba(15, 23, 42, 0.95);
+            border-color: rgba(71, 85, 105, 0.75);
+            box-shadow: 0 18px 38px rgba(2, 6, 23, 0.58);
+        }
+        .dark .da-tutorial-picker-header {
+            color: #93c5fd;
+        }
+        .dark .da-tutorial-picker-option {
+            border-color: rgba(71, 85, 105, 0.85);
+            color: #cbd5e1;
+            background: rgba(30, 41, 59, 0.84);
+        }
+        .dark .da-tutorial-picker-option.is-target {
+            border-color: rgba(96, 165, 250, 0.9);
+            background: rgba(30, 58, 138, 0.5);
+        }
+        .dark .da-tutorial-picker-option.is-selected {
+            border-color: rgba(52, 211, 153, 0.9);
+            background: rgba(6, 78, 59, 0.5);
+        }
+        .da-camera-path-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 65;
+            opacity: 0;
+        }
+        .da-camera-path-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        .da-camera-path-stroke {
+            fill: none;
+            stroke: rgba(59, 130, 246, 0.55);
+            stroke-width: 2.25;
+            stroke-linecap: round;
+            stroke-dasharray: 7 8;
+            filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.2));
+            opacity: 0;
+        }
+        .da-camera-path-arrow {
+            fill: rgba(59, 130, 246, 0.62);
+            filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.25));
+            opacity: 0;
+        }
+        .dark .da-camera-path-stroke {
+            stroke: rgba(125, 211, 252, 0.62);
+            filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.34));
+        }
+        .dark .da-camera-path-arrow {
+            fill: rgba(125, 211, 252, 0.72);
+            filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.38));
+        }
+        .da-camera-path-layer.is-active {
+            opacity: 1;
+        }
+        .da-camera-path-layer.is-active .da-camera-path-stroke {
+            animation: daCameraPathTrace 560ms ease-out forwards;
+        }
+        .da-camera-path-layer.is-active .da-camera-path-arrow {
+            animation: daCameraPathArrow 560ms ease-out forwards;
+        }
+        @keyframes daCameraPathTrace {
+            0% { opacity: 0; stroke-dashoffset: 36; }
+            22% { opacity: 0.92; }
+            72% { opacity: 0.65; }
+            100% { opacity: 0; stroke-dashoffset: 0; }
+        }
+        @keyframes daCameraPathArrow {
+            0% { opacity: 0; transform: scale(0.92); transform-origin: center; }
+            30% { opacity: 0.95; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.02); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .da-focus-active { animation: none; }
+            .da-step-float {
+                transition: none;
+            }
+            .da-camera-path-layer,
+            .da-camera-path-layer.is-active {
+                display: none;
+            }
+        }
         .dark input,
         .dark select {
             background-color: #1e2130;
@@ -707,6 +1035,71 @@
         <section id="view-dimensions" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
             <h3 class="text-xl font-bold mb-2">Dimensional Analysis Builder</h3>
             <p class="text-gray-600 mb-5">Convert units by building a factor-label chain. Cross-cancel units to reach the target.</p>
+
+            <div class="mb-5 bg-blue-50 dark:bg-slate-900/50 border border-blue-200 dark:border-blue-900/40 rounded-xl p-4">
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">DA Guided Course</span>
+                    <span id="da-tutorial-progress" class="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Step 0/0</span>
+                </div>
+
+                <div class="da-focus-rail rounded-lg px-3 py-2 mb-3 flex flex-wrap items-center gap-2">
+                    <span class="text-[10px] font-black uppercase tracking-[0.08em] text-blue-700 dark:text-blue-300">Current Step</span>
+                    <span id="da-current-step-chip" class="da-step-chip da-step-chip-active">Idle</span>
+                    <span class="text-[10px] font-semibold text-gray-600 dark:text-slate-300">Look At:</span>
+                    <span id="da-current-step-target" class="text-[11px] font-bold text-gray-700 dark:text-slate-100">Tutorial controls</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+                    <div>
+                        <label class="block text-[11px] font-semibold text-gray-600 dark:text-slate-300 mb-1">Learning Mode</label>
+                        <select id="da-mode" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                            <option value="watch">Watch (Auto Tutorial)</option>
+                            <option value="guided">Guided (Step-by-Step)</option>
+                            <option value="practice">Practice (You Drive)</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-[11px] font-semibold text-gray-600 dark:text-slate-300 mb-1">Lesson</label>
+                        <select id="da-lesson" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button id="btn-da-start-tutorial" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors">Start Tutorial</button>
+                    <button id="btn-da-play" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors">Play</button>
+                    <button id="btn-da-pause" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors">Pause</button>
+                    <button id="btn-da-next-step" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors">Next Step</button>
+                    <button id="btn-da-reset-tutorial" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors">Reset Tutorial</button>
+                    <button id="btn-da-ask-step-tutor" class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold transition-colors">Ask About This Step</button>
+                </div>
+
+                <div class="bg-white dark:bg-slate-950 border border-blue-100 dark:border-slate-800 rounded-lg p-3">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-1">Step Explanation</p>
+                    <p id="da-step-explanation" class="text-sm text-gray-700 dark:text-slate-200 mb-2">Select a lesson and click Start Tutorial.</p>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">Why This Step Matters</p>
+                    <p id="da-step-why" class="text-xs text-gray-600 dark:text-slate-300">The tutorial will explain the chemistry reasoning behind each operation.</p>
+                </div>
+
+                <div id="da-step-float" class="da-step-float hidden" data-side="dock" aria-live="polite" aria-atomic="true" role="status">
+                    <div id="da-step-float-kicker" class="da-step-float-kicker">Current Step</div>
+                    <p id="da-step-float-text" class="da-step-float-text">Select a lesson and click Start Tutorial.</p>
+                    <p id="da-step-float-why" class="da-step-float-why">The tutorial explains the chemistry reason behind each operation.</p>
+                    <div id="da-step-float-controls" class="da-step-float-controls hidden">
+                        <button id="btn-da-popup-next" class="da-step-float-next" type="button" aria-label="Advance guided step">Next Step</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-5 da-checklist-card rounded-xl p-4 text-sm space-y-2">
+                <p class="font-semibold">Use this 4-step checklist before you evaluate:</p>
+                <ol class="list-decimal pl-5 space-y-1">
+                    <li>Write the starting value and unit.</li>
+                    <li>Add one factor at a time so the current unit cancels in the denominator.</li>
+                    <li>Keep going until only the target unit remains.</li>
+                    <li>Then apply sig figs at the final answer stage.</li>
+                </ol>
+                <p class="text-xs da-checklist-note">Note: Temperature conversions are equation-based and are not pure ratio factors.</p>
+            </div>
             
             <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto_1fr] gap-3 mb-4 items-center">
                 <input id="da-value" type="number" step="any" class="border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Start Value">
@@ -722,16 +1115,30 @@
                 <button id="btn-add-factor" class="px-5 py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors border border-gray-200 shadow-sm">Add Factor</button>
             </div>
 
+            <div id="da-tutorial-picker" class="da-tutorial-picker hidden" aria-hidden="true">
+                <p id="da-tutorial-picker-header" class="da-tutorial-picker-header">Tutorial Selection</p>
+                <div id="da-tutorial-picker-options" class="da-tutorial-picker-options"></div>
+            </div>
+
             <div class="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 min-h-[120px] mb-4 overflow-x-auto flex items-center gap-3" id="da-chain">
                 <span class="text-sm text-gray-400 italic" id="da-chain-empty">Conversion chain will appear here...</span>
             </div>
 
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center gap-2 flex-wrap">
                 <button id="btn-reset-da" class="px-4 py-2 rounded-xl font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors text-sm">Reset Chain</button>
-                <button id="btn-check-da" class="px-6 py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Evaluate Chain</button>
+                <div class="flex items-center gap-2 ml-auto">
+                    <button id="btn-da-ask-tutor" class="px-4 py-2 rounded-xl font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors text-sm inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-robot text-[10px]"></i>
+                        Ask Tutor
+                    </button>
+                    <button id="btn-check-da" class="px-6 py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Evaluate Chain</button>
+                </div>
             </div>
 
+            <p class="text-xs text-gray-500 mt-2">Try asking: "Why does this factor not cancel?" or "What should my next conversion factor be?"</p>
+
             <div id="da-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-700"></div>
+            <div id="da-tutor-anchor"></div>
         </section>
 
         <section id="view-stoich" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
