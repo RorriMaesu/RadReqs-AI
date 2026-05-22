@@ -696,24 +696,7 @@ function bindDaTutorialActions() {
                     FACTOR_POPUP_MESSAGES.add.why
                 );
                 applyFocus([btnAddFactor], "Press Add", "Add Factor button", "active");
-                const pickerVisible = isTutorialPickerVisible();
-                const pressAddExplainerAnchor = factorBank || dimensionsSection;
-
-                let pressAddAnchorPoint = null;
-                if (pickerVisible && tutorialPicker) {
-                    const pickerRect = tutorialPicker.getBoundingClientRect();
-                    const addBtnRect = btnAddFactor ? btnAddFactor.getBoundingClientRect() : null;
-                    const pickerCenterX = pickerRect.left + (pickerRect.width / 2);
-                    const addBtnCenterX = addBtnRect
-                        ? addBtnRect.left + (addBtnRect.width / 2)
-                        : pickerCenterX;
-                    const deltaTowardAdd = addBtnCenterX - pickerCenterX;
-                    const limitedNudge = Math.max(Math.min(deltaTowardAdd * 0.18, 56), -40);
-                    const nudgedX = pickerCenterX + limitedNudge;
-                    const clampedX = Math.min(Math.max(nudgedX, pickerRect.left + 18), pickerRect.right - 18);
-                    const topBandY = Math.max(pickerRect.top + 14, getStickyOffset() + 18);
-                    pressAddAnchorPoint = { x: clampedX, y: topBandY };
-                }
+                const pressAddExplainerAnchor = btnAddFactor || factorBank || dimensionsSection;
 
                 // Clear the dropdown overlay during the Add step so the button stays unobscured.
                 hideTutorialPicker();
@@ -723,10 +706,12 @@ function bindDaTutorialActions() {
                     null,
                     pressAddExplainerAnchor,
                     {
-                        preferredSide: "above",
+                        preferredSide: "below",
+                        lockedSide: "below",
                         extraAvoidEls: [],
-                        anchorPoint: pressAddAnchorPoint,
-                        constrainWithinEl: null,
+                        anchorPoint: null,
+                        pointerGapPx: 18,
+                        constrainWithinEl: btnAddFactor?.parentElement || null,
                         constrainMargin: 10
                     }
                 );
@@ -864,7 +849,9 @@ function bindDaTutorialActions() {
             extraAvoidEls: rawExtraAvoidEls,
             constrainWithinEl,
             constrainMargin: rawConstrainMargin,
-            preferredSide
+            preferredSide,
+            lockedSide,
+            pointerGapPx: rawPointerGapPx
         } = activePlacementOptions;
         const anchorPointCandidate = anchorPoint;
         const hasCustomAnchorPoint = !!anchorPointCandidate
@@ -877,7 +864,9 @@ function bindDaTutorialActions() {
         showExplainer();
 
         const margin = 12;
-        const pointerGap = 10;
+        const pointerGap = Number.isFinite(rawPointerGapPx)
+            ? Math.max(rawPointerGapPx, 0)
+            : 10;
         const stickyOffset = getStickyOffset();
         const viewTop = stickyOffset + 8;
         const viewBottom = window.innerHeight - margin;
@@ -981,7 +970,15 @@ function bindDaTutorialActions() {
             .filter((side) => side === "right" || side === "left" || side === "above" || side === "below")
             .filter((side, idx, arr) => arr.indexOf(side) === idx);
 
-        const candidates = normalizedSidePriority.map((side) => {
+        const normalizedLockedSide = (lockedSide === "right" || lockedSide === "left" || lockedSide === "above" || lockedSide === "below")
+            ? lockedSide
+            : null;
+
+        const candidateSides = normalizedLockedSide
+            ? [normalizedLockedSide, ...normalizedSidePriority.filter((side) => side !== normalizedLockedSide)]
+            : normalizedSidePriority;
+
+        const candidates = candidateSides.map((side) => {
             if (side === "right") {
                 return { side, left: targetRect.right + pointerGap, top: centerY - (panelRect.height / 2) };
             }
