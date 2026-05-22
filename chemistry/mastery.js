@@ -15,8 +15,142 @@ const STATE_ACTIVE = 1;
 const STATE_HW_PENDING = 2;
 const STATE_MASTERED = 3;
 const STATE_RUSTED = 4;
+const CURRICULUM_BYPASS_KEY = 'chemistry_curriculum_bypass';
+const CHEMISTRY_PROGRESS_RESET_MARKER_KEY = 'chemistry_progress_reset_at';
+const CHEMISTRY_PROGRESS_RESET_EVENT = 'chemistryProgressReset';
 
 const RUST_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 Days in ms
+
+function isCurriculumBypassEnabled() {
+    return localStorage.getItem(CURRICULUM_BYPASS_KEY) === 'true';
+}
+
+function setCurriculumBypassEnabled(enabled) {
+    localStorage.setItem(CURRICULUM_BYPASS_KEY, String(Boolean(enabled)));
+    window.dispatchEvent(new CustomEvent('curriculumBypassChanged', {
+        detail: { enabled: Boolean(enabled) }
+    }));
+}
+
+function toggleCurriculumBypass() {
+    const next = !isCurriculumBypassEnabled();
+    setCurriculumBypassEnabled(next);
+    return next;
+}
+
+function resetChemistryProgressData() {
+    const protectedKeys = new Set(['chemistry_darkmode', 'chemistry_llm']);
+    const exactKeysToRemove = new Set([
+        'masteryMatrix',
+        CURRICULUM_BYPASS_KEY,
+        'chemistry_learning_state_v1',
+        'chemistry_video_state_v1',
+        'chem_nomen_srs_state_v2',
+        'chem_polyatomic_srs_state_v1',
+        'chem_polyatomic_mastered_v1'
+    ]);
+    const prefixesToRemove = [
+        'chemistry_lesson_lectures_',
+        'chemistry_lesson_lecture_',
+        'chemistry_lesson_active_lecture_idx_',
+        'sandbox_complete_'
+    ];
+
+    const localKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) localKeys.push(key);
+    }
+
+    localKeys.forEach((key) => {
+        if (protectedKeys.has(key)) return;
+        if (exactKeysToRemove.has(key)) {
+            localStorage.removeItem(key);
+            return;
+        }
+        if (prefixesToRemove.some((prefix) => key.startsWith(prefix))) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    sessionStorage.removeItem('activeLessonState');
+
+    const resetMarker = String(Date.now());
+    localStorage.setItem(CHEMISTRY_PROGRESS_RESET_MARKER_KEY, resetMarker);
+
+    window.dispatchEvent(new CustomEvent(CHEMISTRY_PROGRESS_RESET_EVENT, {
+        detail: { resetAt: resetMarker }
+    }));
+    window.dispatchEvent(new CustomEvent('masteryMatrixChanged', { detail: {} }));
+    window.dispatchEvent(new CustomEvent('curriculumBypassChanged', { detail: { enabled: false } }));
+
+    return true;
+}
+
+function showChemistryResetToast(message) {
+    const id = 'chemistry-reset-toast';
+    const existing = document.getElementById(id);
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = id;
+    toast.className = 'fixed right-4 top-4 z-[9999] max-w-xs rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-800 shadow-lg backdrop-blur dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check mr-1.5"></i>' + (message || 'Progress reset accepted. Reloading...');
+    document.body.appendChild(toast);
+
+    window.setTimeout(() => {
+        toast.classList.add('opacity-0');
+    }, 600);
+    window.setTimeout(() => {
+        toast.remove();
+    }, 1000);
+}
+
+function scheduleChemistryResetReload(message, delayMs = 900) {
+    if (window.__chemistryResetReloadScheduled) return;
+    window.__chemistryResetReloadScheduled = true;
+    showChemistryResetToast(message || 'Progress reset accepted. Reloading...');
+    window.setTimeout(() => {
+        window.location.reload();
+    }, delayMs);
+}
+
+function confirmAndResetChemistryProgress() {
+    const promptText = [
+        'This will erase chemistry progress across Skills Lab, Coursework, and Homework Binder.',
+        'Preserved: dark mode and selected model.',
+        'Type RESET to continue.'
+    ].join('\n');
+    const typed = window.prompt(promptText, '');
+    if (typed !== 'RESET') {
+        if (typed !== null) {
+            window.alert('Reset cancelled. Type RESET exactly to confirm.');
+        }
+        return false;
+    }
+    const ok = resetChemistryProgressData();
+    if (ok) {
+        scheduleChemistryResetReload('Progress reset accepted. Reloading module...');
+    }
+    return ok;
+}
+
+// Keep Coursework/Homework pages synchronized when multiple tabs are open.
+window.addEventListener('storage', (event) => {
+    if (event.key === CURRICULUM_BYPASS_KEY) {
+        window.dispatchEvent(new CustomEvent('curriculumBypassChanged', {
+            detail: { enabled: event.newValue === 'true' }
+        }));
+        return;
+    }
+
+    if (event.key === CHEMISTRY_PROGRESS_RESET_MARKER_KEY) {
+        sessionStorage.removeItem('activeLessonState');
+        window.dispatchEvent(new CustomEvent(CHEMISTRY_PROGRESS_RESET_EVENT, {
+            detail: { resetAt: event.newValue }
+        }));
+    }
+});
 
 /**
  * Parses and initializes the global mastery matrix in localStorage.
@@ -351,6 +485,7 @@ function getLessonStateMeta(state) {
 function renderSidebar(syllabus, matrix) {
     const targetCw = document.getElementById('sidebar-skill-tree');
     const targetAs = document.getElementById('assignment-list');
+    const bypassEnabled = isCurriculumBypassEnabled();
     
     if (targetCw) {
         let html = '';
@@ -380,21 +515,30 @@ function renderSidebar(syllabus, matrix) {
             lessons.forEach(l => {
                 const st = matrix[l.id] ? matrix[l.id].state : STATE_LOCKED;
                 const meta = getLessonStateMeta(st);
+                const canSelectLesson = bypassEnabled || st > STATE_LOCKED;
+                const displayMeta = (bypassEnabled && st === STATE_LOCKED)
+                    ? {
+                        icon: 'fa-compass text-violet-300',
+                        btnClass: 'text-violet-200 hover:text-white hover:bg-slate-850 bg-slate-900/70 p-2.5 rounded border border-violet-500/25 flex items-center justify-between',
+                        badgeText: 'EXPLORE',
+                        badgeClass: 'bg-violet-500/10 border border-violet-500/35 text-violet-300'
+                    }
+                    : meta;
                 
                 html += `
                 <button 
-                    onclick="if(${st} > ${STATE_LOCKED}) { selectLesson('${l.id}') } else { alert('This chemistry lecture is currently locked. Complete previous courseworks first!') }" 
-                    class="w-full ${meta.btnClass} transition group text-left" 
+                    onclick="if(${canSelectLesson}) { selectLesson('${l.id}') } else { alert('This chemistry lecture is currently locked. Complete previous courseworks first!') }" 
+                    class="w-full ${displayMeta.btnClass} transition group text-left" 
                     id="sidebar-item-${l.id}"
                 >
                     <div class="flex items-center space-x-2.5 truncate mr-2">
-                        <i class="fa-solid ${meta.icon} shrink-0 w-4 text-center"></i>
+                        <i class="fa-solid ${displayMeta.icon} shrink-0 w-4 text-center"></i>
                         <div class="truncate">
                             <span class="text-[10px] font-mono block text-slate-500 group-hover:text-slate-400">Lesson ${l.numStr}</span>
                             <span class="text-xs font-semibold block truncate leading-snug">${l.title}</span>
                         </div>
                     </div>
-                    <span class="text-[8px] font-bold font-mono px-1.5 py-0.5 rounded leading-none shrink-0 ${meta.badgeClass}">${meta.badgeText}</span>
+                    <span class="text-[8px] font-bold font-mono px-1.5 py-0.5 rounded leading-none shrink-0 ${displayMeta.badgeClass}">${displayMeta.badgeText}</span>
                 </button>
                 `;
             });
@@ -413,7 +557,7 @@ function renderSidebar(syllabus, matrix) {
             const lessons = syllabus.lessonsByModule[mod.id];
             
             // Homework modules also filter locks
-            let hasUnlockedHomework = lessons.some(l => {
+            let hasUnlockedHomework = bypassEnabled || lessons.some(l => {
                 const st = matrix[l.id] ? matrix[l.id].state : STATE_LOCKED;
                 return st >= STATE_HW_PENDING; // Must pass Theory to access homework binder!
             });
@@ -430,7 +574,7 @@ function renderSidebar(syllabus, matrix) {
             lessons.forEach(l => {
                 const st = matrix[l.id] ? matrix[l.id].state : STATE_LOCKED;
                 const meta = getLessonStateMeta(st);
-                const isHwLocked = st < STATE_HW_PENDING;
+                const isHwLocked = !bypassEnabled && st < STATE_HW_PENDING;
                 
                 // Redraw classes for assignments page
                 let buttonClass = 'p-2 rounded text-left w-full transition flex items-center justify-between ';
@@ -509,3 +653,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.dispatchEvent(new CustomEvent('syllabusLoaded', { detail: { syllabus, matrix } }));
     }
 });
+
+window.isCurriculumBypassEnabled = isCurriculumBypassEnabled;
+window.setCurriculumBypassEnabled = setCurriculumBypassEnabled;
+window.toggleCurriculumBypass = toggleCurriculumBypass;
+window.resetChemistryProgressData = resetChemistryProgressData;
+window.confirmAndResetChemistryProgress = confirmAndResetChemistryProgress;
+window.CHEMISTRY_PROGRESS_RESET_EVENT = CHEMISTRY_PROGRESS_RESET_EVENT;
+window.showChemistryResetToast = showChemistryResetToast;
+window.scheduleChemistryResetReload = scheduleChemistryResetReload;

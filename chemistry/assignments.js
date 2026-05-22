@@ -154,6 +154,36 @@
         els.statusIndicator.innerHTML = '';
     }
 
+    function isCurriculumBypassEnabledLocal() {
+        if (typeof window.isCurriculumBypassEnabled === 'function') {
+            return window.isCurriculumBypassEnabled();
+        }
+        return localStorage.getItem('chemistry_curriculum_bypass') === 'true';
+    }
+
+    function setCurriculumBypassEnabledLocal(enabled) {
+        if (typeof window.setCurriculumBypassEnabled === 'function') {
+            window.setCurriculumBypassEnabled(enabled);
+            return;
+        }
+        localStorage.setItem('chemistry_curriculum_bypass', String(Boolean(enabled)));
+        window.dispatchEvent(new CustomEvent('curriculumBypassChanged', { detail: { enabled: Boolean(enabled) } }));
+    }
+
+    function updateCurriculumBypassButtonUi() {
+        const btn = document.getElementById('btn-curriculum-bypass');
+        if (!btn) return;
+        const enabled = isCurriculumBypassEnabledLocal();
+        btn.setAttribute('aria-pressed', String(enabled));
+        btn.title = enabled ? 'Disable bypass requirements' : 'Bypass lesson requirements (Explore Mode)';
+        btn.classList.toggle('bg-violet-600', enabled);
+        btn.classList.toggle('text-white', enabled);
+        btn.classList.toggle('border-violet-600', enabled);
+        btn.classList.toggle('dark:bg-violet-500', enabled);
+        btn.classList.toggle('dark:text-white', enabled);
+        btn.classList.toggle('dark:border-violet-400', enabled);
+    }
+
     function setWorkspaceLocked(isLocked) {
         if (isLocked) {
             els.workspace.classList.add('hidden');
@@ -1717,13 +1747,19 @@
             window.saveSessionState(lessonId, 0, []);
         }
 
-        if (state < STATE_HW_PENDING) {
+        const bypassEnabled = isCurriculumBypassEnabledLocal();
+        if (!bypassEnabled && state < STATE_HW_PENDING) {
             setWorkspaceLocked(true);
             showStatus('Homework is locked for this lesson. Complete coursework through Stage 4 first.', 'warning');
         } else {
             setWorkspaceLocked(false);
             regenerateProblemSet();
-            showStatus('Chemistry workbook loaded. Submit when ready. Passing threshold: 80%.', 'info');
+            showStatus(
+                bypassEnabled
+                    ? 'Explore mode active. Requirements bypassed for this worksheet.'
+                    : 'Chemistry workbook loaded. Submit when ready. Passing threshold: 80%.',
+                'info'
+            );
         }
 
         if (typeof window.renderSidebar === 'function') {
@@ -1796,11 +1832,49 @@
             });
         }
 
+        const btnCurriculumBypass = document.getElementById('btn-curriculum-bypass');
+        if (btnCurriculumBypass) {
+            updateCurriculumBypassButtonUi();
+            btnCurriculumBypass.addEventListener('click', () => {
+                const enabled = !isCurriculumBypassEnabledLocal();
+                setCurriculumBypassEnabledLocal(enabled);
+            });
+        }
+
+        const btnResetProgress = document.getElementById('btn-reset-progress');
+        if (btnResetProgress) {
+            btnResetProgress.addEventListener('click', () => {
+                if (typeof window.confirmAndResetChemistryProgress !== 'function') {
+                    window.alert('Reset service unavailable on this page.');
+                    return;
+                }
+                window.confirmAndResetChemistryProgress();
+            });
+        }
+
+        window.addEventListener('curriculumBypassChanged', () => {
+            updateCurriculumBypassButtonUi();
+            if (typeof window.renderSidebar === 'function') {
+                window.renderSidebar(appState.syllabus, readMatrix());
+            }
+            if (appState.selectedLessonId) {
+                updateForLessonSelection(appState.selectedLessonId);
+            }
+        });
+
         window.addEventListener('masteryMatrixChanged', () => {
             appState.matrix = readMatrix();
             if (typeof window.renderSidebar === 'function') {
                 window.renderSidebar(appState.syllabus, appState.matrix);
             }
+        });
+
+        window.addEventListener(window.CHEMISTRY_PROGRESS_RESET_EVENT || 'chemistryProgressReset', () => {
+            if (typeof window.scheduleChemistryResetReload === 'function') {
+                window.scheduleChemistryResetReload('Progress reset accepted. Reloading module...');
+                return;
+            }
+            window.location.reload();
         });
     }
 

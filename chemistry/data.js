@@ -252,6 +252,469 @@ const ChemData = {
         ]
     },
 
+    videoCurriculum: [
+        {
+            lessonId: "chem_01_nucleus",
+            id: "chem_01_nucleus",
+            episodeNumber: 1,
+            title: "The Nucleus",
+            youtubeId: "FSyAehMdpyI",
+            coreConcepts: ["Atomic Number", "Mass Number", "Protons and Neutrons", "Nuclear Symbol Notation"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on atomic nucleus fundamentals from this lesson: atomic number, mass number, and subatomic particle counts. Ask one short question at a time, wait for an answer, then give concise corrective feedback.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on atomic nucleus fundamentals from this lesson: atomic number, mass number, and subatomic particle counts. Ask one short question at a time, wait for an answer, then give concise corrective feedback."
+        },
+        {
+            lessonId: "chem_02_sigfigs",
+            id: "chem_02_sigfigs",
+            episodeNumber: 2,
+            title: "Unit Conversion & Significant Figures",
+            youtubeId: "hQpQ0hxVNTg",
+            coreConcepts: ["Dimensional Analysis", "Significant Figures", "Scientific Notation", "Measurement Precision"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on dimensional analysis and significant-figure rules from this lesson. Ask one short question at a time and provide concise feedback with the correct rounding logic.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on dimensional analysis and significant-figure rules from this lesson. Ask one short question at a time and provide concise feedback with the correct rounding logic."
+        },
+        {
+            lessonId: "chem_03_fundamental_laws",
+            id: "chem_03_fundamental_laws",
+            episodeNumber: 3,
+            title: "The Creation of Chemistry - The Fundamental Laws",
+            youtubeId: "QiiyvzZBKT8",
+            coreConcepts: ["Conservation of Mass", "Law of Definite Proportions", "Early Atomic Theory", "Proust's Law"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on the foundational laws of chemistry in this lesson, especially conservation of mass and definite proportions. Keep prompts short and concept-focused.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on the foundational laws of chemistry in this lesson, especially conservation of mass and definite proportions. Keep prompts short and concept-focused."
+        },
+        {
+            lessonId: "chem_04_periodic_table",
+            id: "chem_04_periodic_table",
+            episodeNumber: 4,
+            title: "The Periodic Table",
+            youtubeId: "0RRVV4Diomg",
+            coreConcepts: ["Groups and Periods", "Periodic Trends", "Mendeleev's Organization", "Metal vs Nonmetal Behavior"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on periodic table structure and trends from this lesson. Ask one question at a time and explain why each answer is right or wrong.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on periodic table structure and trends from this lesson. Ask one question at a time and explain why each answer is right or wrong."
+        },
+        {
+            lessonId: "chem_05_electron",
+            id: "chem_05_electron",
+            episodeNumber: 5,
+            title: "The Electron",
+            youtubeId: "rcKilE9CdaA",
+            coreConcepts: ["Electron Behavior", "Quantum Levels", "Orbitals", "Electron Configuration Basics"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on electron behavior, orbitals, and introductory electron configuration from this lesson. Keep the pace beginner-friendly.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on electron behavior, orbitals, and introductory electron configuration from this lesson. Keep the pace beginner-friendly."
+        },
+        {
+            lessonId: "chem_06_stoichiometry",
+            id: "chem_06_stoichiometry",
+            episodeNumber: 6,
+            title: "Stoichiometry - Chemistry for Massive Creatures",
+            youtubeId: "UL1jmJaUkaQ",
+            coreConcepts: ["Mole Concept", "Molar Mass", "Avogadro's Number", "Mole Ratios"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on stoichiometry setup from this lesson: moles, molar mass, and mole-ratio conversions. Ask one question at a time and check units.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on stoichiometry setup from this lesson: moles, molar mass, and mole-ratio conversions. Ask one question at a time and check units."
+        },
+        {
+            lessonId: "chem_07_water_solutions",
+            id: "chem_07_water_solutions",
+            episodeNumber: 7,
+            title: "Water & Solutions - for Dirty Laundry",
+            youtubeId: "AN4KifV12DA",
+            coreConcepts: ["Solutes and Solvents", "Polarity", "Dissolution Process", "Aqueous Solutions"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on solution chemistry ideas from this lesson, focusing on polarity and dissolution.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on solution chemistry ideas from this lesson, focusing on polarity and dissolution."
+        },
+        {
+            lessonId: "chem_08_acid_base",
+            id: "chem_08_acid_base",
+            episodeNumber: 8,
+            title: "Acid-Base Reactions in Solution",
+            youtubeId: "ANi709MYnWg",
+            coreConcepts: ["Acids and Bases", "Proton Transfer", "Neutralization", "Conjugate Pairs"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on acid-base reaction ideas from this lesson. Keep questions strictly on proton transfer and neutralization logic.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on acid-base reaction ideas from this lesson. Keep questions strictly on proton transfer and neutralization logic."
+        },
+        {
+            lessonId: "chem_09_precipitation",
+            id: "chem_09_precipitation",
+            episodeNumber: 9,
+            title: "Precipitation Reactions",
+            youtubeId: "IIu16dy3ThI",
+            coreConcepts: ["Solubility Rules", "Precipitate Formation", "Ionic Equations", "Net Ionic Equations"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on precipitation reactions and net ionic equations from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on precipitation reactions and net ionic equations from this lesson."
+        },
+        {
+            lessonId: "chem_10_redox",
+            id: "chem_10_redox",
+            episodeNumber: 10,
+            title: "Redox Reactions",
+            youtubeId: "lQ6FBA1HM3s",
+            coreConcepts: ["Oxidation States", "Electron Transfer", "Oxidation vs Reduction", "Half-Reactions"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on redox fundamentals from this lesson, especially oxidation-state tracking.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on redox fundamentals from this lesson, especially oxidation-state tracking."
+        },
+        {
+            lessonId: "chem_11_nomenclature",
+            id: "chem_11_nomenclature",
+            episodeNumber: 11,
+            title: "How to Speak Chemistrian",
+            youtubeId: "mlRhLicNo8Q",
+            coreConcepts: ["Ionic Naming", "Molecular Naming", "Polyatomic Ions", "Formula-to-Name Rules"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on nomenclature rules from this lesson and provide correction with naming steps.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on nomenclature rules from this lesson and provide correction with naming steps."
+        },
+        {
+            lessonId: "chem_12_ideal_gas_law",
+            id: "chem_12_ideal_gas_law",
+            episodeNumber: 12,
+            title: "The Ideal Gas Law",
+            youtubeId: "BxUS1K7xu30",
+            coreConcepts: ["PV=nRT", "Gas Variables", "Unit Consistency", "State Conditions"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on ideal gas law setup from this lesson. Emphasize units and variable meaning.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on ideal gas law setup from this lesson. Emphasize units and variable meaning."
+        },
+        {
+            lessonId: "chem_13_ideal_gas_problems",
+            id: "chem_13_ideal_gas_problems",
+            episodeNumber: 13,
+            title: "Ideal Gas Problems",
+            youtubeId: "8SRAkXMu3d0",
+            coreConcepts: ["Gas Law Calculations", "R Constant Choices", "Rearranging PV=nRT", "Gas Stoichiometry"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on solving ideal gas problems from this lesson and check calculation setup step-by-step.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on solving ideal gas problems from this lesson and check calculation setup step-by-step."
+        },
+        {
+            lessonId: "chem_14_real_gases",
+            id: "chem_14_real_gases",
+            episodeNumber: 14,
+            title: "Real Gases",
+            youtubeId: "GIPrsWuSkQc",
+            coreConcepts: ["Non-Ideal Behavior", "Intermolecular Attractions", "Van der Waals Model", "High Pressure Effects"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on why real gases deviate from ideal behavior in this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on why real gases deviate from ideal behavior in this lesson."
+        },
+        {
+            lessonId: "chem_15_partial_pressures",
+            id: "chem_15_partial_pressures",
+            episodeNumber: 15,
+            title: "Partial Pressures & Vapor Pressure",
+            youtubeId: "JbqtqCunYzA",
+            coreConcepts: ["Dalton's Law", "Partial Pressure", "Vapor Pressure", "Mole Fraction"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on partial and vapor pressure concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on partial and vapor pressure concepts from this lesson."
+        },
+        {
+            lessonId: "chem_16_effusion_diffusion",
+            id: "chem_16_effusion_diffusion",
+            episodeNumber: 16,
+            title: "Passing Gases: Effusion, Diffusion, and the Velocity of a Gas",
+            youtubeId: "TLRZAFU_9Kg",
+            coreConcepts: ["Effusion", "Diffusion", "Graham's Law", "Gas Molecular Speed"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on effusion and diffusion concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on effusion and diffusion concepts from this lesson."
+        },
+        {
+            lessonId: "chem_17_energy_chemistry",
+            id: "chem_17_energy_chemistry",
+            episodeNumber: 17,
+            title: "Energy & Chemistry",
+            youtubeId: "GqtUWyDR1fg",
+            coreConcepts: ["System vs Surroundings", "Energy Transfer", "Thermodynamic Processes", "Conservation of Energy"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on thermochemistry foundations from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on thermochemistry foundations from this lesson."
+        },
+        {
+            lessonId: "chem_18_enthalpy",
+            id: "chem_18_enthalpy",
+            episodeNumber: 18,
+            title: "Enthalpy",
+            youtubeId: "SV7U4yAXL5I",
+            coreConcepts: ["Enthalpy Change", "Endothermic vs Exothermic", "Hess's Law", "Heat of Reaction"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on enthalpy concepts and sign conventions from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on enthalpy concepts and sign conventions from this lesson."
+        },
+        {
+            lessonId: "chem_19_calorimetry",
+            id: "chem_19_calorimetry",
+            episodeNumber: 19,
+            title: "Calorimetry",
+            youtubeId: "JuWtBR-rDQk",
+            coreConcepts: ["Calorimetry Setup", "q=mcDeltaT", "Specific Heat", "Heat Exchange"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on calorimetry calculations and interpretation from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on calorimetry calculations and interpretation from this lesson."
+        },
+        {
+            lessonId: "chem_20_entropy",
+            id: "chem_20_entropy",
+            episodeNumber: 20,
+            title: "Entropy: Embrace the Chaos!",
+            youtubeId: "ZsY4WcQOrfk",
+            coreConcepts: ["Entropy", "Disorder", "Second Law", "Spontaneity Trends"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on entropy and spontaneity concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on entropy and spontaneity concepts from this lesson."
+        },
+        {
+            lessonId: "chem_21_lab_safety",
+            id: "chem_21_lab_safety",
+            episodeNumber: 21,
+            title: "Lab Techniques & Safety",
+            youtubeId: "VRWRmIEHr3A",
+            coreConcepts: ["Lab Safety Rules", "Measurement Technique", "Glassware Handling", "Procedure Discipline"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on lab safety and technique principles from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on lab safety and technique principles from this lesson."
+        },
+        {
+            lessonId: "chem_22_bond_types",
+            id: "chem_22_bond_types",
+            episodeNumber: 22,
+            title: "Atomic Hook-Ups - Types of Chemical Bonds",
+            youtubeId: "QXT4OVM4vXI",
+            coreConcepts: ["Ionic Bonding", "Covalent Bonding", "Metallic Bonding", "Electronegativity Differences"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on chemical bond types from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on chemical bond types from this lesson."
+        },
+        {
+            lessonId: "chem_23_polarity",
+            id: "chem_23_polarity",
+            episodeNumber: 23,
+            title: "Polar & Non-Polar Molecules",
+            youtubeId: "PVL24HAesnc",
+            coreConcepts: ["Molecular Polarity", "Dipole Moment", "Geometry and Symmetry", "Electronegativity Effect"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on polarity and dipole reasoning from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on polarity and dipole reasoning from this lesson."
+        },
+        {
+            lessonId: "chem_24_lewis_structures",
+            id: "chem_24_lewis_structures",
+            episodeNumber: 24,
+            title: "Bonding Models and Lewis Structures",
+            youtubeId: "a8LF7JEb0IA",
+            coreConcepts: ["Lewis Structures", "Valence Electrons", "Octet Rule", "Resonance"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on Lewis structure construction and bonding models from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on Lewis structure construction and bonding models from this lesson."
+        },
+        {
+            lessonId: "chem_25_orbitals",
+            id: "chem_25_orbitals",
+            episodeNumber: 25,
+            title: "Orbitals",
+            youtubeId: "cPDptc0wUYI",
+            coreConcepts: ["Orbital Shapes", "Hybridization", "Sigma and Pi Bonds", "Molecular Orbital Ideas"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on orbital concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on orbital concepts from this lesson."
+        },
+        {
+            lessonId: "chem_26_liquids",
+            id: "chem_26_liquids",
+            episodeNumber: 26,
+            title: "Liquids",
+            youtubeId: "BqQJPCdmIp8",
+            coreConcepts: ["Intermolecular Forces", "Viscosity", "Surface Tension", "Phase Behavior"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on liquid-state properties from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on liquid-state properties from this lesson."
+        },
+        {
+            lessonId: "chem_27_solutions",
+            id: "chem_27_solutions",
+            episodeNumber: 27,
+            title: "Solutions",
+            youtubeId: "9h2f1Bjr0p4",
+            coreConcepts: ["Molarity", "Molality", "Colligative Properties", "Solution Behavior"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on concentration and solution properties from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on concentration and solution properties from this lesson."
+        },
+        {
+            lessonId: "chem_28_equilibrium",
+            id: "chem_28_equilibrium",
+            episodeNumber: 28,
+            title: "Equilibrium",
+            youtubeId: "g5wNg_dKsYY",
+            coreConcepts: ["Dynamic Equilibrium", "Reversible Reactions", "Le Chatelier Principle", "Stress Response"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on dynamic equilibrium concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on dynamic equilibrium concepts from this lesson."
+        },
+        {
+            lessonId: "chem_29_equilibrium_equations",
+            id: "chem_29_equilibrium_equations",
+            episodeNumber: 29,
+            title: "Equilibrium Equations",
+            youtubeId: "DP-vWN1yXrY",
+            coreConcepts: ["Equilibrium Constants", "Kc and Kp", "Reaction Quotient Q", "ICE Tables"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on equilibrium calculations and equation setup from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on equilibrium calculations and equation setup from this lesson."
+        },
+        {
+            lessonId: "chem_30_ph_poh",
+            id: "chem_30_ph_poh",
+            episodeNumber: 30,
+            title: "pH and pOH",
+            youtubeId: "LS67vS10O5Y",
+            coreConcepts: ["pH Scale", "pOH", "Logarithmic Concentration", "Acid/Base Strength"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on pH and pOH reasoning from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on pH and pOH reasoning from this lesson."
+        },
+        {
+            lessonId: "chem_31_buffers",
+            id: "chem_31_buffers",
+            episodeNumber: 31,
+            title: "Buffers, the Acid Rain Slayer",
+            youtubeId: "8Fdt5WnYn1k",
+            coreConcepts: ["Buffer Systems", "Buffer Capacity", "Henderson-Hasselbalch", "Common Ion Effect"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on buffer chemistry from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on buffer chemistry from this lesson."
+        },
+        {
+            lessonId: "chem_32_kinetics",
+            id: "chem_32_kinetics",
+            episodeNumber: 32,
+            title: "Kinetics: Chemistry's Demolition Derby",
+            youtubeId: "7qOFtL3VEBc",
+            coreConcepts: ["Reaction Rate", "Activation Energy", "Rate Laws", "Catalyst Effects"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on chemical kinetics concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on chemical kinetics concepts from this lesson."
+        },
+        {
+            lessonId: "chem_33_solids",
+            id: "chem_33_solids",
+            episodeNumber: 33,
+            title: "Doing Solids",
+            youtubeId: "bzr-byiSXlA",
+            coreConcepts: ["Crystalline Solids", "Amorphous Solids", "Unit Cells", "Lattice Concepts"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on solid-state chemistry concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on solid-state chemistry concepts from this lesson."
+        },
+        {
+            lessonId: "chem_34_network_solids",
+            id: "chem_34_network_solids",
+            episodeNumber: 34,
+            title: "Network Solids and Carbon",
+            youtubeId: "b_SXwfHQ774",
+            coreConcepts: ["Network Solids", "Carbon Allotropes", "Diamond vs Graphite", "Covalent Networks"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on network solids and carbon allotropes from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on network solids and carbon allotropes from this lesson."
+        },
+        {
+            lessonId: "chem_35_silicon",
+            id: "chem_35_silicon",
+            episodeNumber: 35,
+            title: "Silicon - The Internet's Favorite Element",
+            youtubeId: "kdy3RsZk7As",
+            coreConcepts: ["Silicon Chemistry", "Semiconductors", "Metalloid Properties", "Silicate Structures"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on silicon and semiconductor chemistry from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on silicon and semiconductor chemistry from this lesson."
+        },
+        {
+            lessonId: "chem_36_electrochemistry",
+            id: "chem_36_electrochemistry",
+            episodeNumber: 36,
+            title: "Electrochemistry",
+            youtubeId: "IV4IUsholjg",
+            coreConcepts: ["Galvanic Cells", "Anode and Cathode", "Cell Potential", "Nernst Equation"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on electrochemistry and cell notation from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on electrochemistry and cell notation from this lesson."
+        },
+        {
+            lessonId: "chem_37_atomic_history",
+            id: "chem_37_atomic_history",
+            episodeNumber: 37,
+            title: "The History of Atomic Chemistry",
+            youtubeId: "thnDxFdkzZs",
+            coreConcepts: ["Dalton Model", "Thomson Model", "Rutherford Model", "Bohr Model"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on historical atomic models from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on historical atomic models from this lesson."
+        },
+        {
+            lessonId: "chem_38_nuclear_chemistry",
+            id: "chem_38_nuclear_chemistry",
+            episodeNumber: 38,
+            title: "Nuclear Chemistry",
+            youtubeId: "KWAsz59F8gA",
+            coreConcepts: ["Radioactive Decay", "Alpha Beta Gamma", "Half-Life", "Nuclear Stability"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on nuclear chemistry basics from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on nuclear chemistry basics from this lesson."
+        },
+        {
+            lessonId: "chem_39_fusion_fission",
+            id: "chem_39_fusion_fission",
+            episodeNumber: 39,
+            title: "Nuclear Chemistry Part 2 - Fusion and Fission",
+            youtubeId: "FU6y1XIADdg",
+            coreConcepts: ["Nuclear Fission", "Nuclear Fusion", "Mass Defect", "Binding Energy"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on fusion and fission concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on fusion and fission concepts from this lesson."
+        },
+        {
+            lessonId: "chem_40_hydrocarbon_power",
+            id: "chem_40_hydrocarbon_power",
+            episodeNumber: 40,
+            title: "Hydrocarbon Power!",
+            youtubeId: "UloIw7dhnlQ",
+            coreConcepts: ["Hydrocarbon Families", "Alkanes", "Saturated Hydrocarbons", "Organic Frameworks"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on hydrocarbon basics from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on hydrocarbon basics from this lesson."
+        },
+        {
+            lessonId: "chem_41_alkenes_alkynes",
+            id: "chem_41_alkenes_alkynes",
+            episodeNumber: 41,
+            title: "Alkenes & Alkynes",
+            youtubeId: "CEH3O6l1pbw",
+            coreConcepts: ["Unsaturation", "Double Bonds", "Triple Bonds", "Isomerism"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on alkene and alkyne concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on alkene and alkyne concepts from this lesson."
+        },
+        {
+            lessonId: "chem_42_aromatics_cyclic",
+            id: "chem_42_aromatics_cyclic",
+            episodeNumber: 42,
+            title: "Aromatics & Cyclic Compounds",
+            youtubeId: "kXFEex-dABU",
+            coreConcepts: ["Aromaticity", "Benzene Ring", "Resonance Stabilization", "Cyclic Structures"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on aromatic and cyclic compound concepts from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on aromatic and cyclic compound concepts from this lesson."
+        },
+        {
+            lessonId: "chem_43_derivatives",
+            id: "chem_43_derivatives",
+            episodeNumber: 43,
+            title: "Hydrocarbon Derivatives",
+            youtubeId: "hlXc_eEtBHA",
+            coreConcepts: ["Functional Groups", "Alcohols and Ethers", "Carboxylic Acids", "Derivative Classification"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on hydrocarbon derivative functional groups from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on hydrocarbon derivative functional groups from this lesson."
+        },
+        {
+            lessonId: "chem_44_nomenclature_organic",
+            id: "chem_44_nomenclature_organic",
+            episodeNumber: 44,
+            title: "Nomenclature",
+            youtubeId: "U7wavimfNFE",
+            coreConcepts: ["IUPAC Naming", "Parent Chain Rules", "Substituent Numbering", "Naming Priority"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on organic nomenclature rules from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on organic nomenclature rules from this lesson."
+        },
+        {
+            lessonId: "chem_45_polymers",
+            id: "chem_45_polymers",
+            episodeNumber: 45,
+            title: "Polymers",
+            youtubeId: "rHxxLYzJ8Sw",
+            coreConcepts: ["Monomers", "Polymerization", "Synthetic vs Natural Polymers", "Polymer Properties"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on polymer chemistry from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on polymer chemistry from this lesson."
+        },
+        {
+            lessonId: "chem_46_global_carbon_cycle",
+            id: "chem_46_global_carbon_cycle",
+            episodeNumber: 46,
+            title: "The Global Carbon Cycle",
+            youtubeId: "aLuSi_6Ol8M",
+            coreConcepts: ["Carbon Reservoirs", "Carbon Fixation", "Respiration and Decomposition", "Fossil Fuel Cycling"],
+            tutorSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on global carbon cycle pathways from this lesson.",
+            customSystemPrompt: "You are Gemma4 as an encouraging chemistry tutor. Quiz the learner only on global carbon cycle pathways from this lesson."
+        }
+    ],
+
     labEquipment: {
         analyticalBalance: {
             name: "Analytical Balance",

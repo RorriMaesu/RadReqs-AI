@@ -50,12 +50,16 @@ The foundational module for clinical language mastery.
   </tr>
 </table>
 
-### 3. Intro to Chemistry (New Module)
-An interactive chemistry practice module focused on prereq mastery for CH 104Z-style coursework.
-- **Entry Diagnostic + Learning Tracks:** Places learners into Foundation, Core, or Challenge track.
-- **Lab Precision Trainer:** Practices analog/digital instrument reading, meniscus interpretation, and precision rules.
-- **Core Skill Practice:** Includes molar mass, dimensional analysis, stoichiometry, significant figures, and nomenclature drills.
-- **Prof. Beaker (AI Tutor):** Context-aware chemistry coaching powered by your local Ollama model.
+### 3. Intro to Chemistry (Active Expansion)
+A full chemistry learning system spanning Skills Lab, Coursework, and Homework Binder, built for CH 104Z/124Z-style progression.
+- **Skills Lab + Crash Course Hub:** Dedicated **Crash Course Chemistry** section with episode playlist navigation, in-modal playback, concept chips, watched tracking, previous/next episode actions, and 3-question micro-quiz reinforcement.
+- **Diagnostic + Practice Track:** Entry diagnostic and guided practice pathways for core prereq competencies.
+- **Core Calculator Stack:** Molar mass, dimensional analysis, stoichiometry, significant figures, nomenclature, and lab-focused precision tools.
+- **Coursework State Machine (4 Stages):** Micro-lecture -> Socratic check -> Sandbox handshake -> Feynman final, with lesson-level continuity and session recovery.
+- **Homework Binder Accreditation:** Procedurally generated 10-question worksheet sets with strict local grading and an **80% mastery threshold**.
+- **Explore Mode (Cross-Page):** Universal bypass toggle in Coursework/Homework headers for free curriculum exploration without auto-crediting mastery.
+- **Universal Reset Progress:** Header-level reset control across chemistry pages with typed `RESET` confirmation, cross-tab synchronization, and a compact success toast before reload.
+- **Prof. Beaker (AI Tutor):** Context-aware chemistry guidance powered by your local Ollama model.
 
 ### 4. Clinical Mathematics (New Module)
 A specialized mathematical engine designed to enforce safety and accuracy in clinical dosimetry calculations.

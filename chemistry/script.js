@@ -2,10 +2,12 @@ const CHEM_STATE_KEY = "chemistry_learning_state_v1";
 const CHEM_NOMEN_SRS_STATE_KEY = "chem_nomen_srs_state_v2";
 const CHEM_POLY_SRS_STATE_KEY = "chem_polyatomic_srs_state_v1";
 const CHEM_POLY_LEGACY_KEY = "chem_polyatomic_mastered_v1";
+const CHEM_VIDEO_STATE_KEY = "chemistry_video_state_v1";
 let learningState = null;
 let activateChemTab = () => {};
 let diagnosticSession = null;
 let chemistrySessionGamification = { streak: 0, xp: 0 };
+let chemistryVideoState = null;
 
 const chemistryDeckRegistry = {
     nomen: { state: null, cardIds: [] },
@@ -101,8 +103,10 @@ function removeContainerTypingIndicator(containerEl) {
 
 document.addEventListener("DOMContentLoaded", () => {
     learningState = loadLearningState();
+    chemistryVideoState = loadVideoState();
 
     bindDarkModeToggle();
+    bindChemistryProgressResetButton();
     bindTabs();
     mountConstants();
     mountElementChips();
@@ -119,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindLabActions();
     bindDiagnosticActions();
     bindTutorActions();
+    bindVideoActions();
     renderCompetencyMap();
     renderLearningStatus();
     renderDiagnosticState();
@@ -1897,6 +1902,29 @@ function bindDarkModeToggle() {
     });
 }
 
+function bindChemistryProgressResetButton() {
+    const btn = document.getElementById("btn-reset-progress");
+    if (!btn) return;
+
+    const resetEventName = window.CHEMISTRY_PROGRESS_RESET_EVENT || "chemistryProgressReset";
+
+    window.addEventListener(resetEventName, () => {
+        if (typeof window.scheduleChemistryResetReload === "function") {
+            window.scheduleChemistryResetReload("Progress reset accepted. Reloading module...");
+            return;
+        }
+        window.location.reload();
+    });
+
+    btn.addEventListener("click", () => {
+        if (typeof window.confirmAndResetChemistryProgress !== "function") {
+            window.alert("Reset service unavailable on this page.");
+            return;
+        }
+        window.confirmAndResetChemistryProgress();
+    });
+}
+
 function bindTutorActions() {
     const checkStatus = async () => {
         const dot = document.getElementById("chat-status-dot");
@@ -2104,16 +2132,444 @@ function bindTutorActions() {
     });
 }
 
+function loadVideoState() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(CHEM_VIDEO_STATE_KEY) || "{}");
+        const completedEpisodeIds = Array.isArray(parsed.completedEpisodeIds)
+            ? Array.from(new Set(parsed.completedEpisodeIds.filter((id) => typeof id === "string" && id.trim().length > 0)))
+            : [];
+        return {
+            completedEpisodeIds,
+            lastEpisodeId: typeof parsed.lastEpisodeId === "string" ? parsed.lastEpisodeId : null,
+            quizByEpisode: parsed.quizByEpisode && typeof parsed.quizByEpisode === "object" ? parsed.quizByEpisode : {}
+        };
+    } catch {
+        return { completedEpisodeIds: [], lastEpisodeId: null, quizByEpisode: {} };
+    }
+}
+
+function saveVideoState() {
+    if (!chemistryVideoState) return;
+    localStorage.setItem(CHEM_VIDEO_STATE_KEY, JSON.stringify(chemistryVideoState));
+}
+
+function getVideoEpisodes() {
+    return Array.isArray(window.ChemData?.videoCurriculum) ? window.ChemData.videoCurriculum : [];
+}
+
+function buildVideoQuizSystemPrompt(episode) {
+    const conceptText = (episode?.coreConcepts || []).join(", ");
+    return [
+        "You are Prof. Beaker, a novice-first Intro Chemistry tutor.",
+        `The learner just finished video episode ${episode?.episodeNumber || ""}: ${episode?.title || "Unknown"}.`,
+        `Focus only on these concepts: ${conceptText}.`,
+        "Run a brief 3-question micro-quiz with one question at a time.",
+        "After each answer, provide short corrective feedback and a confidence check.",
+        "Use plain text only and avoid LaTeX syntax."
+    ].join(" ");
+}
+
+function bindVideoActions() {
+    const listEl = document.getElementById("video-episode-list");
+    const modalEl = document.getElementById("video-episode-modal");
+    const modalBackdropEl = document.getElementById("video-episode-modal-backdrop");
+    const modalCloseBtn = document.getElementById("btn-video-modal-close");
+    const iframeEl = document.getElementById("chem-video-player");
+    const warningEl = document.getElementById("video-empty-warning");
+    const titleEl = document.getElementById("video-active-title");
+    const chipsEl = document.getElementById("video-concept-chips");
+    const outcomeEl = document.getElementById("video-outcome-text");
+    const prevTitleEl = document.getElementById("video-prev-title");
+    const nextTitleEl = document.getElementById("video-next-title");
+    const prevBtn = document.getElementById("btn-video-prev-episode");
+    const nextBtn = document.getElementById("btn-video-next-episode");
+    const completeBtn = document.getElementById("btn-video-mark-complete");
+    const quizBtn = document.getElementById("btn-video-start-quiz");
+    const quizPanel = document.getElementById("video-quiz-panel");
+    const tutorAnchor = document.getElementById("video-tutor-anchor");
+    const quizOverlayEl = document.getElementById("video-quiz-overlay");
+    const quizOverlayHost = document.getElementById("video-quiz-overlay-host");
+    const quizOverlayCloseBtn = document.getElementById("btn-video-quiz-overlay-close");
+    const quizMobileEl = document.getElementById("video-quiz-mobile");
+    const quizMobileHost = document.getElementById("video-quiz-mobile-host");
+    const quizMobileCloseBtn = document.getElementById("btn-video-quiz-mobile-close");
+    const completionPill = document.getElementById("video-completion-pill");
+    const dashboardSummaryEl = document.getElementById("dashboard-video-summary");
+    const dashboardProgressEl = document.getElementById("dashboard-video-progress");
+    const dashboardVideosBtn = document.getElementById("btn-dashboard-open-videos");
+    const dashboardTutorBtn = document.getElementById("btn-dashboard-open-tutor");
+
+    if (!listEl || !modalEl || !modalBackdropEl || !modalCloseBtn || !iframeEl || !titleEl || !chipsEl || !completeBtn || !quizBtn || !tutorAnchor || !completionPill) return;
+
+    dashboardVideosBtn?.addEventListener("click", () => activateChemTab("videos"));
+    dashboardTutorBtn?.addEventListener("click", () => activateChemTab("tutor"));
+
+    const episodes = getVideoEpisodes();
+    if (episodes.length === 0) {
+        listEl.innerHTML = `<div class="text-xs text-gray-500 p-3">No video curriculum entries found.</div>`;
+        return;
+    }
+
+    if (!chemistryVideoState) {
+        chemistryVideoState = loadVideoState();
+    }
+
+    let activeEpisodeId = chemistryVideoState.lastEpisodeId;
+    let modalOpen = false;
+    let lastTriggerEl = null;
+    if (!activeEpisodeId || !episodes.some((ep) => ep.id === activeEpisodeId)) {
+        activeEpisodeId = episodes[0].id;
+    }
+
+    const isComplete = (episodeId) => chemistryVideoState.completedEpisodeIds.includes(episodeId);
+    const isMobileQuizView = () => window.matchMedia("(max-width: 767px)").matches;
+
+    function setEpisodeCompletion(episodeId, shouldComplete) {
+        if (!episodeId) return false;
+        const alreadyComplete = isComplete(episodeId);
+        if (alreadyComplete === shouldComplete) return false;
+
+        if (shouldComplete) {
+            chemistryVideoState.completedEpisodeIds = Array.from(new Set([
+                ...chemistryVideoState.completedEpisodeIds,
+                episodeId
+            ]));
+        } else {
+            chemistryVideoState.completedEpisodeIds = chemistryVideoState.completedEpisodeIds.filter((id) => id !== episodeId);
+        }
+        return true;
+    }
+
+    function refreshVideoProgressViews() {
+        saveVideoState();
+        updateCompletionPill();
+        renderEpisodeList();
+        renderActiveEpisode();
+    }
+
+    function clearVideoQuizWidgets() {
+        quizOverlayHost?.replaceChildren();
+        quizMobileHost?.replaceChildren();
+    }
+
+    function closeVideoQuiz() {
+        quizOverlayEl?.classList.add("hidden");
+        quizOverlayEl?.setAttribute("aria-hidden", "true");
+        quizMobileEl?.classList.add("hidden");
+        quizMobileEl?.setAttribute("aria-hidden", "true");
+        iframeEl.classList.remove("video-player-frame-hidden");
+        clearVideoQuizWidgets();
+    }
+
+    function getEpisodeIndex(episodeId) {
+        return episodes.findIndex((ep) => ep.id === episodeId);
+    }
+
+    function getNextEpisode() {
+        const currentIdx = getEpisodeIndex(activeEpisodeId);
+        const fromIdx = currentIdx >= 0 ? currentIdx + 1 : 0;
+        const nextUnfinished = episodes.slice(fromIdx).find((ep) => !isComplete(ep.id));
+        if (nextUnfinished) return nextUnfinished;
+        return episodes[fromIdx] || null;
+    }
+
+    function getPreviousEpisode() {
+        const currentIdx = getEpisodeIndex(activeEpisodeId);
+        if (currentIdx <= 0) return null;
+        return episodes[currentIdx - 1] || null;
+    }
+
+    function buildOutcomeCopy(episode) {
+        const concepts = Array.isArray(episode?.coreConcepts) ? episode.coreConcepts : [];
+        if (concepts.length === 0) {
+            return "Complete this episode, then run a short micro-quiz to lock in the core ideas.";
+        }
+        const leadConcepts = concepts.slice(0, 2).join(" and ");
+        return `After this episode, you should be able to explain ${leadConcepts} in your own words.`;
+    }
+
+    function updateCompletionPill() {
+        const completeCount = chemistryVideoState.completedEpisodeIds.length;
+        const remainingCount = Math.max(episodes.length - completeCount, 0);
+        completionPill.textContent = `${completeCount} / ${episodes.length} Complete • ${remainingCount} to go`;
+    }
+
+    function openVideoEpisodeModal(triggerEl = null) {
+        if (triggerEl) {
+            lastTriggerEl = triggerEl;
+        }
+        closeVideoQuiz();
+        modalOpen = true;
+        modalEl.classList.remove("hidden");
+        modalEl.setAttribute("aria-hidden", "false");
+        modalCloseBtn.focus();
+    }
+
+    function closeVideoEpisodeModal() {
+        if (!modalOpen) return;
+        closeVideoQuiz();
+        modalOpen = false;
+        modalEl.classList.add("hidden");
+        modalEl.setAttribute("aria-hidden", "true");
+        iframeEl.src = "";
+        if (lastTriggerEl && typeof lastTriggerEl.focus === "function") {
+            lastTriggerEl.focus();
+        }
+    }
+
+    function updateDashboardCta() {
+        if (dashboardProgressEl) {
+            dashboardProgressEl.textContent = `${chemistryVideoState.completedEpisodeIds.length} of ${episodes.length} episodes complete`;
+        }
+        if (!dashboardSummaryEl) return;
+
+        const active = episodes.find((ep) => ep.id === activeEpisodeId) || episodes[0];
+        const next = getNextEpisode();
+        if (!active) {
+            dashboardSummaryEl.textContent = "Pick your next chemistry episode, then lock in concepts with a 3-question micro-quiz.";
+            return;
+        }
+        const nextText = next ? `Next: Episode ${next.episodeNumber}` : "Final stretch";
+        dashboardSummaryEl.textContent = `Continue with Episode ${active.episodeNumber}: ${active.title}. ${nextText}.`;
+    }
+
+    function renderEpisodeList() {
+        listEl.innerHTML = "";
+        episodes.forEach((episode) => {
+            const row = document.createElement("div");
+            const openBtn = document.createElement("button");
+            const toggleBtn = document.createElement("button");
+            const active = episode.id === activeEpisodeId;
+            const completed = isComplete(episode.id);
+            row.className = [
+                "w-full rounded-xl border p-2 transition-colors flex items-start gap-2",
+                active ? "bg-amber-50 border-amber-300" : "bg-white hover:bg-gray-50 border-gray-200",
+            ].join(" ");
+
+            openBtn.type = "button";
+            openBtn.className = "flex-1 text-left rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-400/40";
+            openBtn.innerHTML = `
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-xs font-black text-gray-500">EP ${episode.episodeNumber}</p>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${completed ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-500"}">${completed ? "Completed" : "Pending"}</span>
+                </div>
+                <p class="text-sm font-semibold text-gray-800 mt-1 leading-tight">${episode.title}</p>
+            `;
+            openBtn.addEventListener("click", () => {
+                activeEpisodeId = episode.id;
+                chemistryVideoState.lastEpisodeId = episode.id;
+                saveVideoState();
+                renderEpisodeList();
+                renderActiveEpisode();
+                openVideoEpisodeModal(openBtn);
+            });
+
+            toggleBtn.type = "button";
+            toggleBtn.className = [
+                "shrink-0 mt-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors",
+                completed
+                    ? "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                    : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+            ].join(" ");
+            toggleBtn.textContent = completed ? "Unmark" : "Mark";
+            toggleBtn.setAttribute("aria-label", `${completed ? "Unmark" : "Mark"} Episode ${episode.episodeNumber} as watched`);
+            toggleBtn.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const changed = setEpisodeCompletion(episode.id, !isComplete(episode.id));
+                if (!changed) return;
+                refreshVideoProgressViews();
+            });
+
+            row.appendChild(openBtn);
+            row.appendChild(toggleBtn);
+            listEl.appendChild(row);
+        });
+    }
+
+    function renderActiveEpisode() {
+        const episode = episodes.find((ep) => ep.id === activeEpisodeId);
+        if (!episode) return;
+        const previousEpisode = getPreviousEpisode();
+        const nextEpisode = getNextEpisode();
+
+        titleEl.textContent = `Episode ${episode.episodeNumber}: ${episode.title}`;
+        chipsEl.innerHTML = "";
+        (episode.coreConcepts || []).forEach((concept) => {
+            const chip = document.createElement("span");
+            chip.className = "px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200";
+            chip.textContent = concept;
+            chipsEl.appendChild(chip);
+        });
+
+        if (outcomeEl) {
+            outcomeEl.textContent = buildOutcomeCopy(episode);
+        }
+        if (prevTitleEl) {
+            prevTitleEl.textContent = previousEpisode
+                ? `Previous episode: ${previousEpisode.episodeNumber} - ${previousEpisode.title}`
+                : "Previous episode: this is the first episode";
+        }
+        if (nextTitleEl) {
+            nextTitleEl.textContent = nextEpisode
+                ? `Next episode: ${nextEpisode.episodeNumber} - ${nextEpisode.title}`
+                : "Next episode: you reached the end of this sequence";
+        }
+        if (prevBtn) {
+            const canGoBack = !!previousEpisode;
+            prevBtn.disabled = !canGoBack;
+            prevBtn.classList.toggle("opacity-60", !canGoBack);
+            prevBtn.classList.toggle("cursor-not-allowed", !canGoBack);
+        }
+        if (nextBtn) {
+            const canAdvance = !!nextEpisode;
+            nextBtn.disabled = !canAdvance;
+            nextBtn.classList.toggle("opacity-60", !canAdvance);
+            nextBtn.classList.toggle("cursor-not-allowed", !canAdvance);
+        }
+
+        if (episode.youtubeId) {
+            iframeEl.src = `https://www.youtube.com/embed/${episode.youtubeId}?rel=0&modestbranding=1`;
+            if (warningEl) warningEl.classList.add("hidden");
+        } else {
+            iframeEl.src = "";
+            if (warningEl) warningEl.classList.remove("hidden");
+        }
+
+        const completed = isComplete(episode.id);
+        completeBtn.textContent = completed ? "Unmark Watched" : "Mark Watched";
+        completeBtn.disabled = false;
+        completeBtn.classList.remove(
+            "opacity-60",
+            "cursor-not-allowed",
+            "text-white",
+            "bg-emerald-600",
+            "hover:bg-emerald-500",
+            "border",
+            "border-transparent",
+            "text-amber-900",
+            "bg-amber-200",
+            "hover:bg-amber-300",
+            "border-amber-300"
+        );
+        if (completed) {
+            completeBtn.classList.add("border", "text-amber-900", "bg-amber-200", "hover:bg-amber-300", "border-amber-300");
+        } else {
+            completeBtn.classList.add("border", "text-white", "bg-emerald-600", "hover:bg-emerald-500", "border-transparent");
+        }
+
+        updateDashboardCta();
+    }
+
+    function launchMicroQuiz() {
+        const episode = episodes.find((ep) => ep.id === activeEpisodeId);
+        if (!episode) return;
+
+        const starterPrompt = `I just finished Episode ${episode.episodeNumber}: ${episode.title}. Please run a short chemistry micro-quiz focused on: ${(episode.coreConcepts || []).join(", ")}.`;
+        const systemContext = episode.customSystemPrompt || buildVideoQuizSystemPrompt(episode);
+
+        if (window.ChemTutor && typeof window.ChemTutor.invoke === "function") {
+            const mobile = isMobileQuizView();
+            if (mobile) {
+                quizMobileEl?.classList.remove("hidden");
+                quizMobileEl?.setAttribute("aria-hidden", "false");
+                quizOverlayEl?.classList.add("hidden");
+                quizOverlayEl?.setAttribute("aria-hidden", "true");
+                iframeEl.classList.add("video-player-frame-hidden");
+                clearVideoQuizWidgets();
+                window.ChemTutor.invoke(starterPrompt, quizMobileHost || tutorAnchor, systemContext, {
+                    mountMode: "append",
+                    widgetClassName: "video-quiz-widget",
+                    showInnerClose: false
+                });
+            } else {
+                quizOverlayEl?.classList.remove("hidden");
+                quizOverlayEl?.setAttribute("aria-hidden", "false");
+                quizMobileEl?.classList.add("hidden");
+                quizMobileEl?.setAttribute("aria-hidden", "true");
+                iframeEl.classList.add("video-player-frame-hidden");
+                clearVideoQuizWidgets();
+                window.ChemTutor.invoke(starterPrompt, quizOverlayHost || tutorAnchor, systemContext, {
+                    mountMode: "append",
+                    widgetClassName: "video-quiz-widget h-full",
+                    showInnerClose: false
+                });
+            }
+        }
+    }
+
+    completeBtn.addEventListener("click", () => {
+        const episode = episodes.find((ep) => ep.id === activeEpisodeId);
+        if (!episode) return;
+
+        const changed = setEpisodeCompletion(episode.id, !isComplete(episode.id));
+        if (!changed) return;
+        chemistryVideoState.lastEpisodeId = episode.id;
+        refreshVideoProgressViews();
+    });
+
+    quizBtn.addEventListener("click", launchMicroQuiz);
+
+    prevBtn?.addEventListener("click", () => {
+        const previousEpisode = getPreviousEpisode();
+        if (!previousEpisode) return;
+        closeVideoQuiz();
+        activeEpisodeId = previousEpisode.id;
+        chemistryVideoState.lastEpisodeId = previousEpisode.id;
+        saveVideoState();
+        renderEpisodeList();
+        renderActiveEpisode();
+    });
+
+    nextBtn?.addEventListener("click", () => {
+        const nextEpisode = getNextEpisode();
+        if (!nextEpisode) return;
+        closeVideoQuiz();
+        activeEpisodeId = nextEpisode.id;
+        chemistryVideoState.lastEpisodeId = nextEpisode.id;
+        saveVideoState();
+        renderEpisodeList();
+        renderActiveEpisode();
+    });
+
+    quizOverlayCloseBtn?.addEventListener("click", closeVideoQuiz);
+    quizMobileCloseBtn?.addEventListener("click", closeVideoQuiz);
+
+    modalCloseBtn.addEventListener("click", closeVideoEpisodeModal);
+    modalBackdropEl.addEventListener("click", closeVideoEpisodeModal);
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && modalOpen) {
+            closeVideoEpisodeModal();
+        }
+    });
+
+    updateCompletionPill();
+    renderEpisodeList();
+    renderActiveEpisode();
+}
+
 function bindTabs() {
+    const tabs = ['dashboard', 'nomenclature', 'tutor', 'molar', 'dimensions', 'stoich', 'sigfigs', 'lab', 'videos'];
+
     window.activateChemTab = (tabId) => {
+        const requestedTab = tabs.includes(tabId) ? tabId : 'dashboard';
+
         // Hide all panels and reset all nav buttons
-        ['dashboard', 'nomenclature', 'tutor', 'molar', 'dimensions', 'stoich', 'sigfigs', 'lab'].forEach(id => {
+        tabs.forEach(id => {
             const view = document.getElementById(`view-${id}`);
-            if (view) view.classList.add('hidden-tab');
+            if (view) {
+                view.classList.add('hidden-tab');
+                view.setAttribute('aria-hidden', 'true');
+            }
             
             // Reset top nav button
             const btn = document.getElementById(`nav-${id}`);
-            if (btn) btn.className = "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50";
+            if (btn) {
+                btn.className = "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50";
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-controls', `view-${id}`);
+                btn.setAttribute('aria-selected', 'false');
+                btn.setAttribute('tabindex', '-1');
+            }
 
             // Reset bottom nav button
             const bBtn = document.getElementById(`bnav-${id}`);
@@ -2122,31 +2578,53 @@ function bindTabs() {
                 const label = bBtn.querySelector('.bnav-label');
                 if (icon)  { icon.classList.remove('text-amber-600');  icon.classList.add('text-gray-400'); }
                 if (label) { label.classList.remove('text-amber-600'); label.classList.add('text-gray-400'); }
+                bBtn.setAttribute('role', 'tab');
+                bBtn.setAttribute('aria-controls', `view-${id}`);
+                bBtn.setAttribute('aria-selected', 'false');
+                bBtn.setAttribute('tabindex', '-1');
             }
         });
 
         // Show selected panel
-        const activeView = document.getElementById(`view-${tabId}`);
-        if (activeView) activeView.classList.remove('hidden-tab');
+        const activeView = document.getElementById(`view-${requestedTab}`);
+        if (activeView) {
+            activeView.classList.remove('hidden-tab');
+            activeView.setAttribute('aria-hidden', 'false');
+        }
+
+        if (requestedTab === 'videos') {
+            const supportCard = document.getElementById('video-support-tribute');
+            if (supportCard) {
+                supportCard.classList.remove('fade-in');
+                void supportCard.offsetWidth;
+                supportCard.classList.add('fade-in');
+            }
+        }
 
         // Activate top nav button
-        const activeBtn = document.getElementById(`nav-${tabId}`);
-        if (activeBtn) activeBtn.className = "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 bg-white text-amber-700 shadow shadow-gray-300/50";
+        const activeBtn = document.getElementById(`nav-${requestedTab}`);
+        if (activeBtn) {
+            activeBtn.className = "px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 bg-white text-amber-700 shadow shadow-gray-300/50";
+            activeBtn.setAttribute('aria-selected', 'true');
+            activeBtn.setAttribute('tabindex', '0');
+        }
 
         // Activate bottom nav button
-        const activeBBtn = document.getElementById(`bnav-${tabId}`);
+        const activeBBtn = document.getElementById(`bnav-${requestedTab}`);
         if (activeBBtn) {
             const icon = activeBBtn.querySelector('.bnav-icon');
             const label = activeBBtn.querySelector('.bnav-label');
             if (icon)  { icon.classList.add('text-amber-600');  icon.classList.remove('text-gray-400'); }
             if (label) { label.classList.add('text-amber-600'); label.classList.remove('text-gray-400'); }
+            activeBBtn.setAttribute('aria-selected', 'true');
+            activeBBtn.setAttribute('tabindex', '0');
         }
     };
 
     activateChemTab = window.activateChemTab;
 
     // Attach event listeners for programmatic safety
-    ['dashboard', 'nomenclature', 'tutor', 'molar', 'dimensions', 'stoich', 'sigfigs', 'lab'].forEach(id => {
+    tabs.forEach(id => {
         document.getElementById(`nav-${id}`)?.addEventListener('click', () => activateChemTab(id));
         document.getElementById(`bnav-${id}`)?.addEventListener('click', () => activateChemTab(id));
     });
@@ -2939,11 +3417,31 @@ function bindConversionActions() {
 let labSession = null;
 
 function isEquationBalanced(rxn, userCoefficients) {
+    const analysis = analyzeEquationBalance(rxn, userCoefficients);
+    return analysis.balanced;
+}
+
+function analyzeEquationBalance(rxn, userCoefficients) {
     if (!userCoefficients || userCoefficients.length !== rxn.reactants.length + rxn.products.length) {
-        return false;
+        return {
+            balanced: false,
+            reason: "Coefficient count does not match equation terms.",
+            reactantCounts: {},
+            productCounts: {},
+            mismatches: []
+        };
     }
-    for (let c of userCoefficients) {
-        if (isNaN(c) || c <= 0) return false;
+
+    for (const c of userCoefficients) {
+        if (isNaN(c) || c <= 0) {
+            return {
+                balanced: false,
+                reason: "Coefficients must be positive integers.",
+                reactantCounts: {},
+                productCounts: {},
+                mismatches: []
+            };
+        }
     }
 
     const reactantCounts = {};
@@ -2951,7 +3449,15 @@ function isEquationBalanced(rxn, userCoefficients) {
         const formula = rxn.reactants[i];
         const coeff = userCoefficients[i];
         const res = parseFormula(formula);
-        if (!res.ok) return false;
+        if (!res.ok) {
+            return {
+                balanced: false,
+                reason: `Could not parse reactant formula '${formula}'.`,
+                reactantCounts: {},
+                productCounts: {},
+                mismatches: []
+            };
+        }
         res.elements.forEach(el => {
             reactantCounts[el.symbol] = (reactantCounts[el.symbol] || 0) + el.count * coeff;
         });
@@ -2962,20 +3468,37 @@ function isEquationBalanced(rxn, userCoefficients) {
         const formula = rxn.products[i];
         const coeff = userCoefficients[rxn.reactants.length + i];
         const res = parseFormula(formula);
-        if (!res.ok) return false;
+        if (!res.ok) {
+            return {
+                balanced: false,
+                reason: `Could not parse product formula '${formula}'.`,
+                reactantCounts,
+                productCounts: {},
+                mismatches: []
+            };
+        }
         res.elements.forEach(el => {
             productCounts[el.symbol] = (productCounts[el.symbol] || 0) + el.count * coeff;
         });
     }
 
     const allElements = new Set([...Object.keys(reactantCounts), ...Object.keys(productCounts)]);
+    const mismatches = [];
     for (let sym of allElements) {
-        if ((reactantCounts[sym] || 0) !== (productCounts[sym] || 0)) {
-            return false;
+        const left = reactantCounts[sym] || 0;
+        const right = productCounts[sym] || 0;
+        if (left !== right) {
+            mismatches.push({ symbol: sym, left, right });
         }
     }
 
-    return true;
+    return {
+        balanced: mismatches.length === 0,
+        reason: mismatches.length === 0 ? "Balanced." : "Element counts do not match.",
+        reactantCounts,
+        productCounts,
+        mismatches
+    };
 }
 
 function bindStoichActions() {
@@ -3116,10 +3639,17 @@ function bindStoichActions() {
         
         const userCoeffs = inputs.map(inp => parseInt(inp.value, 10));
         const allPositive = userCoeffs.every(c => !isNaN(c) && c > 0);
+        const balanceAnalysis = allPositive
+            ? analyzeEquationBalance(currentRxn, userCoeffs)
+            : {
+                balanced: false,
+                reason: "Coefficients must be positive integers.",
+                mismatches: []
+            };
         
         let allCorrect = false;
         if (allPositive) {
-            allCorrect = isEquationBalanced(currentRxn, userCoeffs);
+            allCorrect = balanceAnalysis.balanced;
         }
 
         inputs.forEach((inp, idx) => {
@@ -3202,7 +3732,13 @@ function bindStoichActions() {
                 initScratchpad(currentRxn, currentRxn.activeScenario);
             }
         } else {
-            statusDiv.textContent = "Not balanced yet. Check coefficients.";
+            const mismatchText = Array.isArray(balanceAnalysis.mismatches) && balanceAnalysis.mismatches.length > 0
+                ? ` Mismatch: ${balanceAnalysis.mismatches
+                    .slice(0, 4)
+                    .map((m) => `${m.symbol} (left ${m.left}, right ${m.right})`)
+                    .join(", ")}.`
+                : "";
+            statusDiv.textContent = `Not balanced yet.${mismatchText || " Check coefficients."}`;
             statusDiv.className = "mt-4 text-center text-sm font-bold text-rose-600";
             syncStoichTutorContext({ lastEvent: 'balance-check-failed' });
 
@@ -5679,12 +6215,21 @@ window.ChemTutor = (() => {
     }
 
     return {
-        // Asks a question, spawning the inline tutor below `containerEl`
-        invoke: (initialPrompt, containerEl, systemContext = "") => {
+        // Asks a question, spawning the tutor either after or inside `containerEl`.
+        invoke: (initialPrompt, containerEl, systemContext = "", options = {}) => {
             if (!containerEl) return;
+            const mountMode = options?.mountMode === 'append' ? 'append' : 'after';
+            const widgetClassName = typeof options?.widgetClassName === 'string' ? options.widgetClassName.trim() : '';
+            const showInnerClose = options?.showInnerClose !== false;
+
+            const existingWidget = mountMode === 'append'
+                ? containerEl.querySelector(':scope > .inline-tutor-widget')
+                : (containerEl.nextElementSibling && containerEl.nextElementSibling.classList?.contains('inline-tutor-widget')
+                    ? containerEl.nextElementSibling
+                    : null);
+
             // Check if widget already exists here, don't spawn multiple
-            if (containerEl.nextElementSibling && containerEl.nextElementSibling.classList?.contains('inline-tutor-widget')) {
-                const existingWidget = containerEl.nextElementSibling;
+            if (existingWidget) {
                 const existingInput = existingWidget.querySelector('.tutor-input');
                 const existingSendBtn = existingWidget.querySelector('.tutor-send');
                 existingWidget.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -5703,6 +6248,9 @@ window.ChemTutor = (() => {
 
             const clone = template.content.cloneNode(true);
             const widget = clone.querySelector('.inline-tutor-widget');
+            if (widgetClassName) {
+                widget.classList.add(...widgetClassName.split(/\s+/).filter(Boolean));
+            }
             const msgsEl = clone.querySelector('.tutor-messages');
             const input = clone.querySelector('.tutor-input');
             const sendBtn = clone.querySelector('.tutor-send');
@@ -5711,7 +6259,11 @@ window.ChemTutor = (() => {
             let history = [];
 
             // Bind UI
-            closeBtn.addEventListener('click', () => widget.remove());
+            if (showInnerClose) {
+                closeBtn.addEventListener('click', () => widget.remove());
+            } else {
+                closeBtn.classList.add('hidden');
+            }
             
             const handleSend = () => {
                 const text = input.value.trim();
@@ -5726,7 +6278,11 @@ window.ChemTutor = (() => {
             input.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleSend(); });
 
             // Inject into DOM
-            containerEl.after(widget);
+            if (mountMode === 'append') {
+                containerEl.appendChild(widget);
+            } else {
+                containerEl.after(widget);
+            }
 
             // Auto-fire the initial prompt
             appendInlineBubble(msgsEl, "user", initialPrompt);
