@@ -15,7 +15,8 @@
         syllabus: null,
         matrix: {},
         lectures: [],
-        activeLectureIdx: 0
+        activeLectureIdx: 0,
+        isGeneratingLecture: false
     };
 
     const els = {};
@@ -153,17 +154,17 @@
     function setModeUiForStage() {
         if (appState.stage === STAGE_LECTURE) {
             els.modeBadge.textContent = 'LECTURE';
-            els.chatHeaderTitle.textContent = 'Socratic Clinical Interaction';
+            els.chatHeaderTitle.textContent = 'Socratic Chemistry Interaction';
             els.inputInstructions.textContent = 'Start the Socratic flow to begin chat...';
             if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.add('hidden');
         } else if (appState.stage === STAGE_SOCRATIC) {
             els.modeBadge.textContent = 'SOCRATIC CHECK';
-            els.chatHeaderTitle.textContent = 'Socratic Clinical Interaction';
+            els.chatHeaderTitle.textContent = 'Socratic Chemistry Interaction';
             els.inputInstructions.textContent = 'Respond to Socratic Question...';
             if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.remove('hidden');
         } else if (appState.stage === STAGE_SANDBOX) {
             els.modeBadge.textContent = 'SANDBOX HANDSHAKE';
-            els.chatHeaderTitle.textContent = 'Socratic Clinical Interaction';
+            els.chatHeaderTitle.textContent = 'Socratic Chemistry Interaction';
             els.inputInstructions.textContent = 'Complete the sandbox and return...';
             if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.add('hidden');
         } else {
@@ -200,13 +201,76 @@
         els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
     }
 
+    function ensureTypingIndicatorStyles() {
+        const styleId = 'coursework-typing-indicator-styles';
+        if (document.getElementById(styleId)) return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            @keyframes cwTypingBounce {
+                0%, 80%, 100% { transform: translateY(0) scale(1); opacity: 0.45; }
+                40% { transform: translateY(-3px) scale(1.08); opacity: 1; }
+            }
+            .cw-typing-indicator {
+                contain: layout style;
+            }
+            .cw-typing-bubble {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                border-radius: 999px;
+                padding: 7px 11px;
+                border: 1px solid rgba(100, 116, 139, 0.35);
+                background: linear-gradient(180deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.9));
+                box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+            }
+            .dark .cw-typing-bubble {
+                border-color: rgba(100, 116, 139, 0.55);
+                background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+                box-shadow: 0 4px 14px rgba(2, 6, 23, 0.45);
+            }
+            .cw-typing-dots {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+            .cw-typing-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 999px;
+                background: rgb(16, 185, 129);
+                animation: cwTypingBounce 1s ease-in-out infinite;
+            }
+            .cw-typing-dot:nth-child(2) { animation-delay: 0.14s; }
+            .cw-typing-dot:nth-child(3) { animation-delay: 0.28s; }
+            .cw-typing-label {
+                font-size: 11px;
+                font-weight: 600;
+                color: rgb(22, 101, 52);
+                letter-spacing: 0.01em;
+            }
+            .dark .cw-typing-label {
+                color: rgb(110, 231, 183);
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .cw-typing-dot {
+                    animation: none;
+                    opacity: 0.8;
+                }
+            }
+        `;
+
+        document.head.appendChild(style);
+    }
+
     function addMessage(role, text) {
         const isUser = role === 'user';
         const bubbleClass = isUser
             ? 'bg-emerald-55 dark:bg-emerald-600/20 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-100 self-end font-medium'
             : 'bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 self-start';
 
-        const roleLabel = isUser ? 'You' : 'Clinical Tutor';
+        const roleLabel = isUser ? 'You' : 'Socratic Tutor';
 
         const row = document.createElement('div');
         row.className = `max-w-[85%] rounded-lg px-3 py-2 text-sm ${bubbleClass}`;
@@ -237,14 +301,19 @@
     }
 
     function addTypingIndicator() {
+        ensureTypingIndicatorStyles();
+        removeTypingIndicator();
+
         const row = document.createElement('div');
-        row.id = 'typing-indicator';
-        row.className = 'max-w-[60%] rounded-lg px-3 py-2 text-sm bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 self-start';
+        row.className = 'max-w-[60%] self-start cw-typing-indicator';
         row.innerHTML = `
-            <div class="text-[10px] uppercase tracking-wider font-bold mb-1 text-slate-405 dark:text-slate-500">Clinical Tutor</div>
-            <div class="flex items-center space-x-2 text-xs text-slate-505 dark:text-slate-400">
-                <i class="fa-solid fa-circle-notch animate-spin"></i>
-                <span>Analyzing your response...</span>
+            <div class="cw-typing-bubble" role="status" aria-live="polite" aria-label="Socratic Tutor is typing">
+                <span class="cw-typing-dots" aria-hidden="true">
+                    <span class="cw-typing-dot"></span>
+                    <span class="cw-typing-dot"></span>
+                    <span class="cw-typing-dot"></span>
+                </span>
+                <span class="cw-typing-label">Socratic Tutor is typing</span>
             </div>
         `;
         els.chatMessages.appendChild(row);
@@ -252,7 +321,7 @@
     }
 
     function removeTypingIndicator() {
-        const indicator = document.getElementById('typing-indicator');
+        const indicator = els.chatMessages.querySelector('.cw-typing-indicator');
         if (indicator) indicator.remove();
     }
 
@@ -264,37 +333,53 @@
     }
 
     function generateOfflineMockLecture(lesson, variationIndex = 0) {
-        const ages = [45, 62, 28, 54, 37];
-        const genders = ['male', 'female', 'non-binary', 'male', 'female'];
-        const names = ['John Doe', 'Jane Smith', 'Alex Rivera', 'Robert Chen', 'Sarah Connor'];
-        
-        const age = ages[variationIndex % ages.length];
-        const gender = genders[variationIndex % genders.length];
-        const name = names[variationIndex % names.length];
-        
-        const varSuffix = variationIndex > 0 ? `\n\n*(Note: This is offline Lecture Variation #${variationIndex + 1} detailing the clinical profile of ${name}, a ${age}-year-old ${gender} patient.)*` : '';
+        const contexts = [
+            {
+                title: "Laboratory & Industrial Application",
+                scenario: "In industrial chemical synthesis and research laboratories, precision and control are the foundations of successful experiments. When synthesizing a new compound or manufacturing materials at scale, chemists must manage reactant ratios, temperature control, and physical phase transitions. Precise measurements are not merely procedural; they ensure safety, maximize product yield, and prevent runaway reactions. Chemical analysis must relate molecular properties to macroscopic observations to optimize chemical processes from small-scale beakers to massive industrial reactors."
+            },
+            {
+                title: "Environmental & Geological Systems",
+                scenario: "Earth's systems are massive chemical reactors. From the regulation of atmospheric carbon dioxide to the salinity of our oceans and the mineral composition of rocks, environmental processes are governed by chemical equilibrium and thermodynamic laws. Environmental scientists analyze trace pollutants, monitor acid rain effects, and study how temperature changes alter gas solubility in aquatic ecosystems. Accurate chemical analysis is critical for assessing environmental health and predicting the long-term impact of human activities on our planet's ecosystems."
+            },
+            {
+                title: "Consumer Chemistry & Everyday Life",
+                scenario: "Chemistry is the hidden engine of our daily lives. The food we cook, the soaps and detergents we use to clean, and the batteries powering our electronic devices are all governed by chemical principles. For example, the carbonation in sodas relies on gas solubility under pressure, while household bleach utilizes oxidation-reduction reactions to remove stains and kill bacteria. Understanding the chemistry of everyday materials empowers consumers to make informed choices, handle household products safely, and appreciate the science behind daily activities."
+            },
+            {
+                title: "Biological & Health Science Context",
+                scenario: "Chemistry principles also power biological systems. Gas transport, fluid balance, and acid-base control all depend on equilibrium, concentration, and molecular interactions. Students planning health, life-science, or environmental pathways benefit from understanding how the same general chemistry equations used in industrial and academic labs also describe real physiological systems. This context is included as a bridge, while the core lesson content remains aligned with standard introductory chemistry curricula."
+            },
+            {
+                title: "Advanced Engineering & High-Tech Materials",
+                scenario: "Modern technology relies on the molecular tailoring of advanced materials. From the silicon wafers in computer microprocessors to the lightweight alloys in aerospace engineering and the development of nanomedicines, material science is chemistry in action. Engineers manipulate atomic structures, periodic trends, and chemical bonding to create substances with specific electrical, thermal, and mechanical properties. A deep understanding of chemical structures is essential for driving technological innovation and solving complex engineering challenges."
+            }
+        ];
+
+        const ctx = contexts[variationIndex % contexts.length];
+        const varSuffix = variationIndex > 0 ? `\n\n*(Note: This is offline Lecture Variation #${variationIndex + 1} focusing on the ${ctx.title} context.)*` : '';
 
         const sections = [
-            `### Clinical Case Study & Scenario${variationIndex > 0 ? ' (Variation #' + (variationIndex + 1) + ')' : ''}`,
-            `Consider a clinical presentation where a ${age}-year-old ${gender} patient (${name}), presenting with symptoms of metabolic distress and dehydration, is admitted to the emergency department. The attending medical team immediately orders a comprehensive metabolic panel (CMP), blood gas analysis, and urinalysis to establish a baseline physiological profile. As allied health professionals—whether working in radiology, dosimetry, or clinical nursing—understanding the underlying chemical indicators is paramount to making safe, accurate therapeutic decisions.${varSuffix}`,
-            `The patient's clinical tie-in focuses on: *${lesson.clinical_tie_in}*. This is not merely an abstract concept but a critical checkpoint in diagnostic monitoring. For instance, in dosimetry and medical imaging, we must precisely quantify chemical properties to calibrate contrast media, evaluate physiological tracer distribution, or determine appropriate radiation doses. Misinterpreting these parameters can lead to systemic failures, inaccurate dosing, or severe patient harm. This lecture explores how we translate the chemical properties of **${lesson.concept}** directly to the bedside and the scanning suite.`,
+            `### Case Study & Real-World Scenario: ${ctx.title}${variationIndex > 0 ? ' (Variation #' + (variationIndex + 1) + ')' : ''}`,
+            `${ctx.scenario}${varSuffix}`,
+            `The real-world application of this lesson focuses on: *${lesson.clinical_tie_in}*. This demonstrates how the abstract concepts we study in the lecture hall manifest in practical, real-world environments. Whether calibrating laboratory instruments, monitoring environmental conditions, designing safer materials, or interpreting chemical labels, understanding **${lesson.concept}** is essential. It serves as a vital bridge between theoretical models and observable phenomena in standard introductory chemistry coursework.`,
             
             `### Core Chemical Principles`,
-            `To fully comprehend this phenomenon, we must look at the microscopic scale. The concept of **${lesson.concept}** operates on fundamental chemical rules. In general chemistry, physical properties and molecular interactions are governed by atomic structures, electron arrangements, and electrostatic forces. For instance, atoms share, donate, or accept valence electrons to achieve stability, forming ionic or covalent bonds that dictate a molecule's behavior in an aqueous environment.`,
-            `When these substances interact within the human body, they follow strict thermodynamic and kinetic laws. Whether we are discussing the diffusion of gas molecules in the alveoli, the hydration shell of sodium ions in the plasma, or the ionization of water molecules by high-energy X-ray photons, the basic chemical framework remains identical. The concentration of solutes, the pressure of gases, and the stoichiometry of metabolic reactions determine the chemical equilibrium of physiological systems. A failure to maintain this equilibrium, even by a fraction of a percent, can disrupt cellular functions and trigger systemic pathology.`,
+            `To fully comprehend this phenomenon, we must look at the microscopic scale. The concept of **${lesson.concept}** operates on fundamental chemical rules. In general chemistry, physical properties and molecular interactions are governed by atomic structures, electron arrangements, and electrostatic forces. For instance, atoms share, donate, or accept valence electrons to achieve stability, forming ionic or covalent bonds that dictate a molecule's behavior in various physical states and mixtures.`,
+            `When these substances interact in a reaction, they follow strict thermodynamic, kinetic, and stoichiometric laws. Whether we are discussing the collisions of gas molecules in a closed container, the hydration shells of ions in an aqueous solution, or the transfer of electrons in an oxidation-reduction reaction, the basic chemical framework remains identical. The concentration of reactants, the pressure of gases, and the stoichiometry of reactions determine the equilibrium behavior of systems. A failure to control these parameters can prevent reactions from completing or cause them to proceed unpredictably.`,
             
             `### Mathematical Frameworks & Calculations`,
-            `Quantifying these chemical behaviors requires rigorous mathematical frameworks. In clinical chemistry, we rely on dimensional analysis to construct unit conversion chains, ensuring that units cancel out correctly and leave no room for transcription errors. For example, when calculating a dosage or preparing a solution, we start with the known quantity and apply conversion factors derived from equivalence statements:`,
-            `*Given Unit x (Desired Unit / Given Unit) = Desired Unit*`,
-            `For instance, converting a drug mass from grams to milligrams requires the metric scale factor (1 g = 1000 mg). Similarly, concentration calculations use the molarity equation:`,
+            `Quantifying these chemical behaviors requires rigorous mathematical frameworks. In general chemistry, we rely on dimensional analysis to construct unit conversion chains, ensuring that units cancel out correctly and leave no room for mathematical errors. For example, when calculating quantities or preparing solutions, we start with the known quantity and apply conversion factors derived from equivalence statements:`,
+            `*Given Quantity × (Desired Unit / Given Unit) = Desired Quantity*`,
+            `For instance, converting mass to moles requires the substance's molar mass, and concentration calculations utilize the molarity equation:`,
             `*Molarity (M) = Moles of Solute (mol) / Liters of Solution (L)*`,
-            `If we need to calculate the number of particles, we apply Avogadro's constant (6.022 * 10^23 particles/mol). Gas behavior is modeled using the Ideal Gas Law:`,
-            `*P * V = n * R * T*`,
-            `where P is pressure, V is volume, n is the number of moles, R is the universal gas constant, and T is temperature in Kelvin. In our clinical application, we utilize these equations to double-check patient doses, evaluate gas solubility in blood, and calibrate lab equipment like the \`${lesson.interactive_target}\`. Every calculation must be rounded using proper significant figure rules to reflect the precision limits of our instruments.`,
+            `If we need to calculate the number of individual atoms or molecules, we apply Avogadro's constant (6.022 × 10²³ particles/mol). Gas behavior is modeled using the Gas Laws and the Ideal Gas Law:`,
+            `*P × V = n × R × T*`,
+            `where P is pressure, V is volume, n is the number of moles, R is the universal gas constant, and T is temperature in Kelvin. In laboratory settings, we utilize these equations to prepare precise dilutions, calculate theoretical yields, and calibrate instruments. Every calculation must be rounded using proper significant figure rules to accurately reflect the precision limits of our measurements.`,
             
-            `### Physiological & Radiological Significance`,
-            `The practical significance of mastering **${lesson.concept}** cannot be overstated. In radiology and oncology dosimetry, chemical precision is the difference between a successful diagnostic image and a toxic overdose. For example, administering contrast agents requires calculating patient-specific clearance rates to avoid nephrotoxicity. In radiation therapy, ionizing radiation interacts with cellular water to produce highly reactive free radicals, which subsequently damage DNA. This indirect effect is fundamentally a chemical reaction, governed by kinetics and concentration.`,
-            `Furthermore, patient education is a key responsibility for clinical professionals. As part of your pedagogical development, you must master the Feynman defense: *"${lesson.feynman_prompt}"*. Explaining complex concepts using simple, everyday analogies—such as comparing the mole to a baker's dozen or gas expansion to a bicycle pump—helps bridge the gap between abstract science and patient understanding. By learning to communicate these principles clearly, you build patient trust and ensure safety at every level of clinical practice.`
+            `### Practical & Experimental Significance`,
+            `The practical significance of mastering **${lesson.concept}** cannot be overstated. In research and industrial labs, chemical precision is the difference between a successful synthesis and a failed, expensive experiment. For example, preparing standard solutions requires calculating exact volumes to ensure chemical titrations are accurate. In thermal energy processes, specific heat capacity dictates how much energy is absorbed or released during chemical changes, which is measured using calorimetry.`,
+            `Furthermore, explaining scientific concepts clearly is a key responsibility for any scientist. As part of your pedagogical development, you must master the Feynman defense: *"${lesson.feynman_prompt}"*. Explaining complex concepts using simple, everyday analogies—such as comparing the mole to a baker's dozen or chemical bonding to a magnetic attraction—helps bridge the gap between abstract science and general understanding. By learning to communicate these principles clearly, you solidify your own mastery and make chemistry accessible to others.`
         ].join('\n\n');
         
         return sections;
@@ -317,7 +402,7 @@
                 </div>
                 
                 <div class="border border-emerald-500/20 bg-emerald-500/5 rounded p-3.5">
-                    <div class="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold mb-1">Clinical Hook</div>
+                    <div class="text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-bold mb-1">Real-World Hook</div>
                     <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">${escapeHtml(lesson.clinical_tie_in)}</p>
                 </div>
 
@@ -426,6 +511,12 @@
     }
 
     async function generateLecture(lesson, index, isRegenerate = false) {
+        if (appState.isGeneratingLecture) {
+            console.warn('Lecture generation already in progress. Skipping duplicate request.');
+            return;
+        }
+        appState.isGeneratingLecture = true;
+
         els.lectureContainer.innerHTML = `
             <div class="flex flex-col h-full justify-center p-4 max-w-lg mx-auto space-y-3">
                 <div class="flex items-center space-x-3 text-amber-500 dark:text-amber-400 font-semibold text-xs">
@@ -443,7 +534,7 @@
                         <span class="status font-bold">PENDING</span>
                     </div>
                     <div id="step-generate" class="flex items-center justify-between text-slate-500">
-                        <span>[3/4] Requesting 600-800 word clinical lecture...</span>
+                        <span>[3/4] Requesting 600-800 word chemistry lecture...</span>
                         <span class="status font-bold">PENDING</span>
                     </div>
                     <div id="step-render" class="flex items-center justify-between text-slate-500">
@@ -452,7 +543,7 @@
                     </div>
                 </div>
                 
-                <div id="generation-log" class="text-[9px] text-slate-550 dark:text-slate-400 h-6 truncate font-mono text-center">
+                <div id="generation-log" class="text-[9px] text-slate-555 dark:text-slate-400 h-6 truncate font-mono text-center">
                     Initializing generation handshake...
                 </div>
             </div>
@@ -488,6 +579,7 @@
         const tutor = window.CLINICAL_TUTOR;
         if (!tutor || typeof tutor.fetchGeneratedLesson !== 'function') {
             renderGenerationFailure(lesson, 'CLINICAL_TUTOR module or fetchGeneratedLesson is unavailable.', index, isRegenerate);
+            appState.isGeneratingLecture = false;
             return;
         }
 
@@ -521,6 +613,8 @@
             console.error('Lecture generation failed:', err);
             updateStepUI('generate', 'error', err.message);
             renderGenerationFailure(lesson, err.message, index, isRegenerate);
+        } finally {
+            appState.isGeneratingLecture = false;
         }
     }
 
@@ -562,7 +656,7 @@
 
         if (!generatedQuestion) {
             if (mode === 'socratic') {
-                generatedQuestion = `Socratic Check: Explain "${appState.lesson.concept}" and connect it to this clinical tie-in: ${appState.lesson.clinical_tie_in}`;
+                generatedQuestion = `Socratic Check: Explain "${appState.lesson.concept}" and connect it to this real-world hook: ${appState.lesson.clinical_tie_in}`;
             } else {
                 generatedQuestion = `Feynman Final: ${appState.lesson.feynman_prompt}`;
             }
@@ -594,8 +688,6 @@
         els.btnSend.classList.remove('hidden');
         els.chatInput.disabled = true;
         els.chatForm.dataset.mode = 'lecture';
-
-        ensureLectureContent();
 
         els.chatMessages.innerHTML = `
             <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-sm text-slate-600 dark:text-slate-300">
@@ -635,7 +727,7 @@
         els.btnMic.classList.add('hidden');
         els.btnSend.classList.remove('hidden');
         els.chatInput.disabled = false;
-        els.chatInput.placeholder = 'Type clinical Socratic response here...';
+        els.chatInput.placeholder = 'Type chemistry Socratic response here...';
         els.chatForm.dataset.mode = 'socratic';
 
         renderHistoryToUi();
@@ -672,6 +764,8 @@
             'ion-charge-calculator': 'review polyatomic ion charges in the Nomenclature Flashcards tab.',
             'half-life-grapher': 'practice reading lab instrument scales in the Lab Precision tab.',
             'shielding-simulator': 'practice reading instrument scales at different levels in the Lab Precision tab.',
+            'isotope-abundance-calculator': 'solve an isotope weighted-average or molar mass calculation in the Molar Mass tab.',
+            'nuclear-decay-grapher': 'balance a reaction or complete a stoichiometric setup in the Reaction & Stoichiometry tab.',
             'electronegativity-scale': 'practice covalent compound naming card groups in the Nomenclature tab.',
             'criss-cross-sandbox': 'balance a chemical equation successfully in the Reaction & Stoichiometry tab.',
             'polarity-visualizer': 'practice covalent compound flashcards in the Nomenclature tab.',
@@ -694,7 +788,11 @@
             'carbon-chain-builder': 'select the Organic Category and practice naming cards in the Nomenclature tab.',
             'macromolecule-sorter': 'review organic compound chains in the Nomenclature Flashcards.',
             'free-radical-visualizer': 'practice balancing a decomposition reaction in the Reaction & Stoichiometry tab.',
-            'radiation-dna-damage-sim': 'balance any reaction and solve its stoichiometry yield in the Reaction & Stoichiometry tab.'
+            'radiation-dna-damage-sim': 'balance any reaction and solve its stoichiometry yield in the Reaction & Stoichiometry tab.',
+            'thermochemistry-calorimeter': 'solve an energy-transfer calculation in the Dimensional Analysis Builder.',
+            'heating-curve-lab': 'practice phase-change or heat-transfer calculations in the Dimensional Analysis Builder.',
+            'redox-identifier': 'complete a reaction setup and classify oxidation-state changes in the Reaction & Stoichiometry tab.',
+            'organic-functional-group-map': 'open Nomenclature Flashcards and practice the Organic category cards.'
         };
 
         const tab = getTabForTarget(target);
@@ -709,11 +807,14 @@
         const t = target.toLowerCase();
         if (t.includes('nomenclature') || t.includes('naming')) return 'nomenclature';
         if (t.includes('mole-visualizer') || t.includes('gram-to-mole') || t.includes('molar-mass') || t.includes('mole-concept')) return 'molar';
-        if (t.includes('dimensional-analysis') || t.includes('dimensions') || t.includes('density') || t.includes('specific-heat') || t.includes('notation-slider') || t.includes('temperature-converter')) return 'dimensions';
+        if (t.includes('dimensional-analysis') || t.includes('dimensions') || t.includes('density') || t.includes('specific-heat') || t.includes('notation-slider') || t.includes('temperature-converter') || t.includes('thermochemistry') || t.includes('heating-curve')) return 'dimensions';
         if (t.includes('stoichiometry') || t.includes('stoich') || t.includes('reactant') || t.includes('equation') || t.includes('ratio') || t.includes('solubility') || t.includes('le-chatelier') || t.includes('equilibrium')) return 'stoich';
         if (t.includes('sig-fig') || t.includes('sigfig')) return 'sigfigs';
         if (t.includes('meniscus') || t.includes('precision') || t.includes('shielding') || t.includes('half-life') || t.includes('diffusion') || t.includes('osmosis') || t.includes('dilution') || t.includes('activation-energy') || t.includes('buffer') || t.includes('ph-')) return 'lab';
-        if (t.includes('atom-builder') || t.includes('electron-jump') || t.includes('periodic-table') || t.includes('ion-charge') || t.includes('electronegativity') || t.includes('polarity') || t.includes('vsepr') || t.includes('dna-') || t.includes('carbon-chain') || t.includes('macromolecule') || t.includes('free-radical') || t.includes('radiation-dna')) return 'lab';
+        if (t.includes('periodic-table') || t.includes('ion-charge') || t.includes('electronegativity') || t.includes('polarity') || t.includes('vsepr') || t.includes('dna-') || t.includes('carbon-chain') || t.includes('macromolecule') || t.includes('organic-functional')) return 'nomenclature';
+        if (t.includes('free-radical') || t.includes('radiation-dna') || t.includes('redox') || t.includes('nuclear-decay')) return 'stoich';
+        if (t.includes('isotope-abundance')) return 'molar';
+        if (t.includes('atom-builder') || t.includes('electron-jump')) return 'lab';
         return 'dashboard';
     }
 
@@ -874,18 +975,18 @@
         let systemPrompt = '';
         if (mode === 'feynman') {
             systemPrompt = [
-                'You are a strict clinical chemistry evaluator for Radiology/Dosimetry learners.',
-                'Use the Feynman prompt below to grade the explanation for clarity, correctness, and patient-safe reasoning.',
+                'You are a strict general chemistry evaluator for introductory chemistry learners.',
+                'Use the Feynman prompt below to grade the explanation for clarity, correctness, and scientifically sound reasoning.',
                 `Feynman Prompt: ${appState.lesson.feynman_prompt}`,
                 'Pass only when explanation is accurate and teachable to a patient.',
                 'CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses) so they render cleanly.'
             ].join(' ');
         } else {
             systemPrompt = [
-                'You are a Socratic clinical chemistry tutor for allied health students.',
+                'You are a Socratic general chemistry tutor for introductory chemistry students.',
                 `Concept: ${appState.lesson.concept}.`,
-                `Clinical Tie-In: ${appState.lesson.clinical_tie_in}.`,
-                'Ask or respond in a way that tests conceptual understanding and patient safety judgment.',
+                `Real-World Hook: ${appState.lesson.clinical_tie_in}.`,
+                'Ask or respond in a way that tests conceptual understanding and lab safety/practical reasoning.',
                 'CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses) so they render cleanly.'
             ].join(' ');
         }
@@ -894,7 +995,7 @@
         if (!tutor || typeof tutor.fetchLocalTutor !== 'function') {
             return {
                 passed: false,
-                feedback: 'Error: Clinical Link interrupted. Please try again or click Regenerate.',
+                feedback: 'Error: Connection link interrupted. Please try again or click Regenerate.',
                 nextStage: null
             };
         }
@@ -1110,6 +1211,7 @@
             appState.activeLectureIdx = 0;
 
             clearConversationUi();
+            populateLessonHeaderAndLecture();
             renderStage1();
             saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
             setSessionStatus('REGENERATED', false);
@@ -1127,6 +1229,7 @@
                 appState.isChatLocked = false;
 
                 clearConversationUi();
+                populateLessonHeaderAndLecture();
                 renderStage1();
                 saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
                 setSessionStatus('RESTARTED', false);

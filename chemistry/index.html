@@ -154,9 +154,9 @@
         <div class="hidden lg:flex px-0 pb-6 justify-center">
             <div class="inline-flex bg-gray-200/80 backdrop-blur-sm rounded-full p-1 shadow-inner gap-1" role="group">
                 <button id="nav-dashboard" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('dashboard')">Dashboard</button>
-                <button id="nav-lab" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('lab')">Lab Skills</button>
+                <button id="nav-lab" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('lab')">Measurement Lab</button>
                 <button id="nav-molar" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('molar')">Molar Mass</button>
-                <button id="nav-dimensions" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('dimensions')">Analysis</button>
+                <button id="nav-dimensions" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('dimensions')">Dimensional Analysis</button>
                 <button id="nav-stoich" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('stoich')">Stoichiometry</button>
                 <button id="nav-sigfigs" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('sigfigs')">Sig Figs</button>
                 <button id="nav-nomenclature" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('nomenclature')">Nomenclature</button>
@@ -166,7 +166,7 @@
 
         <section id="view-dashboard" class="fade-in">
             <section class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6 fade-in">
-                <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-3">CH 104Z Skills Lab</h2>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-3">General Chemistry Skills Lab</h2>
             <p class="text-gray-600 leading-relaxed">Practice stoichiometry, dimensional analysis, and lab precision using the same workflow style as your terminology trainer.</p>
             <div id="learning-status" class="mt-4 bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm text-gray-700">
                 Complete your diagnostic to receive a recommended learning track.
@@ -206,7 +206,7 @@
             </div>
         </section>
 
-        <!-- Clinical Mastery Portal Bridge -->
+        <!-- Chemistry Mastery Portal Bridge -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <!-- Coursework Card -->
             <div class="bg-white dark:bg-[#1a1d27] rounded-3xl border border-gray-100 dark:border-[#363a52] p-6 sm:p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -217,12 +217,12 @@
                             <i class="fa-solid fa-graduation-cap text-xl"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Clinical Coursework</h3>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Chemistry Coursework</h3>
                             <span class="text-xs text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider font-mono block">Theory & Socratic Portal</span>
                         </div>
                     </div>
                     <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
-                        Access the interactive clinical syllabus, read micro-lectures, complete socratic dialogues with Prof. Beaker, and interact with sandbox math modules.
+                        Access the interactive chemistry syllabus, read micro-lectures, complete socratic dialogues with Prof. Beaker, and interact with sandbox math modules.
                     </p>
                 </div>
                 
@@ -255,11 +255,11 @@
                         </div>
                         <div>
                             <h3 class="text-lg font-bold text-gray-800 dark:text-white">Homework Binder</h3>
-                            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider font-mono block">Grader & Accreditation</span>
+                            <span class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider font-mono block">Analytical Grader & Mastery</span>
                         </div>
                     </div>
                     <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
-                        Complete your clinical worksheets and dosage calculation problems. Grade equations dynamically with the strict grade calculator to unlock credentials.
+                        Complete your chemistry worksheets and lab calculation problems. Grade equations dynamically with the analytical grade calculator to unlock mastery status.
                     </p>
                 </div>
                 
@@ -267,8 +267,8 @@
                     <!-- Progress Bar for Homework -->
                     <div class="mb-4">
                         <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mb-1 px-1">
-                            <span>Accreditation Status</span>
-                            <span id="index-hw-progress-val" class="font-bold text-emerald-600 dark:text-emerald-400">0% Accredited</span>
+                            <span>Course Mastery</span>
+                            <span id="index-hw-progress-val" class="font-bold text-emerald-600 dark:text-emerald-400">0% Mastered</span>
                         </div>
                         <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
                             <div id="index-hw-progress-bar" class="bg-gradient-to-r from-emerald-500 to-emerald-600 h-1.5 rounded-full transition-all duration-555 ease-out" style="width: 0%"></div>
@@ -630,7 +630,7 @@
                             <h2 class="text-xl font-extrabold text-gray-800">Chemistry Tutor</h2>
                             <div class="flex items-center gap-1.5 mt-0.5">
                                 <span id="chat-status-dot" class="inline-block w-2 h-2 rounded-full bg-gray-300"></span>
-                                <span id="chat-status-text" class="text-xs font-medium text-gray-400">Checking local AI...</span>
+                                <span id="chat-status-text" class="text-xs font-medium text-gray-400">Unchecked (click tab to connect)</span>
                             </div>
                         </div>
                     </div>
@@ -1231,7 +1231,7 @@
             </button>
             <button id="bnav-lab" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateChemTab('lab')">
                 <i class="bnav-icon fa-solid fa-scale-balanced text-lg text-amber-600 transition-colors"></i>
-                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-amber-600 transition-colors">Lab</span>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-amber-600 transition-colors">Measure</span>
             </button>
             <button id="bnav-molar" class="flex flex-col items-center justify-center min-w-[64px] flex-1 py-2 min-w-0" onclick="activateChemTab('molar')">
                 <i class="bnav-icon fa-solid fa-cubes text-lg text-gray-400 transition-colors"></i>
@@ -1239,7 +1239,7 @@
             </button>
             <button id="bnav-dimensions" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('dimensions')">
                 <i class="bnav-icon fa-solid fa-ruler-combined text-lg text-gray-400 transition-colors"></i>
-                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Analysis</span>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Dimens.</span>
             </button>
             <button id="bnav-stoich" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('stoich')">
                 <i class="bnav-icon fa-solid fa-flask text-lg text-gray-400 transition-colors"></i>

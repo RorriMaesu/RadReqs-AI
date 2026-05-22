@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CH 104Z - Clinical Chemistry Coursework</title>
+    <title>CH 104Z - Chemistry Coursework</title>
     <script>
         (function() {
             var pref = localStorage.getItem('chemistry_darkmode');
@@ -118,11 +118,111 @@
             border-radius: 0 !important;
             font-size: 0.75rem !important;
         }
+
+        /* Layout toggle active state */
+        .btn-layout-toggle.active {
+            background-color: #10b981 !important; /* emerald-500 */
+            color: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        .dark .btn-layout-toggle.active {
+            background-color: #059669 !important; /* emerald-600 */
+            color: #ffffff !important;
+        }
+
+        /* Workspace layout transition animation */
+        #lecture-panel, #chat-panel {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Widescreen Columns Split styling */
+        @media (min-width: 768px) {
+            /* 1. Default/Split Mode */
+            #work-area-split.layout-split #lecture-panel {
+                width: 44%;
+                opacity: 1;
+                pointer-events: auto;
+                border-right-width: 1px;
+            }
+            #work-area-split.layout-split #chat-panel {
+                width: 56%;
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* 2. Lecture Focus Mode */
+            #work-area-split.layout-lecture #lecture-panel {
+                width: 100%;
+                opacity: 1;
+                pointer-events: auto;
+                border-right-width: 0;
+            }
+            #work-area-split.layout-lecture #chat-panel {
+                width: 0%;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            /* 3. Tutor Focus Mode */
+            #work-area-split.layout-chat #lecture-panel {
+                width: 0%;
+                opacity: 0;
+                pointer-events: none;
+                border-right-width: 0;
+            }
+            #work-area-split.layout-chat #chat-panel {
+                width: 100%;
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
+        /* Mobile/Stacked Split styling */
+        @media (max-width: 767px) {
+            /* 1. Default/Split Mode (vertical split) */
+            #work-area-split.layout-split #lecture-panel {
+                height: 40vh;
+                opacity: 1;
+                pointer-events: auto;
+                border-bottom-width: 1px;
+            }
+            #work-area-split.layout-split #chat-panel {
+                flex-grow: 1;
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* 2. Lecture Focus Mode */
+            #work-area-split.layout-lecture #lecture-panel {
+                height: 100%;
+                opacity: 1;
+                pointer-events: auto;
+                border-bottom-width: 0;
+            }
+            #work-area-split.layout-lecture #chat-panel {
+                height: 0;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            /* 3. Tutor Focus Mode */
+            #work-area-split.layout-chat #lecture-panel {
+                height: 0;
+                opacity: 0;
+                pointer-events: none;
+                border-bottom-width: 0;
+            }
+            #work-area-split.layout-chat #chat-panel {
+                height: 100%;
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 h-screen flex flex-col font-sans overflow-hidden">
 
-    <!-- Global Clinical Header -->
+    <!-- Global Chemistry Header -->
     <header class="bg-white border-b border-slate-200 dark:bg-slate-950 dark:border-slate-800 px-6 py-4 flex items-center justify-between shadow-sm dark:shadow-md shrink-0">
         <div class="flex items-center space-x-3">
             <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 rounded border border-emerald-500/20">
@@ -130,7 +230,7 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-wider text-emerald-600 dark:text-emerald-400">CH 104Z / 124Z</h1>
-                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Clinical Chemistry Mastery</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Introductory Chemistry Mastery</p>
             </div>
         </div>
 
@@ -182,7 +282,7 @@
         <!-- Sidebar: Navigation & Skill Tree -->
         <aside class="w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
             <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Clinical Syllabus</h3>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Course Syllabus</h3>
                 <span class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded font-mono" id="sidebar-lesson-count">0/30 Lessons</span>
             </div>
             
@@ -203,7 +303,7 @@
                 </div>
                 <div class="flex justify-between">
                     <span>Environment:</span>
-                    <span class="text-emerald-600 dark:text-emerald-500 font-bold font-mono">CH104Z-CLINICAL</span>
+                    <span class="text-emerald-600 dark:text-emerald-500 font-bold font-mono">CH104Z-GENERAL</span>
                 </div>
             </div>
         </aside>
@@ -250,7 +350,7 @@
                     <div class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                         <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
                             <i class="fa-solid fa-book-open-reader text-emerald-500"></i>
-                            <span>Clinical Micro-Lecture & Physiological Relevance</span>
+                            <span>Chemistry Micro-Lecture & Real-World Hook</span>
                         </div>
                         <div class="flex items-center space-x-2">
                             <select id="select-active-lecture" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-[10px] rounded px-1.5 py-0.5 outline-none font-medium text-slate-700 dark:text-slate-200 transition-colors">
@@ -284,7 +384,7 @@
                     <div class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                         <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
                             <i class="fa-solid fa-messages text-emerald-500"></i>
-                            <span id="chat-header-title">Socratic Clinical Interaction</span>
+                            <span id="chat-header-title">Socratic Chemistry Interaction</span>
                         </div>
                         <div class="flex items-center space-x-3 text-[10px] font-mono">
                             <button id="btn-generate-question" class="hidden bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded font-sans font-semibold transition flex items-center space-x-1" title="Generate a new dynamic practice question using Gemma4">
@@ -338,7 +438,7 @@
 
                         <!-- Chat & Input Form -->
                         <form id="chat-form" class="flex items-stretch space-x-2">
-                            <textarea id="chat-input" rows="2" class="flex-grow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none transition" placeholder="Type clinical Socratic response here..."></textarea>
+                            <textarea id="chat-input" rows="2" class="flex-grow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none resize-none transition" placeholder="Type chemistry Socratic response here..."></textarea>
                             
                             <div class="flex flex-col justify-between space-y-1.5 shrink-0">
                                 <button type="submit" id="btn-send" class="flex-grow bg-emerald-600 hover:bg-emerald-500 text-white px-4 rounded flex items-center justify-center transition hover:scale-[1.02] active:scale-[0.98]">
@@ -359,7 +459,7 @@
                         </div>
                         <h3 class="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent mb-2">THEORY MASTERED</h3>
                         <p class="text-sm text-slate-600 dark:text-slate-400 max-w-sm mb-6">
-                            Excellent Socratic and intellectual work! Your theory for this lesson is verified. Proceed to the Homework Binder to finalize your clinical credentials.
+                            Excellent Socratic and intellectual work! Your theory for this lesson is verified. Proceed to the Homework Binder to finalize your homework calculations.
                         </p>
                         <a href="assignments.html" class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold rounded shadow-md dark:shadow-lg transition hover:scale-[1.03] duration-200">
                             <i class="fa-solid fa-file-signature mr-2"></i>Proceed to Homework Binder

@@ -278,6 +278,8 @@ async function loadSyllabus() {
             if (currentLesson && line.startsWith('* **')) {
                 if (line.includes('**Concept:**')) {
                     currentLesson.concept = line.split('**Concept:**')[1].trim();
+                } else if (line.includes('**Clinical/Real-World Hook:**')) {
+                    currentLesson.clinical_tie_in = line.split('**Clinical/Real-World Hook:**')[1].trim();
                 } else if (line.includes('**Clinical Tie-In:**')) {
                     currentLesson.clinical_tie_in = line.split('**Clinical Tie-In:**')[1].trim();
                 } else if (line.includes('**Interactive Target:**')) {
@@ -381,7 +383,7 @@ function renderSidebar(syllabus, matrix) {
                 
                 html += `
                 <button 
-                    onclick="if(${st} > ${STATE_LOCKED}) { selectLesson('${l.id}') } else { alert('This clinical lecture is currently locked. Complete previous courseworks first!') }" 
+                    onclick="if(${st} > ${STATE_LOCKED}) { selectLesson('${l.id}') } else { alert('This chemistry lecture is currently locked. Complete previous courseworks first!') }" 
                     class="w-full ${meta.btnClass} transition group text-left" 
                     id="sidebar-item-${l.id}"
                 >
@@ -419,7 +421,7 @@ function renderSidebar(syllabus, matrix) {
             html += `
             <div class="border border-slate-800 rounded overflow-hidden">
                 <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="w-full bg-slate-950 hover:bg-slate-900 text-left px-3 py-2 flex items-center justify-between text-xs font-bold font-mono tracking-wider border-b border-slate-850 select-none">
-                    <span class="text-blue-400">M${mod.number} Lab Sheets</span>
+                    <span class="text-blue-400">M${mod.number} Homework Sheets</span>
                     <i class="fa-solid fa-chevron-down text-slate-500 text-[10px]"></i>
                 </button>
                 <div class="p-2 space-y-1 bg-slate-900/30 ${hasUnlockedHomework ? '' : 'hidden'}">
@@ -447,7 +449,7 @@ function renderSidebar(syllabus, matrix) {
                 
                 html += `
                 <button 
-                    onclick="if(!${isHwLocked}) { selectAssignment('${l.id}') } else { alert('Theory not qualified. You must pass this lesson\\'s Socratic lecture and its Sandbox mapping before testing clinical equations!') }" 
+                    onclick="if(!${isHwLocked}) { selectAssignment('${l.id}') } else { alert('Theory not qualified. You must pass this lesson\\'s Socratic lecture and its Sandbox mapping before testing chemistry equations!') }" 
                     class="${buttonClass}" 
                     id="assignment-item-${l.id}"
                 >

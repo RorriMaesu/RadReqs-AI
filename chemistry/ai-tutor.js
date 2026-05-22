@@ -103,7 +103,7 @@ function cleanMathAndLaTeX(text) {
 
 const TUTOR_ERROR_RESPONSE = {
     passed: false,
-    feedback: 'Error: Clinical Link interrupted. Please try again or click Regenerate.',
+    feedback: 'Error: Connection link interrupted. Please try again or click Regenerate.',
     nextStage: null
 };
 
@@ -170,7 +170,7 @@ function buildTutorPrompt(systemPrompt, messageHistory, userInput) {
         .join('\n');
 
     return [
-        'CLINICAL TUTOR SYSTEM PROMPT:',
+        'CHEMISTRY TUTOR SYSTEM PROMPT:',
         systemPrompt || '',
         '',
         'CONVERSATION HISTORY (oldest to newest):',
@@ -296,24 +296,24 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
     const endpoint = getConfiguredEndpoint();
     let activeModel = getChemistryModel();
     
-    const systemPrompt = `You are a Senior Principal Frontend Developer and an Expert Professor of Clinical Medical Education.`;
+    const systemPrompt = `You are an Expert Professor of General and Introductory Chemistry.`;
     const variationInstruction = variationIndex > 0
-        ? `This is Lecture Variation #${variationIndex + 1} for this topic. You MUST create a completely different clinical scenario/case study and use different patient names/clinical focus compared to previous variations to ensure variety.`
+        ? `This is Lecture Variation #${variationIndex + 1} for this topic. You MUST create a completely different general chemistry scenario/context and use different real-world applications/scientific scenarios compared to previous variations to ensure variety.`
         : '';
     const prompt = [
-        `Write a comprehensive, college-level clinical chemistry lecture (approximately 600-800 words) for Radiologic Technology, Dosimetry, and Nursing students.`,
+        `Write a comprehensive, college-level general chemistry lecture (approximately 600-800 words) for introductory chemistry students.`,
         variationInstruction,
         `You MUST use the exact concept, clinical tie-in, interactive target, and feynman prompt details below:`,
         `- Concept: ${lesson.concept}`,
-        `- Clinical Tie-In: ${lesson.clinical_tie_in}`,
+        `- Real-World Hook: ${lesson.clinical_tie_in}`,
         `- Interactive Target: ${lesson.interactive_target}`,
         `- Feynman Prompt: ${lesson.feynman_prompt}`,
         ``,
         `Structure the lecture using clear markdown headers (###) into the following four sections:`,
-        `1. ### Clinical Case Study & Scenario (introduce a realistic, detailed clinical scenario illustrating the concept)`,
+        `1. ### Real-World Application & Scenario (introduce a realistic, detailed real-world, industrial, or laboratory scenario illustrating the concept)`,
         `2. ### Core Chemical Principles (explain the underlying molecular mechanisms and chemistry concepts in depth)`,
         `3. ### Mathematical Frameworks & Calculations (provide a step-by-step mathematical breakdown, detailing conversion chains or dimensional analysis)`,
-        `4. ### Physiological & Radiological Significance (discuss safety protocols, diagnostic imaging relevance, or metabolic impacts)`,
+        `4. ### Environmental, Laboratory, or Industrial Significance (discuss safety protocols, practical applications, or real-world impacts)`,
         ``,
         `CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, \\times, etc.) in your response. Write all mathematical equations, equations, conversions, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses) so they render cleanly in standard markdown.`,
         ``,
@@ -404,22 +404,22 @@ async function fetchGeneratedQuestion(lesson, mode) {
     const endpoint = getConfiguredEndpoint();
     let activeModel = getChemistryModel();
     
-    let systemPrompt = `You are an Expert Professor of Clinical Chemistry.`;
+    let systemPrompt = `You are an Expert Professor of General Chemistry.`;
     let prompt = '';
 
     if (mode === 'socratic') {
         prompt = [
-            `Generate a single, unique, challenging, clinical scenario-based question to test a student's understanding of the concept: "${lesson.concept}".`,
-            `The context must relate to the clinical tie-in: "${lesson.clinical_tie_in}".`,
-            `The question must require the student to explain the chemical principles and make critical patient safety/radiological decisions.`,
+            `Generate a single, unique, challenging, scenario-based question to test a student's understanding of the concept: "${lesson.concept}".`,
+            `The context must relate to the real-world/industrial hook: "${lesson.clinical_tie_in}".`,
+            `The question must require the student to explain the chemical principles and make critical lab safety/practical decisions.`,
             `CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses).`,
             `Return ONLY the question text itself. Do not include any introductory greetings, markdown headers, markdown code blocks, JSON wrapper, or conversational filler.`
         ].join('\n');
     } else if (mode === 'feynman') {
         prompt = [
-            `Generate a challenging clinical chemistry prompt to test the student's ability to explain the concept "${lesson.concept}" using the Feynman technique (explaining a complex topic to a patient or child in simple, everyday language).`,
-            `The prompt should be based on the clinical tie-in: "${lesson.clinical_tie_in}".`,
-            `For example: "Explain how [concept] works to a patient who is worried about their diagnostic scan."`,
+            `Generate a challenging general chemistry prompt to test the student's ability to explain the concept "${lesson.concept}" using the Feynman technique (explaining a complex topic to a non-scientist or high-school student in simple, everyday terms).`,
+            `The prompt should be based on the real-world/industrial hook: "${lesson.clinical_tie_in}".`,
+            `For example: "Explain how [concept] works to a non-scientist or high-school student in simple, everyday terms."`,
             `CRITICAL FORMATTING INSTRUCTION: Do NOT use LaTeX math formatting (such as $, $$, \\frac, \\text, etc.). Write all mathematical equations, conversions, formulas, and units in simple plain text (e.g. use "deg F" or "°F", "*", "/", "^", and standard parentheses).`,
             `Return ONLY the prompt text itself. Do not include any introductory greetings, markdown headers, markdown code blocks, JSON wrapper, or conversational filler.`
         ].join('\n');

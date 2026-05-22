@@ -12,6 +12,93 @@ const chemistryDeckRegistry = {
     poly: { state: null, cardIds: [] }
 };
 
+function ensureTypingIndicatorStyles() {
+    const styleId = 'chem-typing-indicator-styles';
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        @keyframes chemTypingBounce {
+            0%, 80%, 100% { transform: translateY(0) scale(1); opacity: 0.45; }
+            40% { transform: translateY(-3px) scale(1.08); opacity: 1; }
+        }
+        .chem-typing-indicator {
+            contain: layout style;
+        }
+        .chem-typing-bubble {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 8px 12px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            background: linear-gradient(180deg, rgba(245, 243, 255, 0.95), rgba(237, 233, 254, 0.9));
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+        }
+        .dark .chem-typing-bubble {
+            border-color: rgba(167, 139, 250, 0.35);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            box-shadow: 0 4px 14px rgba(2, 6, 23, 0.5);
+        }
+        .chem-typing-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .chem-typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: rgb(139, 92, 246);
+            animation: chemTypingBounce 1s ease-in-out infinite;
+        }
+        .chem-typing-dot:nth-child(2) { animation-delay: 0.14s; }
+        .chem-typing-dot:nth-child(3) { animation-delay: 0.28s; }
+        .chem-typing-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgb(109, 40, 217);
+            letter-spacing: 0.01em;
+        }
+        .dark .chem-typing-label {
+            color: rgb(196, 181, 253);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .chem-typing-dot {
+                animation: none;
+                opacity: 0.8;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function createTypingIndicatorElement(labelText = 'Prof. Beaker', compact = false) {
+    ensureTypingIndicatorStyles();
+
+    const wrap = document.createElement('div');
+    wrap.className = `flex justify-start chem-typing-indicator${compact ? ' mt-1' : ''}`;
+    wrap.setAttribute('aria-live', 'polite');
+    wrap.innerHTML = `
+        <div class="chem-typing-bubble" role="status" aria-label="${labelText} is typing">
+            <span class="chem-typing-dots" aria-hidden="true">
+                <span class="chem-typing-dot"></span>
+                <span class="chem-typing-dot"></span>
+                <span class="chem-typing-dot"></span>
+            </span>
+            <span class="chem-typing-label">${labelText} is typing</span>
+        </div>
+    `;
+    return wrap;
+}
+
+function removeContainerTypingIndicator(containerEl) {
+    if (!containerEl) return;
+    const indicator = containerEl.querySelector('.chem-typing-indicator');
+    if (indicator) indicator.remove();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     learningState = loadLearningState();
 
@@ -236,7 +323,6 @@ function bindTutorActions() {
     // run status check when tab activates
     document.getElementById("nav-tutor").addEventListener("click", checkStatus);
     document.getElementById("bnav-tutor").addEventListener("click", checkStatus);
-    checkStatus();
 
     const msgsEl = document.getElementById("chat-messages");
     const input = document.getElementById("chat-input");
@@ -348,11 +434,8 @@ function bindTutorActions() {
         input.disabled = true;
         sendBtn.disabled = true;
 
-        const typingId = "main-typing";
-        const typingWrap = document.createElement("div");
-        typingWrap.id = typingId;
-        typingWrap.className = "flex justify-start";
-        typingWrap.innerHTML = `<div class="bg-white border border-gray-100 px-4 py-3 rounded-3xl rounded-bl-lg flex items-center space-x-1"><div class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div>`;
+        removeContainerTypingIndicator(msgsEl);
+        const typingWrap = createTypingIndicatorElement("Prof. Beaker", false);
         msgsEl.appendChild(typingWrap);
         msgsEl.scrollTop = msgsEl.scrollHeight;
 
@@ -365,7 +448,6 @@ function bindTutorActions() {
                 body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
             });
             if (!response.ok) throw new Error("HTTP error");
-            document.getElementById(typingId)?.remove();
 
             let assistantText = "";
             let firstToken = true;
@@ -382,6 +464,7 @@ function bindTutorActions() {
                         const data = JSON.parse(line);
                         if (data.message?.content) {
                             if (firstToken) {
+                                typingWrap.remove();
                                 bubble = appendBubble("assistant", "");
                                 firstToken = false;
                             }
@@ -393,10 +476,13 @@ function bindTutorActions() {
                     } catch {}
                 }
             }
+            if (firstToken) {
+                typingWrap.remove();
+            }
             chatHistory.push({ role: "assistant", content: assistantText });
             if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
         } catch (e) {
-            document.getElementById(typingId)?.remove();
+            typingWrap.remove();
             appendBubble("assistant", "Could not connect to Ollama on localhost:11434.");
         }
 
@@ -3387,9 +3473,8 @@ window.ChemTutor = (() => {
     }
 
     async function streamOllama(msgsEl, chatHistory, systemContext = "") {
-        const typingWrap = document.createElement("div");
-        typingWrap.className = "flex justify-start inline-typing";
-        typingWrap.innerHTML = `<div class="bg-gray-100 px-3 py-2 rounded-2xl flex items-center space-x-1 border border-gray-200 mt-1"><div class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1.5 h-1.5 bg-violet-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div>`;
+        removeContainerTypingIndicator(msgsEl);
+        const typingWrap = createTypingIndicatorElement("ChemTutor", true);
         msgsEl.appendChild(typingWrap);
         msgsEl.scrollTop = msgsEl.scrollHeight;
 
@@ -3405,7 +3490,6 @@ window.ChemTutor = (() => {
                 body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
             });
             if (!response.ok) throw new Error("HTTP error");
-            typingWrap.remove();
 
             let assistantText = "";
             let firstToken = true;
@@ -3422,6 +3506,7 @@ window.ChemTutor = (() => {
                         const data = JSON.parse(line);
                         if (data.message?.content) {
                             if (firstToken) {
+                                typingWrap.remove();
                                 bubble = appendInlineBubble(msgsEl, "assistant", "");
                                 firstToken = false;
                             }
@@ -3432,6 +3517,9 @@ window.ChemTutor = (() => {
                         if (data.done) break;
                     } catch {}
                 }
+            }
+            if (firstToken) {
+                typingWrap.remove();
             }
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {

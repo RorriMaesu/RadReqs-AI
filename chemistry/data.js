@@ -456,6 +456,7 @@ const ChemData = {
                 products: ["P4O10"],
                 coefficients: [1, 5, 1]
             },
+
             // 38. Precipitation of Lead Iodide (Golden Rain)
             {
                 id: "rxn38",
@@ -477,20 +478,29 @@ const ChemData = {
                 products: ["C6H12O6"],
                 coefficients: [1, 1, 2]
             }
-        ]
+        ],
     },
-
-        nomenclature: {
+    nomenclature: {
+        "Ionic (Type I & II)": [
+            { "formula": "NaCl", "name": "Sodium chloride", "rule": "Type I: cation name + anion root -ide" },
+            { "formula": "MgCl2", "name": "Magnesium chloride", "rule": "Type I: group 2 metal charges are fixed" },
+            { "formula": "FeCl3", "name": "Iron(III) chloride", "rule": "Type II: transition metal requires Roman numerals" },
+            { "formula": "CuO", "name": "Copper(II) oxide", "rule": "Type II: charge balanced with oxide (-2)" },
+            { "formula": "Pb(SO4)2", "name": "Lead(IV) sulfate", "rule": "Type II: balanced with two sulfate ions (-2 each)" },
+            { "formula": "K2CO3", "name": "Potassium carbonate", "rule": "Type I with polyatomic: no prefix needed" },
+            { "formula": "SnCl2", "name": "Tin(II) chloride", "rule": "Type II: infer cation oxidation state from anion charge" },
+            { "formula": "Fe2O3", "name": "Iron(III) oxide", "rule": "Type II: oxide is always -2" }
+        ],
         "Polyatomic Ions": [
-            { "formula": "NH4+", "name": "Ammonium" },
+            { "formula": "NH4+", "name": "Ammonium", "rule": "Common positive polyatomic ion" },
             { "formula": "NO2-", "name": "Nitrite", "rule": "One less oxygen than Nitrate" },
             { "formula": "NO3-", "name": "Nitrate", "rule": "Base 'ate' ion for nitrogen" },
             { "formula": "SO3 2-", "name": "Sulfite", "rule": "One less oxygen than Sulfate" },
             { "formula": "SO4 2-", "name": "Sulfate", "rule": "Base 'ate' ion for sulfur" },
-            { "formula": "OH-", "name": "Hydroxide" },
-            { "formula": "CN-", "name": "Cyanide" },
-            { "formula": "PO4 3-", "name": "Phosphate" },
-            { "formula": "CO3 2-", "name": "Carbonate" }
+            { "formula": "OH-", "name": "Hydroxide", "rule": "Diatomic anion with -1 charge" },
+            { "formula": "CN-", "name": "Cyanide", "rule": "Diatomic anion with -1 charge" },
+            { "formula": "PO4 3-", "name": "Phosphate", "rule": "Trivalent polyatomic anion" },
+            { "formula": "CO3 2-", "name": "Carbonate", "rule": "Divalent polyatomic anion" }
         ],
         "Acids": [
             { "formula": "HCl", "name": "Hydrochloric acid", "rule": "Binary acid: hydro- + root + -ic" },
@@ -499,21 +509,24 @@ const ChemData = {
             { "formula": "HNO2", "name": "Nitrous acid", "rule": "Oxyacid: '-ite' ion becomes '-ous' acid" },
             { "formula": "H2SO4", "name": "Sulfuric acid", "rule": "Oxyacid: '-ate' ion becomes '-ic' acid" },
             { "formula": "H2SO3", "name": "Sulfurous acid", "rule": "Oxyacid: '-ite' ion becomes '-ous' acid" },
-            { "formula": "HC2H3O2", "name": "Acetic acid", "rule": "Oxyacid: from Acetate" }
+            { "formula": "HC2H3O2", "name": "Acetic acid", "rule": "Oxyacid: from Acetate" },
+            { "formula": "H3PO4", "name": "Phosphoric acid", "rule": "Phosphate (-ate) gives phosphoric acid" },
+            { "formula": "HClO4", "name": "Perchloric acid", "rule": "Perchlorate becomes perchloric acid" }
         ],
         "Hydrates": [
-            { "formula": "CuSO4�5H2O", "name": "Copper(II) sulfate pentahydrate", "rule": "penta = 5 waters" },
-            { "formula": "MgSO4�7H2O", "name": "Magnesium sulfate heptahydrate", "rule": "hepta = 7 waters" },
-            { "formula": "CaCl2�2H2O", "name": "Calcium chloride dihydrate", "rule": "di = 2 waters" },
-            { "formula": "CoCl2�6H2O", "name": "Cobalt(II) chloride hexahydrate", "rule": "hexa = 6 waters" }
+            { "formula": "CuSO4·5H2O", "name": "Copper(II) sulfate pentahydrate", "rule": "penta = 5 waters" },
+            { "formula": "MgSO4·7H2O", "name": "Magnesium sulfate heptahydrate", "rule": "hepta = 7 waters" },
+            { "formula": "CaCl2·2H2O", "name": "Calcium chloride dihydrate", "rule": "di = 2 waters" },
+            { "formula": "CoCl2·6H2O", "name": "Cobalt(II) chloride hexahydrate", "rule": "hexa = 6 waters" },
+            { "formula": "Na2CO3·10H2O", "name": "Sodium carbonate decahydrate", "rule": "deca = 10 waters" }
         ],
         "Covalent Compounds": [
-            { "formula": "CO", "name": "Carbon monoxide" },
-            { "formula": "CO2", "name": "Carbon dioxide" },
-            { "formula": "N2O", "name": "Dinitrogen monoxide" },
-            { "formula": "NO2", "name": "Nitrogen dioxide" },
-            { "formula": "P2O5", "name": "Diphosphorus pentoxide" },
-            { "formula": "SF6", "name": "Sulfur hexafluoride" }
+            { "formula": "CO", "name": "Carbon monoxide", "rule": "Use mono- prefix for the second element" },
+            { "formula": "CO2", "name": "Carbon dioxide", "rule": "Use di- prefix for oxygen" },
+            { "formula": "N2O", "name": "Dinitrogen monoxide", "rule": "Use prefixes for both elements" },
+            { "formula": "NO2", "name": "Nitrogen dioxide", "rule": "No mono- prefix on first element" },
+            { "formula": "P2O5", "name": "Diphosphorus pentoxide", "rule": "Drop 'a' in penta- before oxide" },
+            { "formula": "SF6", "name": "Sulfur hexafluoride", "rule": "Use hexa- for six fluorine atoms" }
         ],
         "Organic (Intro)": [
             { "formula": "CH4", "name": "Methane", "rule": "Meth- = 1 carbon, -ane = single bonds" },
@@ -556,142 +569,142 @@ const ChemData = {
             {
                 id: "dq1",
                 competencyId: "mole-concept",
-                prompt: "A nurse needs to prepare 500.0 mL of standard physiological saline (0.154 M NaCl). How many grams of NaCl must be weighed out? (Na = 22.99 g/mol, Cl = 35.45 g/mol)",
-                choices: ["4.50 g", "9.00 g", "29.2 g", "58.4 g"],
-                correctIndex: 0
+                prompt: "A sample contains 0.250 moles of calcium carbonate, CaCO3. What is its mass in grams? (Ca = 40.08, C = 12.01, O = 16.00 g/mol)",
+                choices: ["10.0 g", "25.0 g", "40.0 g", "100 g"],
+                correctIndex: 1
             },
             {
                 id: "dq2",
                 competencyId: "mole-concept",
-                prompt: "A patient's bone density scan reports a loss of calcium hydroxyapatite, which contains calcium phosphate, Ca3(PO4)2. What is the total number of oxygen atoms represented in one formula unit of calcium phosphate?",
-                choices: ["4", "6", "8", "12"],
+                prompt: "Which of the following is a homogeneous mixture?",
+                choices: ["Pure water", "Sodium chloride crystals", "An aqueous salt solution", "A mixture of sand and water"],
                 correctIndex: 2
             },
             {
                 id: "dq3",
                 competencyId: "dim-analysis",
-                prompt: "A physician orders a patient to receive a dose of 0.250 grams of a cardiac medication. The medication is labeled in milligrams. Which dimensional analysis setup correctly represents the conversion to milligrams?",
-                choices: ["0.250 g * (1 mg / 1000 g)", "0.250 g * (1000 mg / 1 g)", "0.250 g * (1 g / 1000 mg)", "0.250 g * (100 mg / 1 g)"],
+                prompt: "Apply significant figure rules: 12.11 + 2.0 - 1.053 = ?",
+                choices: ["13", "13.1", "13.06", "13.057"],
                 correctIndex: 1
             },
             {
                 id: "dq4",
                 competencyId: "dim-analysis",
-                prompt: "An IV bag contains 0.75 Liters of lactated Ringer's solution. If the infusion rate is set to deliver 150 mL per hour, how many hours will the bag last?",
-                choices: ["2.0 hours", "5.0 hours", "7.5 hours", "11.3 hours"],
-                correctIndex: 1
+                prompt: "A metal has mass 48.0 g. Water in a graduated cylinder rises from 20.0 mL to 26.0 mL when the metal is added. What is the metal density?",
+                choices: ["8.0 g/mL", "1.8 g/mL", "2.4 g/mL", "0.12 g/mL"],
+                correctIndex: 0
             },
             {
                 id: "dq5",
                 competencyId: "measurement-precision",
-                prompt: "When weighing out a critical diagnostic tracer on a standard analytical balance in a clinical nuclear pharmacy, to what level of decimal precision (in grams) must the measurement be recorded?",
-                choices: ["Nearest 0.1 g", "Nearest 0.01 g", "Nearest 0.001 g", "Nearest 0.0001 g"],
-                correctIndex: 3
+                prompt: "How much heat is required to warm 50.0 g of water from 22.0 C to 28.0 C? (c = 4.184 J/g*C)",
+                choices: ["126 J", "1255 J", "8786 J", "250 J"],
+                correctIndex: 1
             },
             {
                 id: "dq6",
                 competencyId: "measurement-precision",
-                prompt: "A standard 50 mL class-A laboratory burette has graduation marks every 0.1 mL. When reading the volume of a titrant at the bottom of the meniscus, to which decimal place must you record your measurement?",
-                choices: ["Tenths place (e.g., 12.3 mL)", "Hundredths place (e.g., 12.35 mL)", "Thousandths place (e.g., 12.352 mL)", "Units place (e.g., 12 mL)"],
-                correctIndex: 1
+                prompt: "An element has isotopes: 35.0 amu (75.0%) and 37.0 amu (25.0%). What is the average atomic mass?",
+                choices: ["35.5 amu", "36.0 amu", "35.8 amu", "36.5 amu"],
+                correctIndex: 0
             },
             {
                 id: "dq7",
                 competencyId: "stoich-setup",
-                prompt: "The metabolic oxidation of glucose is represented by the unbalanced equation: C6H12O6(s) + O2(g) -> CO2(g) + H2O(l). Once balanced, what is the stoichiometric mole ratio used to calculate the moles of carbon dioxide produced per mole of oxygen consumed?",
-                choices: ["1 mole CO2 / 6 moles O2", "6 moles CO2 / 1 mole O2", "6 moles CO2 / 6 moles O2", "1 mole CO2 / 1 mole C6H12O6"],
-                correctIndex: 2
+                prompt: "What is the ground-state electron configuration of phosphorus (Z = 15)?",
+                choices: ["1s² 2s² 2p⁶ 3s² 3p¹", "1s² 2s² 2p⁶ 3s² 3p³", "1s² 2s² 2p⁶ 3s² 3p⁵", "1s² 2s² 2p⁶ 3s¹ 3p⁴"],
+                correctIndex: 1
             },
             {
                 id: "dq8",
                 competencyId: "dim-analysis",
-                prompt: "A patient suspected of acute dehydration has a urine sample with a mass of 25.32 g and a volume of 24.50 mL. Calculate the density of the urine sample to three decimal places.",
-                choices: ["1.033 g/mL", "0.968 g/mL", "1.082 g/mL", "1.015 g/mL"],
-                correctIndex: 0
+                prompt: "Which element has the highest first ionization energy?",
+                choices: ["Sodium (Na)", "Chlorine (Cl)", "Fluorine (F)", "Lithium (Li)"],
+                correctIndex: 2
             },
             {
                 id: "dq9",
                 competencyId: "mole-concept",
-                prompt: "Glucose (C6H12O6) is the primary source of energy for cellular metabolism. Using the atomic weights (C = 12.01 g/mol, H = 1.008 g/mol, O = 16.00 g/mol), calculate the molar mass of glucose.",
-                choices: ["180.16 g/mol", "342.30 g/mol", "96.08 g/mol", "180.16 amu"],
-                correctIndex: 0
+                prompt: "What is the IUPAC name of Fe2(SO4)3?",
+                choices: ["Iron(II) sulfate", "Iron(III) sulfate", "Diiron trisulfate", "Iron sulfate"],
+                correctIndex: 1
             },
             {
                 id: "dq10",
                 competencyId: "measurement-precision",
-                prompt: "To prevent toxic overdoses, a clinical pharmacologist records a pediatric dose as 0.004050 g. How many significant figures are in this measured value?",
-                choices: ["3", "4", "5", "7"],
+                prompt: "What is the correct formula for nitrous acid?",
+                choices: ["HNO3", "HNO2", "HCl", "H2SO3"],
                 correctIndex: 1
             },
             {
                 id: "dq11",
                 competencyId: "stoich-setup",
-                prompt: "In a cellular reaction, reactant A and reactant B combine to form product C. If reactant A is the limiting reactant, what does this imply about the reaction outcome?",
-                choices: ["Reactant A will have the largest remaining mass after the reaction stops.", "The maximum yield of product C is strictly determined by the initial quantity of reactant A.", "Reactant B is completely consumed before reactant A.", "The reaction rate is solely dependent on reactant A's molar mass."],
+                prompt: "According to VSEPR, what is the molecular geometry of H2O?",
+                choices: ["Linear", "Bent", "Trigonal planar", "Tetrahedral"],
                 correctIndex: 1
             },
             {
                 id: "dq12",
                 competencyId: "mole-concept",
-                prompt: "Under the Ideal Gas Law (PV = nRT), if a patient's lungs expand (increasing volume) during inhalation at a constant temperature and constant moles of gas, what occurs to the internal pressure of the air inside the lungs?",
-                choices: ["The internal pressure increases, forcing air out.", "The internal pressure decreases, drawing air in.", "The internal pressure remains constant.", "The gas constant R increases to compensate."],
-                correctIndex: 1
+                prompt: "Which pure compound has hydrogen bonding as its strongest IMF?",
+                choices: ["CH4", "HCl", "NH3", "H2S"],
+                correctIndex: 2
             },
             {
                 id: "dq13",
                 competencyId: "stoich-setup",
-                prompt: "An antacid tablet contains magnesium hydroxide, which neutralizes stomach acid according to the unbalanced equation: Mg(OH)2(s) + HCl(aq) -> MgCl2(aq) + H2O(l). If a patient takes a dose containing 0.050 moles of Mg(OH)2, how many moles of HCl can be neutralized?",
-                choices: ["0.025 moles", "0.050 moles", "0.100 moles", "0.200 moles"],
-                correctIndex: 2
+                prompt: "For N2 + 3H2 -> 2NH3, if 2.0 mol N2 reacts with excess H2, how many moles NH3 form?",
+                choices: ["2.0 moles", "4.0 moles", "6.0 moles", "1.0 mole"],
+                correctIndex: 1
             },
             {
                 id: "dq14",
                 competencyId: "stoich-setup",
-                prompt: "During heavy exercise, anaerobic respiration in muscles produces lactic acid: C6H12O6 -> HC3H5O3 (unbalanced). How many moles of lactic acid (HC3H5O3) are produced per mole of glucose (C6H12O6) metabolized?",
-                choices: ["1 mole", "2 moles", "3 moles", "6 moles"],
+                prompt: "Mixing Na2CO3(aq) and CaCl2(aq) forms a precipitate. What is the net ionic equation?",
+                choices: ["Na⁺(aq) + Cl⁻(aq) → NaCl(s)", "Ca²⁺(aq) + CO₃²⁻(aq) → CaCO₃(s)", "2Na⁺(aq) + 2Cl⁻(aq) → 2NaCl(aq)", "Ca²⁺(aq) + 2Cl⁻(aq) → CaCl₂(s)"],
                 correctIndex: 1
             },
             {
                 id: "dq15",
                 competencyId: "mole-concept",
-                prompt: "Cisplatin, Pt(NH3)2Cl2, is a platinum-based chemotherapy agent. What is the molar mass of cisplatin to two decimal places? (Pt = 195.08, N = 14.01, H = 1.01, Cl = 35.45 g/mol)",
-                choices: ["223.51 g/mol", "264.59 g/mol", "300.06 g/mol", "301.12 g/mol"],
-                correctIndex: 2
+                prompt: "Given 4.0 mol H2 and 3.0 mol O2 for 2H2 + O2 -> 2H2O, which is limiting and what H2O amount forms?",
+                choices: ["H2 is limiting; 4.0 moles H2O produced", "O2 is limiting; 6.0 moles H2O produced", "H2 is limiting; 2.0 moles H2O produced", "O2 is limiting; 3.0 moles H2O produced"],
+                correctIndex: 0
             },
             {
                 id: "dq16",
                 competencyId: "dim-analysis",
-                prompt: "A physician orders a dopamine infusion at a rate of 5.0 mcg/kg/min for an 80.0 kg patient. The dopamine concentration in the IV bag is 1.6 mg/mL. What is the required infusion rate in mL/hour? (1 mg = 1000 mcg)",
-                choices: ["15.0 mL/h", "24.0 mL/h", "150 mL/h", "6.0 mL/h"],
-                correctIndex: 0
+                prompt: "A gas occupies 4.0 L at 1.0 atm. If temperature stays constant and volume becomes 2.0 L, what is the new pressure?",
+                choices: ["0.5 atm", "1.0 atm", "2.0 atm", "4.0 atm"],
+                correctIndex: 2
             },
             {
                 id: "dq17",
                 competencyId: "stoich-setup",
-                prompt: "A clinical diagnostic test captures exhaled carbon dioxide by reacting it with barium hydroxide: CO2(g) + Ba(OH)2(aq) -> BaCO3(s) + H2O(l). If a patient exhales 0.220 g of CO2 (molar mass = 44.01 g/mol), what is the theoretical yield of the barium carbonate precipitate (BaCO3, molar mass = 197.3 g/mol)?",
-                choices: ["0.220 g", "0.440 g", "0.987 g", "1.973 g"],
-                correctIndex: 2
+                prompt: "How many moles are in 5.0 L at 2.0 atm and 300 K? (Use R = 0.0821 L*atm/(mol*K))",
+                choices: ["0.41 moles", "2.4 moles", "0.08 moles", "1.2 moles"],
+                correctIndex: 0
             },
             {
                 id: "dq18",
                 competencyId: "mole-concept",
-                prompt: "An MRI imaging contrast dose is 0.10 mmol of Gd-DTPA per kg of body weight. For an 80.0 kg patient, how many millimoles are administered, and how many individual molecules of Gd-DTPA does this represent? (Avogadro = 6.022 x 10^23)",
-                choices: ["8.0 mmol; 4.8 x 10^21 molecules", "80 mmol; 4.8 x 10^22 molecules", "8.0 mmol; 4.8 x 10^24 molecules", "0.80 mmol; 4.8 x 10^20 molecules"],
+                prompt: "What volume of 12.0 M HCl is needed to prepare 500.0 mL of 2.00 M HCl?",
+                choices: ["83.3 mL", "41.7 mL", "250 mL", "167 mL"],
                 correctIndex: 0
             },
             {
                 id: "dq19",
                 competencyId: "measurement-precision",
-                prompt: "A laboratory technician uses a micropipette to deliver exactly 250.0 microliters (mcL) of buffer solution. If the device has a precision tolerance of +/- 0.5 mcL, how should the volume be recorded in the patient report to match the precision of the instrument?",
-                choices: ["250 mcL", "250.0 mcL", "0.25 mL", "250.00 mcL"],
+                prompt: "What is the oxidation state of sulfur in sulfate, SO4^2-?",
+                choices: ["+4", "+6", "-2", "+2"],
                 correctIndex: 1
             },
             {
                 id: "dq20",
                 competencyId: "stoich-setup",
-                prompt: "Toxic cellular ammonia is converted in the liver to harmless urea: CO2(g) + NH3(g) -> (NH2)2CO(aq) + H2O(l) (unbalanced). Once balanced, if a patient metabolizes 3.40 g of ammonia (NH3, molar mass = 17.03 g/mol) with excess CO2, what is the theoretical yield of urea (molar mass = 60.06 g/mol)?",
-                choices: ["3.00 g", "6.00 g", "12.0 g", "24.0 g"],
-                correctIndex: 1
+                prompt: "Which compound is an unsaturated hydrocarbon with a C=C double bond?",
+                choices: ["Methane (CH4)", "Ethane (C2H6)", "Ethene (C2H4)", "Ethanol (C2H5OH)"],
+                correctIndex: 2
             }
         ]
     }
