@@ -680,6 +680,48 @@
             background-color: #451a03; /* amber-950 */
             border-color: #b45309; /* amber-600 */
         }
+
+        /* ChemTutor Popup Modal & Card Layouts */
+        .tutor-popup-backdrop {
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tutor-popup-card {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                        scale 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dark .tutor-popup-messages {
+            background-color: #0f1117 !important;
+        }
+        .dark .tutor-popup-input-area {
+            background-color: #161925 !important;
+            border-top-color: #2e3248 !important;
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .6; }
+        }
+        .da-quick-question-btn {
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        /* Sleek Webkit Scrollbar for Popup Messages */
+        .tutor-popup-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .tutor-popup-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .tutor-popup-messages::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.25);
+            border-radius: 9999px;
+        }
+        .tutor-popup-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.45);
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col selection:bg-amber-200 selection:text-amber-900">
@@ -1500,7 +1542,30 @@
                 </div>
             </div>
 
-            <p class="text-xs text-gray-500 mt-2">Try asking: "Why does this factor not cancel?" or "What should my next conversion factor be?"</p>
+            <div class="mt-4 p-4 rounded-2xl bg-violet-50/50 dark:bg-slate-900/30 border border-violet-100/80 dark:border-slate-800/80 shadow-sm">
+                <p class="text-xs font-bold text-violet-800 dark:text-violet-300 mb-2.5 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lightbulb text-amber-500 text-xs"></i>
+                    Quick Questions for ChemTutor
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button class="da-quick-question-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-950 border border-violet-200/80 dark:border-slate-800/80 hover:bg-violet-50 dark:hover:bg-slate-900 hover:border-violet-300 dark:hover:border-slate-700 transition-all duration-200 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300 dark:focus:ring-violet-800" data-question="What should my next conversion factor be?">
+                        <i class="fa-regular fa-comment-dots text-violet-500 text-xs"></i>
+                        "What should my next conversion factor be?"
+                    </button>
+                    <button class="da-quick-question-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-950 border border-violet-200/80 dark:border-slate-800/80 hover:bg-violet-50 dark:hover:bg-slate-900 hover:border-violet-300 dark:hover:border-slate-700 transition-all duration-200 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300 dark:focus:ring-violet-800" data-question="Why does this factor not cancel?">
+                        <i class="fa-regular fa-comment-dots text-violet-500 text-xs"></i>
+                        "Why does this factor not cancel?"
+                    </button>
+                    <button class="da-quick-question-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-950 border border-violet-200/80 dark:border-slate-800/80 hover:bg-violet-50 dark:hover:bg-slate-900 hover:border-violet-300 dark:hover:border-slate-700 transition-all duration-200 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300 dark:focus:ring-violet-800" data-question="How do I determine the correct significant figures?">
+                        <i class="fa-regular fa-comment-dots text-violet-500 text-xs"></i>
+                        "How do I determine the correct significant figures?"
+                    </button>
+                    <button class="da-quick-question-btn px-3.5 py-2 rounded-xl text-xs font-semibold text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-950 border border-violet-200/80 dark:border-slate-800/80 hover:bg-violet-50 dark:hover:bg-slate-900 hover:border-violet-300 dark:hover:border-slate-700 transition-all duration-200 flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-violet-300 dark:focus:ring-violet-800" data-question="Explain unit conversion step-by-step.">
+                        <i class="fa-regular fa-comment-dots text-violet-500 text-xs"></i>
+                        "Explain unit conversion step-by-step."
+                    </button>
+                </div>
+            </div>
 
             <div id="da-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-700"></div>
             <div id="da-tutor-anchor"></div>
@@ -1810,8 +1875,8 @@
                 </div>
             </details>
 
-            <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] gap-4 xl:items-start">
-                <div class="min-w-0">
+            <div class="w-full">
+                <div class="w-full">
                     <div id="stoich-balancer-container" class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-4">
                         <div class="flex justify-between items-center mb-4">
                             <h4 class="font-bold text-gray-800 text-sm uppercase tracking-wide">1. Balance the Equation</h4>
@@ -1883,45 +1948,6 @@
                             <button id="btn-check-stoich" class="py-3 px-6 rounded-xl font-bold text-white bg-gray-800 hover:bg-gray-900 transition-colors">Submit</button>
                         </div>
                         <div id="stoich-output" class="hidden mt-4 bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm text-gray-700"></div>
-                    </div>
-                </div>
-
-                <div id="stoich-tutor-panel" class="hidden w-full min-w-0 xl:sticky xl:top-0 xl:self-start">
-                    <div class="bg-white dark:bg-slate-950 rounded-3xl border border-violet-100 dark:border-slate-800 shadow-2xl shadow-violet-900/10 dark:shadow-black/30 overflow-hidden flex flex-col h-[70vh] sm:h-[72vh] xl:h-[min(75vh,40rem)] max-h-[75vh] min-h-0">
-                    <div class="px-4 py-3 bg-violet-50 dark:bg-slate-900 border-b border-violet-100 dark:border-slate-800 flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <div class="w-7 h-7 rounded-full bg-violet-600 text-white flex items-center justify-center shrink-0">
-                                    <i class="fa-solid fa-robot text-[11px]"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <span class="text-sm font-extrabold text-violet-900 dark:text-violet-200">Stoich Tutor</span>
-                                        <span id="stoich-tutor-status" class="text-[10px] font-bold uppercase tracking-wider text-violet-500 dark:text-violet-300">Closed</span>
-                                    </div>
-                                    <p id="stoich-tutor-context" class="text-[11px] text-violet-700/80 dark:text-slate-300 mt-0.5 line-clamp-2">Open the panel to ask about the current reaction.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button id="btn-stoich-tutor-minimize" class="w-8 h-8 rounded-full flex items-center justify-center text-violet-500 hover:text-violet-700 hover:bg-violet-100 dark:hover:bg-slate-800 transition-colors" title="Minimize">
-                                <i class="fa-solid fa-minus text-xs"></i>
-                            </button>
-                            <button id="btn-stoich-tutor-close" class="w-8 h-8 rounded-full flex items-center justify-center text-violet-500 hover:text-violet-700 hover:bg-violet-100 dark:hover:bg-slate-800 transition-colors" title="Close">
-                                <i class="fa-solid fa-xmark text-sm"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="stoich-tutor-messages" class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-3 bg-slate-50 dark:bg-slate-950"></div>
-                    <div class="shrink-0 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-950 p-3">
-                        <textarea id="stoich-tutor-input" rows="2" placeholder="Ask about the current reaction, limiting reactant, or sig figs..." class="w-full resize-none rounded-2xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 px-3 py-2.5 text-sm text-gray-800 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"></textarea>
-                        <div class="mt-3 flex items-center justify-between gap-2">
-                            <button id="btn-stoich-tutor-clear" class="text-xs font-bold text-gray-400 hover:text-rose-500 transition-colors">Clear</button>
-                            <button id="btn-stoich-tutor-send" class="px-4 py-2 rounded-xl font-bold text-white bg-violet-600 hover:bg-violet-700 transition-colors shadow-sm shadow-violet-600/20 inline-flex items-center gap-1.5">
-                                <i class="fa-solid fa-paper-plane text-[10px]"></i>
-                                Send
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>

@@ -1621,7 +1621,8 @@ function bindDaTutorialActions() {
         window.ChemTutor.invoke(
             `I'm on tutorial step ${stepNumber} (${step.type}). Explain this step and why it is valid using unit-cancellation logic.`,
             tutorAnchor,
-            systemContext
+            systemContext,
+            { popup: true }
         );
     }
 
@@ -3238,7 +3239,7 @@ function bindConversionActions() {
             "Treat temperature as equation-based conversion (offset) rather than pure ratio.",
             `Context JSON: ${JSON.stringify(contextPayload)}`
         ].join(" ");
-        window.ChemTutor.invoke(initialPrompt, tutorAnchor || output, systemContext);
+        window.ChemTutor.invoke(initialPrompt, tutorAnchor || output, systemContext, { popup: true });
     }
 
     function renderChain() {
@@ -3412,6 +3413,22 @@ function bindConversionActions() {
             );
         });
     }
+
+    // Bind quick questions to invoke tutor in popup mode
+    const quickBtns = document.querySelectorAll('.da-quick-question-btn');
+    quickBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const qText = btn.getAttribute('data-question');
+            if (qText) {
+                invokeDaTutor(qText, {
+                    errorType: "manual-help-request",
+                    currentKnownUnit: daChain.length > 0
+                        ? daChain[daChain.length - 1].numUnit
+                        : fromSelect.value
+                });
+            }
+        });
+    });
 }
 
 let labSession = null;
@@ -3514,8 +3531,16 @@ function bindStoichActions() {
     
     if (!btnLoad || !window.ChemData || !window.ChemData.stoichiometry) return;
 
-    if (window.StoichTutor && typeof window.StoichTutor.bindUi === 'function') {
-        window.StoichTutor.bindUi();
+    const toggleBtnEl = document.getElementById('btn-stoich-tutor-toggle');
+    if (toggleBtnEl) {
+        toggleBtnEl.addEventListener('click', () => {
+            const hasHistory = window.ChemTutor && typeof window.ChemTutor.hasHistory === 'function' && window.ChemTutor.hasHistory();
+            if (hasHistory) {
+                openStoichTutor(null);
+            } else {
+                openStoichTutor("Explain how to balance this chemical equation step-by-step.");
+            }
+        });
     }
 
     let currentRxn = null;
@@ -3561,21 +3586,12 @@ function bindStoichActions() {
         };
     }
 
-    function syncStoichTutorContext(extra = {}) {
-        if (window.StoichTutor && typeof window.StoichTutor.refreshContext === 'function') {
-            window.StoichTutor.refreshContext({ ...getStoichTutorContext(), ...extra });
-        }
-    }
+    function syncStoichTutorContext(extra = {}) {}
 
     function openStoichTutor(prompt, extra = {}) {
         const context = getStoichTutorContext(extra);
-        if (window.StoichTutor && typeof window.StoichTutor.ask === 'function') {
-            window.StoichTutor.ask(prompt, context);
-            return;
-        }
         if (window.ChemTutor && typeof window.ChemTutor.invoke === 'function') {
-            const anchor = output || statusDiv || equationContainer;
-            window.ChemTutor.invoke(prompt, anchor, `Stoichiometry context: ${JSON.stringify(context)}`);
+            window.ChemTutor.invoke(prompt, null, `Stoichiometry context: ${JSON.stringify(context)}`, { popup: true });
         }
     }
 
@@ -3593,8 +3609,11 @@ function bindStoichActions() {
 
         const buildPart = (molecules) => {
             const wrap = document.createElement("div");
-            wrap.className = "flex items-center gap-2";
+            wrap.className = "flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5";
             molecules.forEach((mol, idx) => {
+                const molWrap = document.createElement("div");
+                molWrap.className = "flex items-center gap-1.5 shrink-0";
+
                 const inp = document.createElement("input");
                 inp.type = "number";
                 inp.min = "1";
@@ -3609,10 +3628,12 @@ function bindStoichActions() {
                 inputs.push(inp);
                 
                 const span = document.createElement("span");
+                span.className = "whitespace-nowrap inline-flex items-baseline";
                 span.innerHTML = renderInteractiveFormula(mol);
                 
-                wrap.appendChild(inp);
-                wrap.appendChild(span);
+                molWrap.appendChild(inp);
+                molWrap.appendChild(span);
+                wrap.appendChild(molWrap);
                 
                 if (idx < molecules.length - 1) {
                     const plus = document.createElement("span");
@@ -3885,7 +3906,7 @@ function initScratchpad(rxn, activeScenario) {
         // 1. Formula
         const tdFormula = document.createElement("td");
         tdFormula.className = "py-3 font-semibold text-slate-800 dark:text-slate-200";
-        tdFormula.innerHTML = `${sp.coeff} <span class="ml-1">${renderInteractiveFormula(sp.formula)}</span>`;
+        tdFormula.innerHTML = `${sp.coeff} <span class="ml-1 whitespace-nowrap inline-flex items-baseline">${renderInteractiveFormula(sp.formula)}</span>`;
         tr.appendChild(tdFormula);
         
         // 2. Molar Mass
@@ -4215,11 +4236,7 @@ function renderInteractiveFormula(formula) {
             const name = elData ? elData.name : element;
             const mass = elData ? elData.mass : "";
             
-            html += `
-            <span tabindex="0" class="chem-tooltip-trigger inline-block cursor-help border-b border-dotted border-amber-500/60 hover:text-amber-600 focus:text-amber-600 outline-none select-none transition-colors" data-tooltip-name="${name}" ${mass ? `data-tooltip-mass="${mass}"` : ""}>
-                ${element}
-            </span>
-            `.trim();
+            html += `<span tabindex="0" class="chem-tooltip-trigger inline-block cursor-help border-b border-dotted border-amber-500/60 hover:text-amber-600 focus:text-amber-600 outline-none select-none transition-colors" data-tooltip-name="${name}" ${mass ? `data-tooltip-mass="${mass}"` : ""}>${element}</span>`;
         } else if (subscript) {
             html += `<sub>${subscript}</sub>`;
         } else if (special) {
@@ -5682,398 +5699,13 @@ function setStatus(element, text, kind) {
     element.classList.add("text-gray-700");
 }
 
-function escapeStoichTutorHtml(text) {
-    return String(text || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
 
-function renderStoichTutorMarkdown(text) {
-    if (typeof text !== 'string') return '';
-
-    // Escape first to keep model output safe, then selectively transform known syntax.
-    let html = escapeStoichTutorHtml(text);
-    const codeBlocks = [];
-
-    html = html.replace(/```(?:javascript|js|chemistry|html|css)?\n([\s\S]*?)\n```/g, (match, code) => {
-        const id = `__STOICH_CODE_BLOCK_${codeBlocks.length}__`;
-        codeBlocks.push(`<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg my-2 overflow-x-auto font-mono text-xs">${code}</pre>`);
-        return id;
-    });
-
-    html = html.replace(/`([^`\n]+?)`/g, (match, code) => {
-        const id = `__STOICH_CODE_BLOCK_${codeBlocks.length}__`;
-        codeBlocks.push(`<code class="bg-gray-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400 px-1 py-0.5 rounded font-mono text-xs">${code}</code>`);
-        return id;
-    });
-
-    if (window.CLINICAL_TUTOR && typeof window.CLINICAL_TUTOR.cleanMathAndLaTeX === 'function') {
-        html = window.CLINICAL_TUTOR.cleanMathAndLaTeX(html);
-    } else {
-        html = html
-            .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
-            .replace(/\\text\{([^{}]+)\}/g, '$1')
-            .replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
-            .replace(/\^\{([^{}]+)\}/g, '<sup>$1</sup>')
-            .replace(/([A-Za-z0-9)])_([0-9]+|[a-z]{1,2})/g, '$1<sub>$2</sub>')
-            .replace(/([A-Za-z0-9)])\^([0-9+\-]+)/g, '$1<sup>$2</sup>')
-            .replace(/\\rightarrow/g, '→')
-            .replace(/\\to/g, '→')
-            .replace(/\\times/g, '×')
-            .replace(/\\cdot/g, '·')
-            .replace(/\$\$/g, '')
-            .replace(/\$/g, '')
-            .replace(/\\([#*_`[\]()])/g, '$1');
-    }
-
-    html = html.replace(/^####\s+(.*)$/gm, '<h4 class="font-bold text-gray-800 dark:text-gray-200 mt-3 mb-1">$1</h4>');
-    html = html.replace(/^###\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
-    html = html.replace(/^##\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
-    html = html.replace(/^#\s+(.*)$/gm, '<h3 class="font-bold text-gray-900 dark:text-white mt-4 mb-2">$1</h3>');
-
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/(?<!\*)\*([^\*\n]+?)\*(?!\*)/g, '<em>$1</em>');
-    html = html.replace(/^[\*\-]\s+(.*)$/gm, '<li class="ml-5 list-disc marker:text-violet-500">$1</li>');
-    html = html.replace(/\n/g, '<br>');
-    html = html.replace(/<\/(h3|h4|div|li)><br>/g, '</$1>');
-    html = html.replace(/<br><li/g, '<li');
-    html = html.replace(/(<br>\s*){2,}/g, '<br><br>');
-
-    codeBlocks.forEach((codeHtml, index) => {
-        html = html.replace(`__STOICH_CODE_BLOCK_${index}__`, codeHtml);
-    });
-
-    return html;
-}
-
-window.StoichTutor = (() => {
-    const OLLAMA_URL = 'http://localhost:11434';
-    const MAX_TURNS = 20;
-
-    let contextProvider = null;
-    let panelEl = null;
-    let messagesEl = null;
-    let inputEl = null;
-    let statusEl = null;
-    let contextEl = null;
-    let toggleBtnEl = null;
-    let sendBtnEl = null;
-    let clearBtnEl = null;
-    let closeBtnEl = null;
-    let minimizeBtnEl = null;
-
-    let openState = false;
-    let busyState = false;
-    let history = [];
-    let currentContext = {};
-
-    function getModel() {
-        return localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
-    }
-
-    function ensureElements() {
-        if (panelEl && messagesEl && inputEl && statusEl && contextEl) return true;
-
-        panelEl = document.getElementById('stoich-tutor-panel');
-        messagesEl = document.getElementById('stoich-tutor-messages');
-        inputEl = document.getElementById('stoich-tutor-input');
-        statusEl = document.getElementById('stoich-tutor-status');
-        contextEl = document.getElementById('stoich-tutor-context');
-        toggleBtnEl = document.getElementById('btn-stoich-tutor-toggle');
-        sendBtnEl = document.getElementById('btn-stoich-tutor-send');
-        clearBtnEl = document.getElementById('btn-stoich-tutor-clear');
-        closeBtnEl = document.getElementById('btn-stoich-tutor-close');
-        minimizeBtnEl = document.getElementById('btn-stoich-tutor-minimize');
-
-        return Boolean(panelEl && messagesEl && inputEl && statusEl && contextEl);
-    }
-
-    function setStatusLabel(text, tone) {
-        if (!statusEl) return;
-        statusEl.textContent = text;
-        statusEl.className = 'text-[10px] font-bold uppercase tracking-wider';
-        if (tone === 'busy') statusEl.classList.add('text-amber-500');
-        else if (tone === 'error') statusEl.classList.add('text-rose-500');
-        else if (tone === 'ready') statusEl.classList.add('text-emerald-600');
-        else statusEl.classList.add('text-violet-500');
-    }
-
-    function setToggleLabel() {
-        if (!toggleBtnEl) return;
-        toggleBtnEl.innerHTML = openState
-            ? '<i class="fa-solid fa-robot text-[10px]"></i> Hide Tutor'
-            : '<i class="fa-solid fa-robot text-[10px]"></i> Ask Tutor';
-    }
-
-    function summarizeContext(ctx) {
-        if (!ctx) return 'Open the panel to ask about the current reaction.';
-        const parts = [];
-        if (ctx.equationText) parts.push(ctx.equationText);
-        if (ctx.activeScenario?.prompt) parts.push(ctx.activeScenario.prompt);
-        if (ctx.lastEvent) parts.push(`Last event: ${ctx.lastEvent}`);
-        return parts.slice(0, 2).join(' | ') || 'Open the panel to ask about the current reaction.';
-    }
-
-    function buildSystemPrompt(ctx) {
-        const payload = JSON.stringify(ctx || {});
-        return [
-            'You are Stoich Tutor, a chemistry assistant for balancing equations and stoichiometry.',
-            'Be concise, step-by-step, and focus on the current reaction state.',
-            'Explain why each coefficient, mole ratio, or significant figure decision is correct.',
-            'If the student is stuck, ask one targeted question at a time.',
-            'Formatting rule: avoid LaTeX delimiters and commands (such as $, $$, \\text{}, \\frac{}, and code fences).',
-            'Use plain readable chemistry notation in markdown/text (for example: C3H8 + O2 -> CO2 + H2O).',
-            `Current Stoichiometry Context: ${payload}`
-        ].join(' ');
-    }
-
-    function renderEmptyState() {
-        if (!messagesEl) return;
-        messagesEl.innerHTML = `
-            <div id="stoich-tutor-empty" class="rounded-2xl border border-dashed border-violet-200 bg-white p-4 text-sm text-gray-600">
-                <p class="font-semibold text-gray-800 mb-1">Ready when you are.</p>
-                <p>Ask about the current reaction, the balanced equation, limiting reactants, or significant figures.</p>
-            </div>`;
-    }
-
-    function appendBubble(role, text) {
-        if (!messagesEl) return null;
-        const empty = messagesEl.querySelector('#stoich-tutor-empty');
-        if (empty) empty.remove();
-        const wrap = document.createElement('div');
-        const bubble = document.createElement('div');
-
-        if (role === 'user') {
-            wrap.className = 'flex justify-end';
-            bubble.className = 'max-w-[86%] min-w-0 break-words overflow-hidden bg-violet-600 text-white px-4 py-3 rounded-3xl rounded-br-lg text-sm font-medium leading-relaxed whitespace-pre-wrap';
-        } else {
-            wrap.className = 'flex justify-start';
-            bubble.className = 'max-w-[88%] min-w-0 break-words overflow-hidden bg-white border border-gray-100 shadow-sm px-4 py-3 rounded-3xl rounded-bl-lg text-sm font-medium leading-relaxed text-gray-800 whitespace-pre-wrap';
-        }
-
-        bubble.innerHTML = renderStoichTutorMarkdown(text);
-        wrap.appendChild(bubble);
-        messagesEl.appendChild(wrap);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-        return bubble;
-    }
-
-    function ensureEmptyState() {
-        if (!messagesEl) return;
-        if (messagesEl.children.length === 0) {
-            renderEmptyState();
-        }
-    }
-
-    function updateContext(ctx) {
-        currentContext = ctx || {};
-        if (contextEl) contextEl.textContent = summarizeContext(currentContext);
-        if (openState) setStatusLabel(busyState ? 'Busy' : 'Ready', busyState ? 'busy' : 'ready');
-        setToggleLabel();
-    }
-
-    function registerContextProvider(provider) {
-        contextProvider = typeof provider === 'function' ? provider : null;
-        refreshContext();
-    }
-
-    function refreshContext(extra = {}) {
-        const base = contextProvider ? (contextProvider() || {}) : {};
-        updateContext({ ...base, ...extra });
-    }
-
-    function open(options = {}) {
-        if (!ensureElements()) return;
-        panelEl.classList.remove('hidden');
-        openState = true;
-        setToggleLabel();
-        refreshContext();
-        setStatusLabel(busyState ? 'Busy' : 'Ready', busyState ? 'busy' : 'ready');
-        ensureEmptyState();
-        if (options.focus !== false) {
-            inputEl.focus();
-        }
-    }
-
-    function close() {
-        if (!ensureElements()) return;
-        panelEl.classList.add('hidden');
-        openState = false;
-        setToggleLabel();
-    }
-
-    function toggle() {
-        if (openState) close();
-        else open();
-    }
-
-    function clear() {
-        history = [];
-        if (messagesEl) {
-            messagesEl.innerHTML = '';
-            renderEmptyState();
-        }
-        refreshContext();
-    }
-
-    async function sendMessage(userText, options = {}) {
-        const text = typeof userText === 'string' ? userText.trim() : '';
-        if (!text || busyState) return;
-
-        if (!openState) open({ focus: false });
-        refreshContext(options.extraContext || {});
-
-        appendBubble('user', text);
-        history.push({ role: 'user', content: text });
-        if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
-
-        if (inputEl) {
-            inputEl.value = '';
-            inputEl.style.height = 'auto';
-        }
-
-        busyState = true;
-        if (sendBtnEl) sendBtnEl.disabled = true;
-        if (inputEl) inputEl.disabled = true;
-        setStatusLabel('Busy', 'busy');
-
-        const messages = [
-            { role: 'system', content: buildSystemPrompt(currentContext) },
-            ...history
-        ];
-
-        const typingWrap = document.createElement('div');
-        typingWrap.id = 'stoich-tutor-typing';
-        typingWrap.className = 'flex justify-start';
-        typingWrap.innerHTML = '<div class="max-w-[88%] min-w-0 break-words overflow-hidden bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 shadow-sm px-4 py-3 rounded-3xl rounded-bl-lg flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:0ms"></span><span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:150ms"></span><span class="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style="animation-delay:300ms"></span></div>';
-        messagesEl.appendChild(typingWrap);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-
-        let assistantText = '';
-        let firstToken = true;
-        let bubble = null;
-
-        try {
-            const response = await fetch(`${OLLAMA_URL}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: getModel(),
-                    messages,
-                    stream: true,
-                    options: { temperature: 0.7, top_p: 0.95, top_k: 64, num_ctx: 4096 }
-                })
-            });
-
-            if (!response.ok || !response.body) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    let data;
-                    try {
-                        data = JSON.parse(line);
-                    } catch {
-                        continue;
-                    }
-                    const token = data.message?.content;
-                    if (token) {
-                        if (firstToken) {
-                            typingWrap.remove();
-                            bubble = appendBubble('assistant', '');
-                            firstToken = false;
-                        }
-                        assistantText += token;
-                        if (bubble) bubble.innerHTML = renderStoichTutorMarkdown(assistantText);
-                        messagesEl.scrollTop = messagesEl.scrollHeight;
-                    }
-                    if (data.done) break;
-                }
-            }
-
-            if (assistantText) {
-                history.push({ role: 'assistant', content: assistantText });
-                if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
-            }
-        } catch (err) {
-            typingWrap.remove();
-            appendBubble('assistant', `Sorry, I could not connect to the local tutor service. ${err && err.message ? err.message : 'Please try again.'}`);
-        } finally {
-            busyState = false;
-            if (sendBtnEl) sendBtnEl.disabled = false;
-            if (inputEl) inputEl.disabled = false;
-            setStatusLabel('Ready', 'ready');
-            setToggleLabel();
-            if (inputEl) inputEl.focus();
-        }
-    }
-
-    function ask(prompt, extraContext = {}) {
-        if (!prompt) return;
-        if (!openState) open({ focus: false });
-        refreshContext(extraContext);
-        return sendMessage(prompt, { extraContext });
-    }
-
-    function bindUi() {
-        if (!ensureElements()) return;
-        if (toggleBtnEl && !toggleBtnEl.dataset.stoichTutorBound) {
-            toggleBtnEl.addEventListener('click', toggle);
-            toggleBtnEl.dataset.stoichTutorBound = 'true';
-        }
-        if (sendBtnEl && !sendBtnEl.dataset.stoichTutorBound) {
-            sendBtnEl.addEventListener('click', () => sendMessage(inputEl ? inputEl.value : ''));
-            sendBtnEl.dataset.stoichTutorBound = 'true';
-        }
-        if (inputEl && !inputEl.dataset.stoichTutorBound) {
-            inputEl.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage(inputEl.value);
-                }
-            });
-            inputEl.dataset.stoichTutorBound = 'true';
-        }
-        if (clearBtnEl && !clearBtnEl.dataset.stoichTutorBound) {
-            clearBtnEl.addEventListener('click', clear);
-            clearBtnEl.dataset.stoichTutorBound = 'true';
-        }
-        if (closeBtnEl && !closeBtnEl.dataset.stoichTutorBound) {
-            closeBtnEl.addEventListener('click', close);
-            closeBtnEl.dataset.stoichTutorBound = 'true';
-        }
-        if (minimizeBtnEl && !minimizeBtnEl.dataset.stoichTutorBound) {
-            minimizeBtnEl.addEventListener('click', close);
-            minimizeBtnEl.dataset.stoichTutorBound = 'true';
-        }
-        renderEmptyState();
-        setToggleLabel();
-    }
-
-    return {
-        bindUi,
-        registerContextProvider,
-        refreshContext,
-        updateContext,
-        open,
-        close,
-        toggle,
-        clear,
-        ask,
-        sendMessage
-    };
-})();
 
 // --- GLOBAL INLINE AI TUTOR ---
 window.ChemTutor = (() => {
+    let popupHistory = [];
+    let currentPopupSystemContext = "";
+
     const parseMD = (text) => {
         if (typeof text !== 'string') return '';
 
@@ -6145,11 +5777,11 @@ window.ChemTutor = (() => {
         const bubble = document.createElement("div");
         if (role === "user") {
             wrap.className = "flex justify-end";
-            bubble.className = "max-w-[80%] bg-violet-600 text-white px-3 py-2 rounded-2xl rounded-tr-sm text-xs font-medium";
+            bubble.className = "max-w-[80%] bg-violet-600 dark:bg-violet-700 text-white px-3.5 py-2.5 rounded-2xl rounded-tr-sm text-xs font-semibold shadow-sm";
             bubble.innerHTML = parseMD(text);
         } else {
             wrap.className = "flex justify-start";
-            bubble.className = "max-w-[85%] bg-gray-100 px-3 py-2 rounded-2xl rounded-tl-sm text-xs font-medium text-gray-800";
+            bubble.className = "max-w-[85%] bg-gray-100 dark:bg-slate-900 border border-transparent dark:border-slate-800/80 px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-xs font-medium text-gray-800 dark:text-slate-100 shadow-sm leading-relaxed";
             if(text) bubble.innerHTML = parseMD(text);
         }
         wrap.appendChild(bubble);
@@ -6214,9 +5846,296 @@ window.ChemTutor = (() => {
         }
     }
 
+    function positionPopupCard(popupEl) {
+        const card = popupEl.querySelector('.tutor-popup-card');
+        const backdrop = popupEl.querySelector('.tutor-popup-backdrop');
+        const width = window.innerWidth;
+
+        // Reset inline styles
+        card.style.width = "";
+        card.style.maxWidth = "";
+        card.style.height = "";
+        card.style.maxHeight = "";
+        card.style.left = "";
+        card.style.top = "";
+        card.style.transform = "";
+        card.style.opacity = "";
+        popupEl.style.bottom = "";
+
+        // Standard setup: Centered overlay across all sizes
+        popupEl.className = 'fixed inset-0 z-[200] hidden flex items-center justify-center font-sans p-4';
+        backdrop.className = "tutor-popup-backdrop absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0";
+
+        if (width < 640) {
+            // Mobile Centered Layout
+            card.className = "tutor-popup-card bg-white dark:bg-slate-950 border border-violet-100 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 rounded-3xl w-[92%] h-[75vh] max-h-[540px] max-w-[400px]";
+        } else {
+            // Desktop Centered Layout (Static size)
+            card.className = "tutor-popup-card bg-white dark:bg-slate-950 border border-violet-100 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 rounded-3xl w-[440px] h-[600px]";
+        }
+
+        // Set initial transition state
+        card.style.transform = "translate(-50%, -50%) scale(0.95)";
+        card.style.opacity = "0";
+        card.style.left = "50%";
+        card.style.top = "50%";
+        card.classList.add('fixed');
+        
+        adjustVisualViewport(popupEl);
+    }
+
+    function adjustVisualViewport(popupEl) {
+        if (!popupEl || popupEl.classList.contains('hidden')) return;
+        const card = popupEl.querySelector('.tutor-popup-card');
+        if (!card) return;
+
+        if (window.innerWidth < 640 && window.visualViewport) {
+            const vv = window.visualViewport;
+            // Center the card in the shrunken visual viewport
+            card.style.left = `${vv.offsetLeft + vv.width / 2}px`;
+            card.style.top = `${vv.offsetTop + vv.height / 2}px`;
+            
+            // Constrain mobile height if keyboard shrinks viewport
+            if (vv.height < window.innerHeight) {
+                card.style.height = `${vv.height * 0.85}px`;
+                card.style.maxHeight = `${vv.height * 0.85}px`;
+            } else {
+                card.style.height = "75vh";
+                card.style.maxHeight = "540px";
+            }
+        } else {
+            card.style.left = "50%";
+            card.style.top = "50%";
+            card.style.height = "";
+            card.style.maxHeight = "";
+        }
+    }
+
+    function openTutorPopup(initialPrompt, systemContext = "") {
+        let popupEl = document.getElementById('tutor-popup-modal');
+        if (!popupEl) {
+            popupEl = document.createElement('div');
+            popupEl.id = 'tutor-popup-modal';
+            popupEl.className = 'fixed inset-0 z-[200] hidden flex items-center justify-center font-sans p-4';
+            popupEl.innerHTML = `
+                <!-- Backdrop -->
+                <div class="tutor-popup-backdrop absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
+                
+                <!-- Card Container -->
+                <div class="tutor-popup-card bg-white dark:bg-slate-950 border border-violet-100 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col transition-all duration-300 rounded-3xl">
+                    <!-- Pull bar for mobile -->
+                    <div class="tutor-popup-drag-bar w-12 h-1.5 bg-gray-300 dark:bg-slate-700 rounded-full mx-auto my-3 shrink-0 sm:hidden"></div>
+                    
+                    <!-- Header -->
+                    <div class="flex items-center justify-between px-4 py-3 bg-violet-50 dark:bg-slate-900 border-b border-violet-100 dark:border-slate-800 shrink-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-7 h-7 rounded-full bg-violet-600 flex items-center justify-center shrink-0 shadow-sm animate-pulse-slow">
+                                <i class="fa-solid fa-robot text-xs text-white"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="text-sm font-extrabold text-violet-900 dark:text-violet-200 block truncate">ChemTutor AI</span>
+                                <span class="tutor-popup-status text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                    Online
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button class="tutor-popup-clear w-8 h-8 rounded-full flex items-center justify-center text-violet-400 hover:text-rose-600 dark:hover:text-rose-450 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors" title="Clear Conversation">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                            <button class="tutor-popup-minimize w-8 h-8 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 dark:hover:text-violet-200 hover:bg-violet-100 dark:hover:bg-slate-800 transition-colors" title="Minimize">
+                                <i class="fa-solid fa-minus text-xs"></i>
+                            </button>
+                            <button class="tutor-popup-close w-8 h-8 rounded-full flex items-center justify-center text-violet-400 hover:text-violet-700 dark:hover:text-violet-200 hover:bg-violet-100 dark:hover:bg-slate-800 transition-colors" title="Close">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Messages List -->
+                    <div class="tutor-popup-messages flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950">
+                        <!-- Messages will appear here -->
+                    </div>
+                    
+                    <!-- Input Form -->
+                    <div class="tutor-popup-input-area border-t border-gray-100 dark:border-slate-800 p-3 bg-white dark:bg-slate-950 shrink-0">
+                        <div class="flex gap-2 items-end">
+                            <textarea rows="1" placeholder="Ask ChemTutor a question..." class="tutor-popup-input flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-slate-100 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 transition-all resize-none max-h-24 leading-relaxed"></textarea>
+                            <button class="tutor-popup-send w-10 h-10 rounded-xl bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-all shadow-sm shrink-0 hover:shadow-md active:scale-95 disabled:opacity-50">
+                                <i class="fa-solid fa-paper-plane text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popupEl);
+
+            // Bind events for the newly created popup
+            const closeBtn = popupEl.querySelector('.tutor-popup-close');
+            const minimizeBtn = popupEl.querySelector('.tutor-popup-minimize');
+            const clearBtn = popupEl.querySelector('.tutor-popup-clear');
+            const backdrop = popupEl.querySelector('.tutor-popup-backdrop');
+            const input = popupEl.querySelector('.tutor-popup-input');
+            const sendBtn = popupEl.querySelector('.tutor-popup-send');
+            
+            closeBtn.addEventListener('click', closeTutorPopup);
+            if (minimizeBtn) minimizeBtn.addEventListener('click', closeTutorPopup);
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    popupHistory = [];
+                    const msgsEl = popupEl.querySelector('.tutor-popup-messages');
+                    if (msgsEl) {
+                        msgsEl.innerHTML = "";
+                        appendInlineBubble(msgsEl, "assistant", "Hello! I am ChemTutor. How can I help you with your chemistry workspace today?");
+                    }
+                });
+            }
+            backdrop.addEventListener('click', closeTutorPopup);
+            
+            const handleSend = () => {
+                const text = input.value.trim();
+                if (!text) return;
+                const msgsEl = popupEl.querySelector('.tutor-popup-messages');
+                appendInlineBubble(msgsEl, "user", text);
+                popupHistory.push({ role: "user", content: text });
+                input.value = "";
+                input.style.height = "auto"; // Reset height on send
+                streamOllama(msgsEl, popupHistory, currentPopupSystemContext);
+            };
+            
+            sendBtn.addEventListener('click', handleSend);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+            input.addEventListener('input', () => {
+                input.style.height = "auto";
+                input.style.height = `${input.scrollHeight}px`;
+            });
+        }
+
+        // Show the popup modal
+        const card = popupEl.querySelector('.tutor-popup-card');
+        const backdrop = popupEl.querySelector('.tutor-popup-backdrop');
+        const msgsEl = popupEl.querySelector('.tutor-popup-messages');
+        const input = popupEl.querySelector('.tutor-popup-input');
+
+        // History management (persistence)
+        currentPopupSystemContext = systemContext;
+
+        if (popupHistory.length === 0) {
+            msgsEl.innerHTML = "";
+            if (initialPrompt) {
+                appendInlineBubble(msgsEl, "user", initialPrompt);
+                popupHistory.push({ role: "user", content: initialPrompt });
+                streamOllama(msgsEl, popupHistory, currentPopupSystemContext);
+            } else {
+                appendInlineBubble(msgsEl, "assistant", "Hello! I am ChemTutor. How can I help you with your chemistry workspace today?");
+            }
+        } else {
+            // Re-render existing history
+            msgsEl.innerHTML = "";
+            popupHistory.forEach(msg => {
+                appendInlineBubble(msgsEl, msg.role, msg.content);
+            });
+            
+            // If they clicked a new prompt while it was closed, append it
+            if (initialPrompt) {
+                appendInlineBubble(msgsEl, "user", initialPrompt);
+                popupHistory.push({ role: "user", content: initialPrompt });
+                streamOllama(msgsEl, popupHistory, currentPopupSystemContext);
+            }
+        }
+
+        // Re-calculate responsive position and styles
+        positionPopupCard(popupEl);
+        
+        popupEl.classList.remove('hidden');
+        
+        // Trigger enter transitions
+        setTimeout(() => {
+            backdrop.classList.remove('opacity-0');
+            backdrop.classList.add('opacity-100');
+            
+            card.style.transform = "translate(-50%, -50%) scale(1)";
+            card.style.opacity = "1";
+        }, 50);
+
+        // Autofocus input
+        setTimeout(() => {
+            if (input) input.focus();
+        }, 350);
+    }
+
+    function closeTutorPopup() {
+        const popupEl = document.getElementById('tutor-popup-modal');
+        if (!popupEl || popupEl.classList.contains('hidden')) return;
+        
+        const card = popupEl.querySelector('.tutor-popup-card');
+        const backdrop = popupEl.querySelector('.tutor-popup-backdrop');
+        
+        backdrop.classList.remove('opacity-100');
+        backdrop.classList.add('opacity-0');
+        
+        card.style.transform = "translate(-50%, -50%) scale(0.95)";
+        card.style.opacity = "0";
+        
+        setTimeout(() => {
+            popupEl.classList.add('hidden');
+        }, 300);
+    }
+
+    // Window resize event handler to reposition popup dynamically
+    window.addEventListener('resize', () => {
+        const popupEl = document.getElementById('tutor-popup-modal');
+        if (popupEl && !popupEl.classList.contains('hidden')) {
+            positionPopupCard(popupEl);
+            const card = popupEl.querySelector('.tutor-popup-card');
+            const backdrop = popupEl.querySelector('.tutor-popup-backdrop');
+            
+            backdrop.classList.remove('opacity-0');
+            backdrop.classList.add('opacity-100');
+            
+            card.style.transform = "translate(-50%, -50%) scale(1)";
+            card.style.opacity = "1";
+        }
+    });
+
+    // Listen to visual viewport changes (especially for mobile soft keyboards)
+    if (window.visualViewport) {
+        const handleVisualViewportChange = () => {
+            const popupEl = document.getElementById('tutor-popup-modal');
+            if (popupEl && !popupEl.classList.contains('hidden')) {
+                adjustVisualViewport(popupEl);
+                const card = popupEl.querySelector('.tutor-popup-card');
+                card.style.transform = "translate(-50%, -50%) scale(1)";
+                card.style.opacity = "1";
+                
+                // Keep input in view
+                const input = popupEl.querySelector('.tutor-popup-input');
+                if (input === document.activeElement) {
+                    setTimeout(() => {
+                        input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 50);
+                }
+            }
+        };
+        window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+        window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
+    }
+
     return {
+        hasHistory: () => popupHistory.length > 0,
         // Asks a question, spawning the tutor either after or inside `containerEl`.
         invoke: (initialPrompt, containerEl, systemContext = "", options = {}) => {
+            if (options && options.popup) {
+                openTutorPopup(initialPrompt, systemContext);
+                return;
+            }
+
             if (!containerEl) return;
             const mountMode = options?.mountMode === 'append' ? 'append' : 'after';
             const widgetClassName = typeof options?.widgetClassName === 'string' ? options.widgetClassName.trim() : '';
