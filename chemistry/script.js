@@ -101,6 +101,103 @@ function removeContainerTypingIndicator(containerEl) {
     if (indicator) indicator.remove();
 }
 
+function extractThinkingAndToolPayload(rawText) {
+    const output = {
+        visibleText: "",
+        thinking: "",
+        toolCalls: []
+    };
+    const safeRaw = typeof rawText === "string" ? rawText : "";
+
+    const thinkingMatch = safeRaw.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+    if (thinkingMatch) output.thinking = thinkingMatch[1].trim();
+
+    const toolMatch = safeRaw.match(/<tool_calls>([\s\S]*?)<\/tool_calls>/i);
+    if (toolMatch) {
+        try {
+            const parsed = JSON.parse(toolMatch[1].trim());
+            if (Array.isArray(parsed)) output.toolCalls = parsed;
+        } catch (_err) {
+            output.toolCalls = [];
+        }
+    }
+
+    output.visibleText = safeRaw
+        .replace(/<thinking>[\s\S]*?<\/thinking>/ig, "")
+        .replace(/<tool_calls>[\s\S]*?<\/tool_calls>/ig, "")
+        .replace(/<student_response>/ig, "")
+        .replace(/<\/student_response>/ig, "")
+        .trim();
+
+    return output;
+}
+
+async function streamOllamaWithThinkingFilter({
+    endpoint = "http://localhost:11434/api/chat",
+    payload,
+    onVisibleToken,
+    onThinking,
+    onToolCalls
+}) {
+    const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok || !response.body) {
+        throw new Error(`Ollama stream failed with status ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let lineBuffer = "";
+    let rawText = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        lineBuffer += decoder.decode(value, { stream: true });
+        const lines = lineBuffer.split("\n");
+        lineBuffer = lines.pop() || "";
+
+        for (const line of lines) {
+            if (!line.trim()) continue;
+
+            let chunk;
+            try {
+                chunk = JSON.parse(line);
+            } catch (_err) {
+                continue;
+            }
+
+            const token = typeof chunk?.message?.content === "string" ? chunk.message.content : "";
+            if (!token) continue;
+
+            rawText += token;
+            const parsedPayload = extractThinkingAndToolPayload(rawText);
+            if (typeof onVisibleToken === "function") onVisibleToken(parsedPayload.visibleText, rawText);
+            if (typeof onThinking === "function" && parsedPayload.thinking) onThinking(parsedPayload.thinking);
+            if (typeof onToolCalls === "function" && parsedPayload.toolCalls.length) onToolCalls(parsedPayload.toolCalls);
+        }
+    }
+
+    const parsed = extractThinkingAndToolPayload(rawText);
+    return {
+        raw: rawText,
+        visibleText: parsed.visibleText,
+        thinking: parsed.thinking,
+        toolCalls: parsed.toolCalls
+    };
+}
+
+window.ChemOllamaStream = {
+    extractThinkingAndToolPayload,
+    streamOllamaWithThinkingFilter,
+    dispatchMathRefresherToolCalls: (...args) => window.dispatchMathRefresherToolCalls?.(...args)
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     learningState = loadLearningState();
     chemistryVideoState = loadVideoState();
@@ -117,6 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindDaTutorialActions();
     bindStoichActions();
     bindSigFigActions();
+    bindMathRefresherActions();
     bindNomenclatureActions();
     bindPolyatomicSubTabs();
     bindPolyatomicIonsActions();
@@ -127,6 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCompetencyMap();
     renderLearningStatus();
     renderDiagnosticState();
+    updateMathRefresherCtas();
 
     // Initialize mastery progress calculation from masteryMatrix
     updateIndexMasteryProgress();
@@ -1776,6 +1875,32 @@ function saveLearningState() {
     localStorage.setItem(CHEM_STATE_KEY, JSON.stringify(learningState));
 }
 
+function getDefaultMathRefresherState() {
+    return null;
+}
+
+function loadMathRefresherState() {
+    return null;
+}
+
+function saveMathRefresherState() {
+    // State is owned by chemistry/math-refresher/math-controller.js.
+}
+
+function updateMathRefresherCtas() {
+    window.ChemMathRefresher?.updateCtas?.();
+}
+
+function bindMathRefresherActions() {
+    window.ChemMathRefresher?.init?.();
+}
+
+function dispatchMathRefresherToolCalls(toolCalls) {
+    window.ChemMathRefresher?.dispatchToolCalls?.(toolCalls);
+}
+
+window.dispatchMathRefresherToolCalls = dispatchMathRefresherToolCalls;
+
 function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
@@ -2549,7 +2674,7 @@ function bindVideoActions() {
 }
 
 function bindTabs() {
-    const tabs = ['dashboard', 'nomenclature', 'tutor', 'molar', 'dimensions', 'stoich', 'sigfigs', 'lab', 'videos'];
+    const tabs = ['dashboard', 'nomenclature', 'math-refresher', 'tutor', 'molar', 'dimensions', 'stoich', 'sigfigs', 'lab', 'videos'];
 
     window.activateChemTab = (tabId) => {
         const requestedTab = tabs.includes(tabId) ? tabId : 'dashboard';
@@ -2921,9 +3046,12 @@ function recordCompetencyAttempt(competencyId, isCorrect) {
     item.attempts += 1;
     if (isCorrect) item.correct += 1;
 
+    window.ChemMathRefresher?.notifyCompetencyAttempt?.(competencyId, isCorrect);
+
     saveLearningState();
     renderCompetencyMap();
     renderLearningStatus();
+    updateMathRefresherCtas();
 }
 
 function calculateOverallMastery() {
@@ -4203,7 +4331,16 @@ function bindSigFigActions() {
             }
         } else {
             setStatus(output, `Incorrect. The correctly rounded answer is ${currentSession.expectedString}.`, "error");
-            window.ChemTutor.invoke(`I am trying to calculate significant figures for the math problem: ${problemEl.textContent}. I inputted ${userVal}. Explain rules for rounding significant figures involving ${problemEl.textContent.includes('+') ? 'addition' : 'multiplication'}, and why the answer should be ${currentSession.expectedString}.`, output, `The user is practicing Significant Figures math. The problem is ${problemEl.textContent} = ${currentSession.rawVal}. The correct rounded answer is ${currentSession.expectedString}.`);
+            const hasHistory = window.ChemTutor && typeof window.ChemTutor.hasHistory === 'function' && window.ChemTutor.hasHistory();
+            const starterPrompt = hasHistory
+                ? null
+                : `I am trying to calculate significant figures for the math problem: ${problemEl.textContent}. I inputted ${userVal}. Explain rules for rounding significant figures involving ${problemEl.textContent.includes('+') ? 'addition' : 'multiplication'}, and why the answer should be ${currentSession.expectedString}.`;
+            window.ChemTutor.invoke(
+                starterPrompt,
+                null,
+                `The user is practicing Significant Figures math. The problem is ${problemEl.textContent} = ${currentSession.rawVal}. The correct rounded answer is ${currentSession.expectedString}.`,
+                { popup: true }
+            );
         }
         output.classList.remove("hidden");
     });
@@ -4552,7 +4689,16 @@ function bindNomenclatureActions() {
     if (fcAskTutor) {
         fcAskTutor.addEventListener("click", (e) => {
             e.stopPropagation();
-            window.ChemTutor.invoke(`I am struggling with flashcard: Formula '${currentCardData.formula}', Name '${currentCardData.name}'. Explain rule, prefix/suffix, or provide a mnemonic hook.`, controls, `The user is practicing Chemical Nomenclature flashcards in category "${currentCategory}". Current formula: ${currentCardData.formula}, name: ${currentCardData.name}.`);
+            const hasHistory = window.ChemTutor && typeof window.ChemTutor.hasHistory === 'function' && window.ChemTutor.hasHistory();
+            const starterPrompt = hasHistory
+                ? null
+                : `I am struggling with flashcard: Formula '${currentCardData.formula}', Name '${currentCardData.name}'. Explain rule, prefix/suffix, or provide a mnemonic hook.`;
+            window.ChemTutor.invoke(
+                starterPrompt,
+                null,
+                `The user is practicing Chemical Nomenclature flashcards in category "${currentCategory}". Current formula: ${currentCardData.formula}, name: ${currentCardData.name}.`,
+                { popup: true }
+            );
         });
     }
 
@@ -5093,10 +5239,15 @@ function bindPolyatomicIonsActions() {
         btnPolyAskTutor.addEventListener("click", (e) => {
             e.stopPropagation();
             if (!currentCard) return;
+            const hasHistory = window.ChemTutor && typeof window.ChemTutor.hasHistory === 'function' && window.ChemTutor.hasHistory();
+            const starterPrompt = hasHistory
+                ? null
+                : `I am struggling with polyatomic ion: Name '${currentCard.name}', Formula '${currentCard.formula}'. Explain charge, rules, or provide a mnemonic hook.`;
             window.ChemTutor.invoke(
-                `I am struggling with polyatomic ion: Name '${currentCard.name}', Formula '${currentCard.formula}'. Explain charge, rules, or provide a mnemonic hook.`,
-                controls,
-                `The user is practicing Polyatomic Ions flashcards. Current ion: ${currentCard.name}, formula: ${currentCard.formula}, charge: ${currentCard.charge}, group: ${currentCard.group}.`
+                starterPrompt,
+                null,
+                `The user is practicing Polyatomic Ions flashcards. Current ion: ${currentCard.name}, formula: ${currentCard.formula}, charge: ${currentCard.charge}, group: ${currentCard.group}.`,
+                { popup: true }
             );
         });
     }

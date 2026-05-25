@@ -11,6 +11,7 @@
         })();
     </script>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
+    <link rel="stylesheet" href="math-refresher/styles.css">
     <link rel="icon" href="data:,">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -742,6 +743,9 @@
                 <a href="coursework.html" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 hover:border-amber-500/30 transition-all flex items-center gap-1.5">
                     <i class="fa-solid fa-graduation-cap"></i> Coursework
                 </a>
+                <a href="periodic_table.html" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-500/20 hover:border-blue-500/30 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-table-cells"></i> Periodic Table
+                </a>
                 <a href="assignments.html" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 hover:border-emerald-500/30 transition-all flex items-center gap-1.5">
                     <i class="fa-solid fa-clipboard-list"></i> Homework Binder
                 </a>
@@ -774,6 +778,7 @@
                 <button id="nav-stoich" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('stoich')">Stoichiometry</button>
                 <button id="nav-sigfigs" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('sigfigs')">Sig Figs</button>
                 <button id="nav-nomenclature" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('nomenclature')">Nomenclature</button>
+                <button id="nav-math-refresher" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('math-refresher')">Math Refresher</button>
                 <button id="nav-tutor" class="px-6 py-2.5 text-sm font-bold rounded-full transition-all duration-300 text-gray-500 hover:text-gray-800 hover:bg-gray-100/50" onclick="activateChemTab('tutor')">AI Tutor</button>
             </div>
         </div>
@@ -836,7 +841,7 @@
         </section>
 
         <!-- Chemistry Mastery Portal Bridge -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <!-- Coursework Card -->
             <div class="bg-white dark:bg-[#1a1d27] rounded-3xl border border-gray-100 dark:border-[#363a52] p-6 sm:p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
                 <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 dark:bg-amber-500/5 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-amber-500/20 transition-colors"></div>
@@ -869,6 +874,32 @@
                     
                     <a href="coursework.html" class="w-full py-3 rounded-2xl font-bold text-white bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500 transition-colors shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2">
                         <span>Launch Coursework</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Periodic Table Sandbox Card -->
+            <div class="bg-white dark:bg-[#1a1d27] rounded-3xl border border-gray-100 dark:border-[#363a52] p-6 sm:p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-2xl -mr-6 -mt-6 group-hover:bg-blue-500/20 transition-colors"></div>
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center border border-blue-500/20 text-blue-600 dark:text-blue-400">
+                            <i class="fa-solid fa-table-cells text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800 dark:text-white">Periodic Table</h3>
+                            <span class="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider font-mono block">3D Orbitals & Trends</span>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
+                        Explore the interactive element grid, overlay trends like electronegativity, inspect rotating 3D electron shells, and try Challenge Mode.
+                    </p>
+                </div>
+                
+                <div class="mt-auto">
+                    <a href="periodic_table.html" class="w-full py-3 rounded-2xl font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+                        <span>Launch Sandbox</span>
                         <i class="fa-solid fa-arrow-right text-xs"></i>
                     </a>
                 </div>
@@ -1401,6 +1432,12 @@
         <section id="view-molar" class="fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
             <h3 class="text-xl font-bold mb-2">Molar Mass Calculator</h3>
             <p class="text-gray-600 mb-5">Enter a formula such as H2O, CO2, Ca(NO3)2, NaCl, or C2H5NO2.</p>
+            <p id="math-refresher-cta-molar" class="calc-struggle-cta hidden mb-4 text-sm text-amber-700 dark:text-amber-300 font-semibold">
+                Struggling with the calculation?
+                <button type="button" class="underline underline-offset-2 hover:text-amber-500 transition-colors" onclick="activateChemTab('math-refresher')">
+                    Open the Chemistry Math Refresher.
+                </button>
+            </p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 <input id="formula-input" type="text" class="sm:col-span-2 border border-gray-200 rounded-xl px-4 py-3 text-sm" placeholder="Chemical formula">
                 <button id="btn-calc-mass" class="py-3 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Start Guided Solve</button>
@@ -1442,6 +1479,12 @@
         <section id="view-dimensions" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
             <h3 class="text-xl font-bold mb-2">Dimensional Analysis Builder</h3>
             <p class="text-gray-600 mb-5">Convert units by building a factor-label chain. Cross-cancel units to reach the target.</p>
+            <p id="math-refresher-cta-dimensions" class="calc-struggle-cta hidden mb-4 text-sm text-amber-700 dark:text-amber-300 font-semibold">
+                Struggling with the calculation?
+                <button type="button" class="underline underline-offset-2 hover:text-amber-500 transition-colors" onclick="activateChemTab('math-refresher')">
+                    Open the Chemistry Math Refresher.
+                </button>
+            </p>
 
             <div class="mb-5 bg-blue-50 dark:bg-slate-900/50 border border-blue-200 dark:border-blue-900/40 rounded-xl p-4">
                 <div class="flex flex-wrap items-center gap-2 mb-3">
@@ -1574,6 +1617,12 @@
         <section id="view-stoich" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
             <h3 class="text-xl font-bold mb-2">Reaction & Stoichiometry</h3>
             <p class="text-gray-600 mb-5">Balance the equation then solve the resulting limiting/yield scenario.</p>
+            <p id="math-refresher-cta-stoich" class="calc-struggle-cta hidden mb-4 text-sm text-amber-700 dark:text-amber-300 font-semibold">
+                Struggling with the calculation?
+                <button type="button" class="underline underline-offset-2 hover:text-amber-500 transition-colors" onclick="activateChemTab('math-refresher')">
+                    Open the Chemistry Math Refresher.
+                </button>
+            </p>
             
             <!-- Expert Educator Stoichiometry Tutorial -->
             <details class="bg-emerald-50 dark:bg-slate-900 border border-emerald-200 dark:border-emerald-950 rounded-xl mb-6 overflow-hidden group transition-colors shadow-sm">
@@ -1953,6 +2002,137 @@
             </div>
         </section>
 
+        <section id="view-math-refresher" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <div class="flex flex-wrap items-start justify-between gap-3 mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">Chemistry Math Refresher</h3>
+                    <p class="text-gray-600 mt-1 text-sm">A chemistry-first math bridge built for returning science learners.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold text-amber-800 bg-amber-100 border border-amber-200">Chemistry Scope Only</span>
+                    <a href="math-refresher/index.html" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 transition-colors">Open Full Course</a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+                <article class="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+                    <h4 class="text-sm font-black uppercase tracking-wide text-gray-700 mb-2">Scientific Notation Explorer</h4>
+                    <p class="text-sm text-gray-600 mb-3">Zoom between macro and micro chemical scales to understand exponent direction.</p>
+                    <label for="math-sci-zoom" class="text-xs font-semibold text-gray-600">Scale Slider</label>
+                    <input id="math-sci-zoom" type="range" min="-15" max="23" value="0" class="w-full mt-2 accent-amber-500">
+                    <p id="math-sci-zoom-readout" class="mt-2 text-xs font-semibold text-gray-700">10^0 (neutral lab scale)</p>
+
+                    <div class="mt-3 flex items-center gap-2">
+                        <button id="btn-math-calculator-toggle" type="button" aria-pressed="false" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                            Calculator View: Off
+                        </button>
+                        <span class="text-[11px] font-semibold text-gray-500">E-notation translator</span>
+                    </div>
+
+                    <div id="math-calculator-view" class="math-calc-view hidden mt-3">
+                        <div class="math-calc-screen" aria-live="polite">
+                            <span id="math-calc-screen-value">6.022E0</span>
+                        </div>
+                        <p id="math-calc-plain-readout" class="text-xs text-gray-700 font-semibold mt-2">Calculator display for 6.022 x 10^0</p>
+                        <div class="math-parenthesis-guide mt-2">
+                            <p class="text-[11px] font-black uppercase tracking-wide text-blue-700">Parentheses Guardrail</p>
+                            <p id="math-parenthesis-example" class="text-xs text-gray-700 mt-1">Use: (6.022E0) / (3.011E0)</p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+                    <h4 class="text-sm font-black uppercase tracking-wide text-gray-700 mb-2">Keep the Change Cache</h4>
+                    <p class="text-sm text-gray-600 mb-3">Store unrounded working values and round only once at the final line.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <input id="math-cache-value" type="text" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Raw value">
+                        <input id="math-cache-note" type="text" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Step label">
+                        <button id="btn-math-cache-add" class="rounded-lg px-3 py-2 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600">Store</button>
+                    </div>
+                    <div id="math-cache-list" class="mt-3 space-y-1 text-xs text-gray-700"></div>
+                </article>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+                <article class="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+                    <h4 class="text-sm font-black uppercase tracking-wide text-gray-700 mb-2">Active Seesaw Variable Shield</h4>
+                    <p class="text-sm text-gray-600 mb-3">Operate on both sides of the equals pivot to isolate one variable at a time.</p>
+                    <div class="math-seesaw-shell">
+                        <div class="math-seesaw-rail">
+                            <div class="math-seesaw-side">
+                                <p class="math-seesaw-title">Left Side</p>
+                                <div id="math-seesaw-left-num" class="math-fraction-row"></div>
+                                <div id="math-seesaw-left-den" class="math-fraction-row math-fraction-den"></div>
+                            </div>
+                            <div class="math-seesaw-pivot" aria-label="Equals pivot">=</div>
+                            <div class="math-seesaw-side">
+                                <p class="math-seesaw-title">Right Side</p>
+                                <div id="math-seesaw-right-num" class="math-fraction-row"></div>
+                                <div id="math-seesaw-right-den" class="math-fraction-row math-fraction-den"></div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <p class="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-2">Divide Both Sides By</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" class="math-op-btn" data-op="divide" data-token="P1">P1</button>
+                                <button type="button" class="math-op-btn" data-op="divide" data-token="V1">V1</button>
+                                <button type="button" class="math-op-btn" data-op="divide" data-token="P2">P2</button>
+                                <button type="button" class="math-op-btn" data-op="divide" data-token="V2">V2</button>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="math-shield-status" class="text-xs font-semibold text-gray-700 mt-3">Equation loaded: P1 x V1 = P2 x V2. Apply an operation to isolate your target.</p>
+                </article>
+
+                <article class="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+                    <h4 class="text-sm font-black uppercase tracking-wide text-gray-700 mb-2">Two-Way pH Engine</h4>
+                    <p class="text-sm text-gray-600 mb-3">Convert both directions: concentration to pH and pH to concentration.</p>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center">
+                            <input id="math-ph-concentration-input" type="text" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="[H+] e.g. 1.0e-3">
+                            <button id="btn-math-ph-forward" class="rounded-lg px-3 py-2 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600">pH = -log[H+]</button>
+                        </div>
+                        <p id="math-ph-forward-output" class="text-xs font-semibold text-gray-700">Forward result: pending</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-center">
+                            <input id="math-ph-input" type="text" class="border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="pH e.g. 3">
+                            <button id="btn-math-ph-reverse" class="rounded-lg px-3 py-2 text-sm font-bold text-white bg-gray-800 hover:bg-gray-900">[H+] = 10^-pH</button>
+                        </div>
+                        <p id="math-ph-reverse-output" class="text-xs font-semibold text-gray-700">Reverse result: pending</p>
+                    </div>
+                </article>
+            </div>
+
+            <article class="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+                <h4 class="text-sm font-black uppercase tracking-wide text-gray-700 mb-2">Kinetic Train-Track Identity Sandbox</h4>
+                <p class="text-sm text-gray-600 mb-3">Drag units into diagonal track slots. Cancellation unlocks only when a matching numerator and denominator align diagonally.</p>
+
+                <div class="math-token-pool mb-3" id="math-track-token-pool">
+                    <button type="button" draggable="true" data-unit="g" class="math-unit-chip">g</button>
+                    <button type="button" draggable="true" data-unit="mol" class="math-unit-chip">mol</button>
+                    <button type="button" draggable="true" data-unit="L" class="math-unit-chip">L</button>
+                    <button type="button" draggable="true" data-unit="mL" class="math-unit-chip">mL</button>
+                </div>
+
+                <div class="math-track-grid" id="math-track-grid" aria-label="Dimensional analysis train track">
+                    <div class="math-track-row-label">Numerator rail</div>
+                    <div class="math-track-slot" data-row="top" data-col="0"></div>
+                    <div class="math-track-slot" data-row="top" data-col="1"></div>
+                    <div class="math-track-slot" data-row="top" data-col="2"></div>
+                    <div class="math-track-slot" data-row="top" data-col="3"></div>
+
+                    <div class="math-track-row-label">Denominator rail</div>
+                    <div class="math-track-slot" data-row="bottom" data-col="0"></div>
+                    <div class="math-track-slot" data-row="bottom" data-col="1"></div>
+                    <div class="math-track-slot" data-row="bottom" data-col="2"></div>
+                    <div class="math-track-slot" data-row="bottom" data-col="3"></div>
+                </div>
+
+                <p id="math-identity-output" class="mt-3 text-xs font-semibold text-gray-700">Drag matching units into diagonal slots (top col n and bottom col n+1) to trigger identity cancellation.</p>
+                <div id="math-identity-overlay-list" class="mt-2 space-y-1"></div>
+            </article>
+        </section>
+
         <section id="view-lab" class="hidden-tab fade-in bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
             <h3 class="text-xl font-bold mb-2">Lab Precision Trainer</h3>
             <p class="text-gray-600 mb-5">Instruments have different graduation markings. You must record all certain digits plus exactly one estimated digit.</p>
@@ -2104,6 +2284,10 @@
                 <i class="bnav-icon fa-solid fa-layer-group text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Nomenclature</span>
             </button>
+            <button id="bnav-math-refresher" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('math-refresher')">
+                <i class="bnav-icon fa-solid fa-square-root-variable text-lg text-gray-400 transition-colors"></i>
+                <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Math</span>
+            </button>
             <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="activateChemTab('tutor')">
                 <i class="bnav-icon fa-solid fa-robot text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
@@ -2121,6 +2305,7 @@
     <script src="mastery.js"></script>
     <script src="data.js"></script>
     <script src="ai-tutor.js"></script>
+    <script type="module" src="math-refresher/math-controller.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

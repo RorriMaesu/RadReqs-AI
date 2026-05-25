@@ -126,6 +126,10 @@ function getConfiguredEndpoint() {
     return override && override.trim() ? override.trim() : CONFIG.endpoint;
 }
 
+function getConfiguredChatEndpoint() {
+    return getConfiguredEndpoint().replace('/api/generate', '/api/chat');
+}
+
 function getChemistryModel() {
     return localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
 }
@@ -290,6 +294,97 @@ async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
     }
 
     return { ...TUTOR_ERROR_RESPONSE };
+}
+
+async function streamPeriodicTableTutor(systemPrompt, messageHistory, userInput, onToken) {
+    const endpoint = getConfiguredChatEndpoint();
+    let activeModel = getChemistryModel();
+    const safeHistory = Array.isArray(messageHistory) ? messageHistory : [];
+
+    try {
+        const models = await fetchOllamaTags(getConfiguredEndpoint());
+        const fallback = pickAvailableModel(activeModel, models);
+        if (fallback !== activeModel) {
+            activeModel = fallback;
+            localStorage.setItem('chemistry_llm', activeModel);
+        }
+    } catch (_err) {
+        // Keep requested model when tags endpoint is unavailable.
+    }
+
+    const payloadMessages = [
+        { role: 'system', content: typeof systemPrompt === 'string' ? systemPrompt : '' },
+        ...safeHistory,
+        { role: 'user', content: typeof userInput === 'string' ? userInput : '' }
+    ];
+
+    const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: activeModel,
+            messages: payloadMessages,
+            stream: true,
+            options: {
+                num_ctx: 4096,
+                temperature: 0.6
+            }
+        })
+    });
+
+    if (!response.ok || !response.body) {
+        throw new Error(`Ollama chat request failed with status ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let raw = '';
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            let data;
+            try {
+                data = JSON.parse(line);
+            } catch (_parseErr) {
+                continue;
+            }
+
+            const token = typeof data?.message?.content === 'string' ? data.message.content : '';
+            if (token) {
+                raw += token;
+                if (typeof onToken === 'function') onToken(token, raw);
+            }
+
+            if (data?.done) {
+                return { raw, model: activeModel };
+            }
+        }
+    }
+
+    if (buffer.trim()) {
+        try {
+            const data = JSON.parse(buffer);
+            const token = typeof data?.message?.content === 'string' ? data.message.content : '';
+            if (token) {
+                raw += token;
+                if (typeof onToken === 'function') onToken(token, raw);
+            }
+        } catch (_finalParseErr) {
+            // Ignore trailing non-JSON fragments.
+        }
+    }
+
+    return { raw, model: activeModel };
 }
 
 async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
@@ -457,6 +552,7 @@ async function fetchGeneratedQuestion(lesson, mode) {
 window.CLINICAL_TUTOR = {
     CONFIG,
     fetchLocalTutor,
+    streamPeriodicTableTutor,
     fetchGeneratedLesson,
     fetchGeneratedQuestion,
     cleanMathAndLaTeX

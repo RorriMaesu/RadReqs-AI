@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CH 104Z - Periodic Table Sandbox</title>
+    <script>
+        (function() {
+            var pref = localStorage.getItem('chemistry_darkmode');
+            if (pref === null || pref === 'true') document.documentElement.classList.add('dark');
+        })();
+    </script>
+    
+    <!-- Tailwind CSS & Custom Config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    gridTemplateColumns: {
+                        // 18-column grid for standard Mendeleev layout
+                        '18': 'repeat(18, minmax(0, 1fr))'
+                    },
+                    gridTemplateRows: {
+                        '7': 'repeat(7, minmax(0, 1fr))',
+                        '10': 'repeat(10, minmax(0, 1fr))'
+                    },
+                    colors: {
+                        slate: { 850: '#151e2e', 900: '#0f172a', 950: '#020617' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome & Google Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Custom scrollbar matching existing panels */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b; /* amber-500 */
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .animate-spin-slow {
+            animation: spin 8s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-screen flex flex-col overflow-hidden">
+
+    <!-- Global Chemistry Header -->
+    <header class="bg-white border-b border-slate-200 dark:bg-slate-950 dark:border-slate-850 px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-amber-500/10 text-amber-500 rounded border border-amber-500/20">
+                <i class="fa-solid fa-table-cells-large text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-amber-600 dark:text-amber-500">CH 104Z / 124Z</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Introductory Chemistry Sandbox</p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center space-x-4">
+            <nav class="flex items-center space-x-1 mr-4">
+                <a href="index.html" class="px-3 py-1.5 rounded text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-house mr-2"></i>Skills Lab
+                </a>
+                <a href="coursework.html" class="px-3 py-1.5 rounded text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-graduation-cap mr-2"></i>Coursework
+                </a>
+                <a href="#" class="px-3 py-1.5 rounded text-sm font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30 transition shadow-inner">
+                    <i class="fa-solid fa-table-cells mr-2"></i>Periodic Table
+                </a>
+                <a href="assignments.html" class="px-3 py-1.5 rounded text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i class="fa-solid fa-clipboard-list mr-2"></i>Homework Binder
+                </a>
+            </nav>
+
+            <!-- Theme Toggle -->
+            <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white flex items-center justify-center shadow-sm transition">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <div class="flex-grow flex overflow-hidden">
+        
+        <!-- Left / Center Workspace containing Element Table -->
+        <main class="flex-grow flex flex-col p-6 overflow-y-auto space-y-6">
+            
+            <!-- Mount our custom periodic-table Web Component -->
+            <periodic-table id="chemistry-table"></periodic-table>
+            
+            <!-- Reactivity & Bonding Sandbox Overlay (Hidden by default) -->
+            <div id="bonding-panel" class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 relative overflow-hidden hidden">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+                    <div class="flex items-center space-x-2 text-xs font-semibold text-slate-300">
+                        <i class="fa-solid fa-chart-line text-emerald-500"></i>
+                        <span>Reactivity & Bonding Sandbox</span>
+                    </div>
+                    <button id="close-bonding" class="text-slate-500 hover:text-white transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-3 gap-4 items-center justify-center max-w-2xl mx-auto h-48 py-4">
+                    <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-850" id="bond-el-1">
+                        <!-- element 1 info -->
+                    </div>
+                    <div class="text-center flex flex-col items-center justify-center space-y-2">
+                        <span class="text-[10px] text-slate-500 font-mono tracking-wider">BONDING INTERACTION</span>
+                        <div class="w-full h-1 bg-gradient-to-r from-amber-500 to-rose-500 rounded animate-pulse"></div>
+                        <span id="bond-prediction" class="text-xs font-bold text-emerald-400 mt-2">Ionic Bond Predictor</span>
+                    </div>
+                    <div class="text-center bg-slate-950 p-4 rounded-2xl border border-slate-850" id="bond-el-2">
+                        <!-- element 2 info -->
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+
+        <!-- Right Socratic AI Chat Panel -->
+        <aside class="w-80 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-850 flex flex-col shrink-0">
+            <div class="bg-slate-50 dark:bg-slate-950 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    <i class="fa-solid fa-user-tie text-amber-500"></i>
+                    <span>Ask Socratic Tutor</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="clear-chat" title="Clear Chat History" class="text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-[10px] flex items-center gap-1 font-semibold border border-transparent">
+                        <i class="fa-solid fa-trash-can"></i> Clear
+                    </button>
+                    <span class="text-[10px] text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold font-mono">Gemma 4</span>
+                </div>
+            </div>
+
+            <!-- Chat messages box -->
+            <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 text-xs">
+                <div class="flex justify-start">
+                    <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-slate-800 dark:text-slate-200 max-w-[85%] font-medium">
+                        Welcome to the Periodic Table Sandbox! I am Prof. Beaker. Select an element on the grid or toggle a trend heatmap overlay, and let's discuss the quantum chemistry behind it.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Socratic input form -->
+            <form id="chat-form" class="p-3 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex space-x-2">
+                <input id="chat-input" type="text" class="flex-grow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2.5 py-2 text-xs text-slate-800 dark:text-slate-100 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" placeholder="Ask Prof. Beaker a concept question...">
+                <button type="submit" class="bg-amber-600 hover:bg-amber-500 text-white px-3.5 rounded flex items-center justify-center transition">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+        </aside>
+
+    </div>
+
+    <!-- Scripts (Load Three.js dependency, and our customized visual/logic stack) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="ai-tutor.js"></script>
+    <script src="periodic-table/three-orbital.js"></script>
+    <script src="periodic-table/periodic-table-web.js"></script>
+    
+    <script>
+        // Core page controller & event bridging
+        document.addEventListener('DOMContentLoaded', () => {
+            const table = document.getElementById('chemistry-table');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const bondingPanel = document.getElementById('bonding-panel');
+            const closeBonding = document.getElementById('close-bonding');
+            const clearChatBtn = document.getElementById('clear-chat');
+            
+            const DEFAULT_WELCOME = {
+                role: 'assistant',
+                format: 'markdown',
+                content: "Welcome to the Periodic Table Sandbox! I am Prof. Beaker. Select an element on the grid or toggle a trend heatmap overlay, and let's discuss the quantum chemistry behind it."
+            };
+
+            let messageHistory = [];
+            const periodicTutorDiagnostics = {
+                lastThinking: '',
+                lastRaw: ''
+            };
+
+            // Helper to save chat history to localStorage
+            function saveChatHistory() {
+                localStorage.setItem('periodic_table_chat_history', JSON.stringify(messageHistory));
+            }
+
+            // Helper to load and render chat history
+            function loadChatHistory() {
+                const saved = localStorage.getItem('periodic_table_chat_history');
+                if (saved) {
+                    try {
+                        messageHistory = JSON.parse(saved);
+                    } catch (e) {
+                        console.error("Failed to parse saved chat history:", e);
+                        messageHistory = [DEFAULT_WELCOME];
+                    }
+                } else {
+                    messageHistory = [DEFAULT_WELCOME];
+                }
+
+                // Render history
+                chatMessages.innerHTML = '';
+                messageHistory.forEach(msg => {
+                    if (msg.role === 'user') {
+                        appendStudentMessage(msg.content, false);
+                    } else {
+                        const trustedHtml = msg.format === 'trusted-html' || isLegacyTrustedAssistantMessage(msg.content);
+                        appendTutorMessage(msg.content, false, { trustedHtml });
+                    }
+                });
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function isLegacyTrustedAssistantMessage(content) {
+                if (typeof content !== 'string') return false;
+                const normalized = content.trim();
+                return normalized.startsWith('🎯 <strong>Challenge Mode Started!')
+                    || normalized.startsWith('You selected <strong>');
+            }
+
+            function escapeHtml(text) {
+                return String(text)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function normalizeModelMarkdown(text) {
+                if (typeof text !== 'string') return '';
+                // Convert inline bullet chains into newline bullets for cleaner rendering.
+                return text.replace(/\s\*\s(?=\*\*|[A-Za-z0-9(])/g, '\n* ');
+            }
+
+            function applyInlineFormatting(html) {
+                return html
+                    .replace(/`([^`\n]+?)`/g, '<code class="bg-slate-200/70 dark:bg-slate-800/80 px-1 py-0.5 rounded font-mono text-[11px]">$1</code>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+            }
+
+            function renderTutorMarkdown(text) {
+                let working = normalizeModelMarkdown(text || '');
+                working = escapeHtml(working);
+
+                if (window.CLINICAL_TUTOR && typeof window.CLINICAL_TUTOR.cleanMathAndLaTeX === 'function') {
+                    working = window.CLINICAL_TUTOR.cleanMathAndLaTeX(working);
+                }
+
+                const lines = working.split(/\r?\n/);
+                const blocks = [];
+                let listItems = [];
+
+                function flushList() {
+                    if (listItems.length === 0) return;
+                    blocks.push(`<ul class="list-disc pl-5 space-y-1 my-1">${listItems.join('')}</ul>`);
+                    listItems = [];
+                }
+
+                lines.forEach((rawLine) => {
+                    const line = rawLine.trim();
+                    if (!line) {
+                        flushList();
+                        blocks.push('<div class="h-1"></div>');
+                        return;
+                    }
+
+                    const bulletMatch = line.match(/^[*-]\s+(.*)$/);
+                    if (bulletMatch) {
+                        listItems.push(`<li>${applyInlineFormatting(bulletMatch[1])}</li>`);
+                        return;
+                    }
+
+                    flushList();
+                    blocks.push(`<p class="leading-relaxed">${applyInlineFormatting(line)}</p>`);
+                });
+
+                flushList();
+                return blocks.join('');
+            }
+
+            // 1. Listen for Element Selections and bridge to tutor
+            table.addEventListener('element-selected', (e) => {
+                const element = e.detail.element;
+                const msgText = `You selected <strong>${element.element} (${element.symbol})</strong>. Let's look at its electron configuration: <code>${element.electron_config}</code>. What does this tell you about its valence shell and likely oxidation states?`;
+                appendTutorMessage(msgText, true, { trustedHtml: true });
+                messageHistory.push({ role: 'assistant', format: 'trusted-html', content: msgText });
+                saveChatHistory();
+            });
+
+            // 2. Listen for bonding sandbox event triggers
+            table.addEventListener('isolate-bonding-pair', (e) => {
+                const { e1, e2 } = e.detail;
+                
+                document.getElementById('bond-el-1').innerHTML = `
+                    <p class="text-lg font-bold text-white">${e1.symbol}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Electronegativity: ${e1.trends.electronegativity || 'N/A'}</p>
+                `;
+                
+                document.getElementById('bond-el-2').innerHTML = `
+                    <p class="text-lg font-bold text-white">${e2.symbol}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Electronegativity: ${e2.trends.electronegativity || 'N/A'}</p>
+                `;
+
+                // Calculate Bond Character
+                const enDiff = Math.abs((e1.trends.electronegativity || 0) - (e2.trends.electronegativity || 0));
+                let bondType = "";
+                if (enDiff >= 1.7) bondType = "Ionic Bond (EN diff: " + enDiff.toFixed(2) + ")";
+                else if (enDiff > 0.4) bondType = "Polar Covalent Bond (EN diff: " + enDiff.toFixed(2) + ")";
+                else bondType = "Nonpolar Covalent Bond (EN diff: " + enDiff.toFixed(2) + ")";
+
+                document.getElementById('bond-prediction').innerText = bondType;
+                bondingPanel.classList.remove('hidden');
+            });
+
+            closeBonding.addEventListener('click', () => {
+                bondingPanel.classList.add('hidden');
+            });
+
+            function buildPeriodicTutorSystemPrompt() {
+                return [
+                    'SYSTEM ROLE',
+                    'You are Prof. Beaker, an expert chemistry educator for beginners using an interactive periodic table.',
+                    'Your top priority is learning progress, not forcing keyword guessing.',
+                    '',
+                    'PEDAGOGICAL OPERATING RULES',
+                    '1. Baseline First',
+                    'Infer learner level from their last message and adapt difficulty immediately.',
+                    'If the learner sounds confused, simplify vocabulary and reduce cognitive load.',
+                    '',
+                    '2. Socratic Escape Hatch (Mandatory)',
+                    'If learner message includes phrases like: I do not know, I don\'t know, tutor me, explain it, take me step by step, then do not ask an immediate follow-up question.',
+                    'Instead: give a direct micro-lesson in maximum 2 sentences, then ask one simple comprehension check based only on that micro-lesson.',
+                    '',
+                    '3. Analogy Validation (Mandatory)',
+                    'If learner offers an analogy (music, harmonics, rhythm, pattern), explicitly validate it enthusiastically.',
+                    'Connect it to John Newlands\' Law of Octaves and to wave mechanics in learner-friendly language.',
+                    '',
+                    '4. Feedback Style',
+                    'Never dismiss partially-correct intuition. Use: validate, refine, then next step.',
+                    'Keep response concise and encouraging.',
+                    '',
+                    '5. Safety and Scope',
+                    'Stay within chemistry education and periodic-table concepts.',
+                    'Refuse harmful chemistry requests and redirect to safe learning content.',
+                    '',
+                    'UI TOOL USAGE RULES',
+                    'When learner asks navigation/discovery questions (How do I find out, Teach me how to use the table, Where should I look), return tool calls to guide their attention.',
+                    'Allowed tools: highlight_elements with arguments { category?: string, symbols?: string[] } and apply_trend_overlay with arguments { trend: electronegativity | ionization_energy | atomic_radius }.',
+                    '',
+                    'STRICT OUTPUT FORMAT',
+                    'Return exactly these blocks in order with no extra text:',
+                    '<thinking>internal pedagogy notes only</thinking>',
+                    '<student_response>markdown shown to learner</student_response>',
+                    '<tool_calls>JSON array only, use [] when none</tool_calls>'
+                ].join('\n');
+            }
+
+            function extractFirstJsonObject(text) {
+                if (typeof text !== 'string') return null;
+
+                const trimmed = text.trim();
+                try {
+                    return JSON.parse(trimmed);
+                } catch (_directErr) {
+                    const start = trimmed.indexOf('{');
+                    const end = trimmed.lastIndexOf('}');
+                    if (start === -1 || end === -1 || end <= start) return null;
+                    try {
+                        return JSON.parse(trimmed.slice(start, end + 1));
+                    } catch (_sliceErr) {
+                        return null;
+                    }
+                }
+            }
+
+            function normalizeToolCalls(rawCalls) {
+                if (!Array.isArray(rawCalls)) return [];
+
+                const normalized = [];
+                for (const item of rawCalls) {
+                    if (!item || typeof item !== 'object') continue;
+
+                    const name = item.name;
+                    const args = item.arguments && typeof item.arguments === 'object' ? item.arguments : {};
+
+                    if (name === 'highlight_elements') {
+                        const outArgs = {};
+                        if (typeof args.category === 'string' && args.category.trim()) {
+                            outArgs.category = args.category.trim();
+                        }
+                        if (Array.isArray(args.symbols)) {
+                            const symbols = args.symbols
+                                .filter((s) => typeof s === 'string')
+                                .map((s) => s.trim().toUpperCase())
+                                .filter(Boolean)
+                                .slice(0, 25);
+                            if (symbols.length > 0) outArgs.symbols = symbols;
+                        }
+                        if (Object.keys(outArgs).length > 0) {
+                            normalized.push({ name, arguments: outArgs });
+                        }
+                        continue;
+                    }
+
+                    if (name === 'apply_trend_overlay') {
+                        const trendAliases = {
+                            electronegativity: 'electronegativity',
+                            ionization_energy: 'ionization_energy',
+                            ionization_energy_base: 'ionization_energy',
+                            atomic_radius: 'atomic_radius',
+                            atomic_radius_pm: 'atomic_radius'
+                        };
+                        const incomingTrend = typeof args.trend === 'string' ? args.trend.trim() : '';
+                        const mapped = trendAliases[incomingTrend] || null;
+                        if (mapped) normalized.push({ name, arguments: { trend: mapped } });
+                    }
+                }
+
+                return normalized.slice(0, 4);
+            }
+
+            function parsePeriodicTutorPayload(rawText) {
+                const safeRaw = typeof rawText === 'string' ? rawText : '';
+                const output = {
+                    thinking: '',
+                    studentResponse: '',
+                    toolCalls: [],
+                    raw: safeRaw
+                };
+
+                const asJson = extractFirstJsonObject(safeRaw);
+                if (asJson && typeof asJson === 'object') {
+                    output.thinking = typeof asJson.thinking === 'string' ? asJson.thinking.trim() : '';
+                    output.studentResponse = typeof asJson.student_response === 'string'
+                        ? asJson.student_response.trim()
+                        : (typeof asJson.text === 'string' ? asJson.text.trim() : '');
+                    output.toolCalls = normalizeToolCalls(asJson.tool_calls || asJson.toolCalls || []);
+
+                    if (!output.studentResponse && typeof asJson.feedback === 'string') {
+                        output.studentResponse = asJson.feedback.trim();
+                    }
+                    return output;
+                }
+
+                const thinkingMatch = safeRaw.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+                const studentMatch = safeRaw.match(/<student_response>([\s\S]*?)<\/student_response>/i);
+                const toolMatch = safeRaw.match(/<tool_calls>([\s\S]*?)<\/tool_calls>/i);
+
+                if (thinkingMatch) output.thinking = thinkingMatch[1].trim();
+                if (studentMatch) output.studentResponse = studentMatch[1].trim();
+
+                if (toolMatch) {
+                    try {
+                        const parsedCalls = JSON.parse(toolMatch[1].trim());
+                        output.toolCalls = normalizeToolCalls(parsedCalls);
+                    } catch (_err) {
+                        output.toolCalls = [];
+                    }
+                }
+
+                if (!output.studentResponse) {
+                    const fallbackText = safeRaw
+                        .replace(/<thinking>[\s\S]*?<\/thinking>/ig, '')
+                        .replace(/<tool_calls>[\s\S]*?<\/tool_calls>/ig, '')
+                        .replace(/<\/?student_response>/ig, '')
+                        .trim();
+                    output.studentResponse = fallbackText;
+                }
+
+                return output;
+            }
+
+            function executeTutorToolCalls(toolCalls) {
+                if (!Array.isArray(toolCalls) || toolCalls.length === 0) return;
+
+                toolCalls.forEach((call) => {
+                    try {
+                        if (call.name === 'highlight_elements') {
+                            table.highlight_elements(call.arguments || {});
+                        } else if (call.name === 'apply_trend_overlay') {
+                            table.apply_trend_overlay((call.arguments || {}).trend);
+                        }
+                    } catch (err) {
+                        console.warn('Failed to execute tutor tool call:', call, err);
+                    }
+                });
+            }
+
+            // 3. Challenge Mode Listener
+            table.addEventListener('challenge-started', (e) => {
+                const symbol = e.detail.secretSymbol;
+                const element = table.elements.find(el => el.symbol === symbol);
+
+                // Clear history and append starting message with clues
+                chatMessages.innerHTML = '';
+                const msgText = `🎯 <strong>Challenge Mode Started!</strong> I have masked all symbols on the table. Here are your quantum clues to find the secret element:
+                <ul class="list-disc pl-4 mt-2 space-y-1">
+                    <li>My valence shell is: <code>${element.electron_config}</code></li>
+                    <li>My atomic radius is: <strong>${element.trends.atomic_radius_pm} pm</strong></li>
+                    ${element.trends.electronegativity ? `<li>My electronegativity is: <strong>${element.trends.electronegativity}</strong></li>` : ''}
+                </ul>
+                <p class="mt-2 text-amber-400 font-semibold">Click on the grid slot where you think this element is located!</p>`;
+                
+                appendTutorMessage(msgText, true, { trustedHtml: true });
+                messageHistory = [{ role: 'assistant', format: 'trusted-html', content: msgText }];
+                saveChatHistory();
+            });
+
+            // 4. Handle periodic-table tutor chat with structured output parsing
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = chatInput.value.trim();
+                if (!text) return;
+
+                // Append student message
+                appendStudentMessage(text);
+                chatInput.value = '';
+
+                // Add to message history
+                messageHistory.push({ role: 'user', content: text });
+                saveChatHistory();
+
+                // Append temporary typing indicator
+                const typingBubble = appendTutorLoadingIndicator();
+
+                try {
+                    const systemPrompt = buildPeriodicTutorSystemPrompt();
+                    const streamResult = await window.CLINICAL_TUTOR.streamPeriodicTableTutor(systemPrompt, messageHistory.slice(0, -1), text);
+                    typingBubble.remove();
+
+                    const rawTutorOutput = streamResult && typeof streamResult.raw === 'string' ? streamResult.raw : '';
+                    const parsed = parsePeriodicTutorPayload(rawTutorOutput);
+
+                    periodicTutorDiagnostics.lastRaw = rawTutorOutput;
+                    periodicTutorDiagnostics.lastThinking = parsed.thinking;
+                    if (parsed.thinking) {
+                        console.debug('[PeriodicTutor][thinking]', parsed.thinking);
+                    }
+
+                    let feedback = parsed.studentResponse || "I'm here with you. Tell me what part feels most confusing, and I'll break it down step by step.";
+
+                    executeTutorToolCalls(parsed.toolCalls);
+
+                    appendTutorMessage(feedback);
+                    messageHistory.push({ role: 'assistant', format: 'markdown', content: feedback });
+                    saveChatHistory();
+                } catch (err) {
+                    console.error("Tutor request failure:", err);
+                    typingBubble.remove();
+                    appendTutorMessage("I couldn't reach your local Ollama tutor. Start Ollama on localhost:11434, then try again. If it is already running, check that your selected model is installed.");
+                }
+            });
+
+            // 5. Clear Chat handler
+            clearChatBtn.addEventListener('click', () => {
+                if (confirm("Are you sure you want to clear the chat history?")) {
+                    messageHistory = [DEFAULT_WELCOME];
+                    saveChatHistory();
+                    chatMessages.innerHTML = '';
+                    appendTutorMessage(DEFAULT_WELCOME.content);
+                }
+            });
+
+            function appendTutorLoadingIndicator() {
+                const wrap = document.createElement("div");
+                wrap.className = "flex justify-start inline-typing";
+                wrap.innerHTML = `<div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-850 px-3.5 py-2.5 rounded-2xl flex items-center space-x-1"><div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></div><div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0.15s"></div><div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce" style="animation-delay: 0.3s"></div></div>`;
+                chatMessages.appendChild(wrap);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return wrap;
+            }
+
+            function appendStudentMessage(text, scroll = true) {
+                const wrap = document.createElement("div");
+                wrap.className = "flex justify-end";
+                const bubble = document.createElement('div');
+                bubble.className = 'bg-violet-600 text-white px-3.5 py-2.5 rounded-2xl rounded-tr-sm font-medium max-w-[80%]';
+                bubble.textContent = text;
+                wrap.appendChild(bubble);
+                chatMessages.appendChild(wrap);
+                if (scroll) chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function appendTutorMessage(text, scroll = true, options = {}) {
+                const trustedHtml = Boolean(options.trustedHtml);
+                const wrap = document.createElement("div");
+                wrap.className = "flex justify-start";
+                const bubble = document.createElement('div');
+                bubble.className = 'bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 px-3.5 py-2.5 rounded-2xl rounded-tl-sm text-slate-800 dark:text-slate-200 font-medium max-w-[85%]';
+
+                if (trustedHtml) {
+                    bubble.innerHTML = typeof text === 'string' ? text : '';
+                } else {
+                    try {
+                        bubble.innerHTML = renderTutorMarkdown(text);
+                    } catch (renderErr) {
+                        console.warn('Tutor message render fallback path used:', renderErr);
+                        bubble.textContent = typeof text === 'string' ? text : '';
+                    }
+                }
+
+                wrap.appendChild(bubble);
+                chatMessages.appendChild(wrap);
+                if (scroll) chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Initialize chat history rendering on load
+            loadChatHistory();
+
+            // Darkmode toggle handler
+            const btnDark = document.getElementById('btn-darkmode');
+            btnDark.addEventListener('click', () => {
+                const html = document.documentElement;
+                const isDark = html.classList.toggle('dark');
+                localStorage.setItem('chemistry_darkmode', isDark);
+                if (table.threeRenderer) {
+                    table.threeRenderer.setTheme(isDark);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
