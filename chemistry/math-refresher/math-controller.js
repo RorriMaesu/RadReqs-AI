@@ -1678,6 +1678,38 @@ function curriculumById(phaseId) {
     return CURRICULUM_MAP.find((stage) => stage.id === phaseId) || null;
 }
 
+function parseLessonLabel(lessonLabel) {
+    const match = /^\s*L(\d+)\.(\d+)\b/i.exec(String(lessonLabel || ''));
+    if (!match) return null;
+    return {
+        stage: Number.parseInt(match[1], 10),
+        lesson: Number.parseInt(match[2], 10)
+    };
+}
+
+function compareLessonLabels(a, b) {
+    const parsedA = parseLessonLabel(a);
+    const parsedB = parseLessonLabel(b);
+
+    if (parsedA && parsedB) {
+        if (parsedA.stage !== parsedB.stage) {
+            return parsedA.stage - parsedB.stage;
+        }
+        if (parsedA.lesson !== parsedB.lesson) {
+            return parsedA.lesson - parsedB.lesson;
+        }
+    } else if (parsedA) {
+        return -1;
+    } else if (parsedB) {
+        return 1;
+    }
+
+    return String(a || '').localeCompare(String(b || ''), undefined, {
+        numeric: true,
+        sensitivity: 'base'
+    });
+}
+
 function isStageCompleted(phaseId) {
     const stageState = courseState.phases[phaseId];
     if (!stageState) return false;
@@ -1765,7 +1797,8 @@ function renderHeader() {
     if (refs.phaseLessons) {
         refs.phaseLessons.innerHTML = '';
         if (stageMap?.lessons?.length) {
-            stageMap.lessons.forEach((lesson) => {
+            const orderedLessons = stageMap.lessons.slice().sort(compareLessonLabels);
+            orderedLessons.forEach((lesson) => {
                 const li = document.createElement('li');
                 li.textContent = lesson;
                 refs.phaseLessons.appendChild(li);
