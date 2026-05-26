@@ -727,7 +727,9 @@ Guidelines:
                         stage7: "Stage 7: Algebraic Foundations & Linear Equations",
                         stage8: "Stage 8: Graphing, Slopes & Inequalities",
                         stage9: "Stage 9: Systems, Basic Geometry & Quadratics",
-                        stage10: "Stage 10: Advanced Functions, Logarithms & Wave Geometry"
+                        stage10: "Stage 10: Advanced Functions, Logarithms & Wave Geometry",
+                        stage11: "Stage 11: Data Linearization & Graphical Analysis",
+                        stage12: "Stage 12: Equilibrium Algebra, Power Ratios & Approximations"
                     };
                     if (activeId && parsed.phases?.[activeId]) {
                         const title = stageTitles[activeId] || activeId;

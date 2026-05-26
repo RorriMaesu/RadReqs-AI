@@ -22,10 +22,20 @@ const createInitialStage5State = () => ({
     // Sig Figs classification
     sigfigAnswers: { leading: '', trapped: '', trailing: '' },
     sigfigFeedback: 'Classify zeros in 0.05080: leading zeros (before 5), trapped zeros (between 5 and 8), and trailing zeros.',
+    
+    // Total sig figs properties
+    sigfigsTotalAnswer: '',
+    sigfigsTotalFeedback: 'Identify the total number of significant figures.',
+    sigfigsTotalCorrect: false,
 
     // Absolute vs relative change
     changeAnswers: { absolute: '', relative: '' },
     changeFeedback: 'L5.6 Relative Risk: From 2% to 4% means +2 percentage points and +100% relative increase.',
+
+    // L5.8 & L5.9 multi-step sig figs
+    multiStepAnswer1: '',
+    multiStepAnswer2: '',
+    multiStepFeedback: 'L5.8 & L5.9: Solve (14.28 - 11.2) × 1.503 × 2 step-by-step. Keep in mind that 2 is an exact constant.',
 
     appliedFeedback: 'Applied level: percent error calculation. A lab reaction should yield 10.0g but only yielded 9.0g. Compute the percent error.',
     appliedChoice: ''
@@ -52,6 +62,12 @@ export function createStage5Decimals() {
                     state[key] = defaults[key];
                 }
             });
+
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+
+            const s5SigFigs = getParams('s5-sigfigs', { value: '0.00340', answerKey: '3' });
+            const s5MultiStep = getParams('s5-multistep', { a: 14.28, b: 11.2, c: 1.503, intermediate: '3.1', answerKey: '4.7' });
 
             const normalizeHopPosition = () => {
                 const normalized = Number(state.hopPosition);
@@ -239,6 +255,34 @@ export function createStage5Decimals() {
                         </div>
                         <button id="s5-check-sigfigs" class="s5-btn" style="margin-top:8px; width:100%;" ${disabled(state.abstractUnlocked)}>Verify Significant Figures</button>
                         <div class="s5-feedback">${state.sigfigFeedback}</div>
+
+                        <!-- Dynamic sig figs total count (s5-sigfigs) -->
+                        <div class="s5-pane" style="margin-top:0.75rem;">
+                            <p><strong>L5.7 Precision Rules (s5-sigfigs):</strong> How many significant figures are in the value <strong>${s5SigFigs.value}</strong>?</p>
+                            <div style="display:flex; gap:6px; margin-bottom: 0.6rem;">
+                                <input type="text" id="s5-sigfigs-input" class="s5-input" placeholder="Count (e.g. 3)" value="${state.sigfigsTotalAnswer || ''}" data-tutor-question-id="s5-sigfigs" ${disabled(state.abstractUnlocked)} />
+                                <button id="s5-check-sigfigs-total" class="s5-btn" data-tutor-question-id="s5-sigfigs" ${disabled(state.abstractUnlocked)}>Verify Count</button>
+                            </div>
+                            <div class="s5-feedback" id="s5-sigfigs-total-feedback">${state.sigfigsTotalFeedback}</div>
+                        </div>
+
+                        <!-- Multi-step sig figs -->
+                        <div class="s5-pane" style="margin-top:0.75rem;">
+                            <strong>L5.8 &amp; L5.9 Multi-Step Sig Figs &amp; Exact Numbers (s5-multistep)</strong>
+                            <p>Solve: <strong>(${s5MultiStep.a} − ${s5MultiStep.b}) &times; ${s5MultiStep.c}</strong> adhering to significant figure rules at each step.</p>
+                            <div class="s5-grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <div>
+                                    <label class="s5-label">Step 1: Intermediate subtraction (${s5MultiStep.a} − ${s5MultiStep.b}) rounded to correct decimal place:</label>
+                                    <input id="s5-multistep-1" class="s5-input" placeholder="e.g. 3.1" value="${state.multiStepAnswer1 || ''}" data-tutor-question-id="s5-multistep" ${disabled(state.abstractUnlocked)} />
+                                </div>
+                                <div>
+                                    <label class="s5-label">Step 2: Final product rounded to correct sig figs:</label>
+                                    <input id="s5-multistep-2" class="s5-input" placeholder="e.g. 4.7" value="${state.multiStepAnswer2 || ''}" data-tutor-question-id="s5-multistep" ${disabled(state.abstractUnlocked)} />
+                                </div>
+                            </div>
+                            <button id="s5-check-multistep" class="s5-btn" style="margin-top:8px; width:100%;" data-tutor-question-id="s5-multistep" ${disabled(state.abstractUnlocked)}>Check Calculation</button>
+                            <div class="s5-feedback" id="s5-multistep-feedback">${state.multiStepFeedback}</div>
+                        </div>
 
                         <div class="s5-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s5-btn ghost" title="Reinforcement" data-prompt="Explain the trailing zero rule in significant figures: why does a written decimal point change its significance?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -563,6 +607,43 @@ export function createStage5Decimals() {
                     return;
                 }
 
+                if (event.target.closest('#s5-check-sigfigs-total')) {
+                    const val = host.querySelector('#s5-sigfigs-input')?.value.trim();
+                    state.sigfigsTotalAnswer = val;
+                    const expected = String(s5SigFigs.answerKey);
+                    if (val === expected) {
+                        state.sigfigsTotalCorrect = true;
+                        state.sigfigsTotalFeedback = `Correct! There are ${expected} significant figures in ${s5SigFigs.value}.`;
+                    } else {
+                        state.sigfigsTotalCorrect = false;
+                        state.sigfigsTotalFeedback = `Incorrect. Look closely at ${s5SigFigs.value}.`;
+                    }
+                    persist('Total sig figs checked');
+                    this.mount({ host, state, onStateChange });
+                    return;
+                }
+
+                if (event.target.closest('#s5-check-multistep')) {
+                    const ans1 = host.querySelector('#s5-multistep-1')?.value.trim();
+                    const ans2 = host.querySelector('#s5-multistep-2')?.value.trim();
+                    state.multiStepAnswer1 = ans1;
+                    state.multiStepAnswer2 = ans2;
+
+                    const expectedInt = String(s5MultiStep.intermediate);
+                    const expectedAns = String(s5MultiStep.answerKey);
+
+                    if (ans1 === expectedInt && ans2 === expectedAns) {
+                        state.multiStepFeedback = `Correct! (${s5MultiStep.a} − ${s5MultiStep.b}) rounds to ${expectedInt}, and multiplying by ${s5MultiStep.c} yields ${expectedAns} under sig fig rules.`;
+                    } else if (ans1 !== expectedInt) {
+                        state.multiStepFeedback = `Incorrect Step 1. First compute the subtraction and round to the correct decimal place. expected: ${expectedInt}.`;
+                    } else {
+                        state.multiStepFeedback = `Incorrect Step 2. Multiply ${expectedInt} &times; ${s5MultiStep.c} and round to the correct sig figs. expected: ${expectedAns}.`;
+                    }
+                    persist('Multistep checked');
+                    this.mount({ host, state, onStateChange });
+                    return;
+                }
+
                 if (event.target.closest('#s5-app-wrong')) {
                     state.appliedChoice = 'wrong';
                     state.appliedFeedback = 'Incorrect. Percent error = |yield - standard| / standard × 100%. (1.0g / 10.0g = 0.1 = 10%).';
@@ -605,6 +686,16 @@ export function createStage5Decimals() {
 
                 if (event.target.matches('#s5-change-relative')) {
                     state.changeAnswers.relative = event.target.value;
+                    return;
+                }
+
+                if (event.target.matches('#s5-multistep-1')) {
+                    state.multiStepAnswer1 = event.target.value;
+                    return;
+                }
+
+                if (event.target.matches('#s5-multistep-2')) {
+                    state.multiStepAnswer2 = event.target.value;
                 }
             };
 

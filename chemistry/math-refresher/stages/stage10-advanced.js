@@ -35,7 +35,12 @@ const createInitialStage10State = () => ({
     // Applied: Wave kinematics
     waveWavelength: '',
     waveFeedback: 'Solve for wavelength lambda (lambda = v / f) given velocity v = 340 m/s and frequency f = 170 Hz.',
-    waveCorrect: false
+    waveCorrect: false,
+
+    // L10.12 & L10.13: p-Operator and Log Sig Figs
+    pKaInput: '',
+    pKaFeedback: 'L10.12 & L10.13: For pKa = 4.74 (2 decimal places), calculate Ka with correct sig figs (2 sig figs).',
+    pKaCorrect: false
 });
 
 export function createStage10Advanced() {
@@ -53,6 +58,10 @@ export function createStage10Advanced() {
                     state[key] = defaults[key];
                 }
             });
+
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+            const s10Antilog = getParams('s10-antilog', { ph: 4.74, answerKey: '1.8e-5' });
 
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's10-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
@@ -207,9 +216,12 @@ export function createStage10Advanced() {
                         </div>
                         
                         <div class="s10-pane">
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:1.1rem; color:#ef4444;">
-                                <span>pH Value: <strong>${state.phValue}</strong></span>
-                                <span>[H3O+] = 10<sup>-${state.phValue}</sup> M</span>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:1.1rem; color:#ef4444; gap: 0.5rem;">
+                                <span style="display: flex; align-items: center; gap: 0.4rem;">
+                                    pH:
+                                    <input type="number" id="s10-ph-input" class="s10-input" min="1" max="14" step="1" value="${state.phValue}" ${disabled(state.concreteUnlocked)} style="width: 70px;">
+                                </span>
+                                <span>[H₃O⁺] = 10<sup>-${state.phValue}</sup> M</span>
                             </div>
                             <input type="range" id="s10-ph-slider" class="s10-slider" min="1" max="14" step="1" value="${state.phValue}" ${disabled(state.concreteUnlocked)} style="width:100%; margin-top:0.4rem;">
                         </div>
@@ -322,19 +334,35 @@ export function createStage10Advanced() {
 
                     <!-- APPLIED LEVEL -->
                     <article class="s10-card s10-level ${levelLocked(state.appliedUnlocked)}">
-                        <h2>Applied Level: Wave Kinematics (Spectroscopy velocity)</h2>
+                        <h2>Applied Level: Wave Kinematics & Logarithmic Scales</h2>
                         <p><strong>L10.11 Wave Equation:</strong> Electromagnetic radiation and sound waves follow the cycle relation: 
                         <span style="font-family:monospace; font-weight:bold;">v = f · λ</span> (velocity = frequency × wavelength). 
                         If a sound wave travels at velocity v = 340 m/s in a room with frequency f = 170 Hz, what is its wavelength lambda in meters?</p>
                         
                         <div class="s10-pane">
                             <p>Calculate wavelength lambda:</p>
-                            <div class="s10-grid" style="grid-template-columns: 1fr auto;">
+                            <div class="s10-grid" style="grid-template-columns: 1fr auto; gap: 8px;">
                                 <input type="number" step="any" id="s10-wave-input" class="s10-input" placeholder="e.g. 2" value="${state.waveWavelength}" ${disabled(state.appliedUnlocked)}>
                                 <button id="s10-check-wave" class="s10-btn" ${disabled(state.appliedUnlocked)}>Verify Wavelength</button>
                             </div>
                         </div>
                         <div class="s10-feedback" id="s10-wave-feedback">${state.waveFeedback}</div>
+
+                        <!-- L10.12 & L10.13 p-Operator & Logarithmic Significant Figures -->
+                        <div class="s10-pane" style="margin-top: 0.75rem;">
+                            <strong>L10.12 &amp; L10.13 The p-Operator and Logarithmic Significant Figures</strong>
+                            <p>The mathematical p-Operator is defined as <code>pX = -log₁₀(X)</code>.
+                            <br><strong>Significant Figure Rule:</strong> In a logarithm, only the numbers <em>after</em> the decimal point (the mantissa) are significant! The digits before the decimal point (the characteristic) only indicate the power of 10.
+                            <br>Example: <code>pH = 3.45</code> (2 decimal places) means concentration <code>[H₃O⁺] = 10⁻³.⁴⁵ = 3.5 × 10⁻⁴ M</code> (2 significant figures).</p>
+                            
+                            <p>Given <code>pK_a = ${s10Antilog.ph}</code> (which has 2 decimal places), calculate the acid dissociation constant <code>K_a</code> (in M) using the correct number of significant figures.</p>
+                            
+                            <div class="s10-grid" style="grid-template-columns: 1fr auto; gap: 8px;">
+                                <input type="text" id="s10-pka-input" class="s10-input" placeholder="e.g. 1.8e-5 or 1.8*10^-5" value="${state.pKaInput}" ${disabled(state.appliedUnlocked)}>
+                                <button id="s10-check-pka" class="s10-btn" ${disabled(state.appliedUnlocked)}>Verify K_a</button>
+                            </div>
+                            <div class="s10-feedback" id="s10-pka-feedback">${state.pKaFeedback}</div>
+                        </div>
 
                         <div class="s10-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s10-btn ghost" title="Reinforcement" data-prompt="Explain the wave velocity formula v = f * λ, and calculate wavelength λ when v = 340 m/s and f = 170 Hz." ${disabled(state.appliedUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -394,6 +422,18 @@ export function createStage10Advanced() {
                         level: 'applied',
                         keys: 'waveWavelength',
                         prompt: 'Help me solve wavelength from v = f times lambda with v=340 and f=170.'
+                    },
+                    's10-ph-input': {
+                        id: 's10-ph-log-scale',
+                        level: 'concrete',
+                        keys: 'phValue,concreteMission.phReady,concreteMission.domainReady',
+                        prompt: 'Help me interpret the logarithmic pH scale and why pH 3 means much higher acidity.'
+                    },
+                    's10-check-pka': {
+                        id: 's10-antilog',
+                        level: 'applied',
+                        keys: 'pKaInput',
+                        prompt: `Help me calculate Ka from pKa = ${s10Antilog.ph} using logarithmic significant figure rules.`
                     }
                 };
 
@@ -473,28 +513,44 @@ export function createStage10Advanced() {
                 this.mount({ host, state, onStateChange });
             });
 
-            // Concrete pH Slider
+            // Concrete pH Slider & Input
             const slider = host.querySelector('#s10-ph-slider');
+            const phInput = host.querySelector('#s10-ph-input');
+            const updatePHState = (val) => {
+                state.phValue = val;
+                if (val === 3) {
+                    state.concreteCorrect = true;
+                    state.concreteMission.phReady = true;
+                    if (!state.concreteCompleted) {
+                        state.phFeedback = 'Correct pH target: pH = 3 gives [H3O+] = 10^-3 M. Complete Domain Limits to finish Concrete.';
+                    }
+                } else {
+                    state.concreteCorrect = false;
+                    if (!state.concreteCompleted) {
+                        state.concreteMission.phReady = false;
+                        state.phFeedback = `pH is ${val} ([H3O+] = 10^-${val} M). Adjust to 3 to satisfy the pH mission step.`;
+                    }
+                }
+                syncConcreteMission();
+            };
+
             if (slider) {
                 slider.addEventListener('input', (e) => {
                     const val = parseInt(e.target.value);
-                    state.phValue = val;
-                    if (val === 3) {
-                        state.concreteCorrect = true;
-                        state.concreteMission.phReady = true;
-                        if (!state.concreteCompleted) {
-                            state.phFeedback = 'Correct pH target: pH = 3 gives [H3O+] = 10^-3 M. Complete Domain Limits to finish Concrete.';
-                        }
-                    } else {
-                        state.concreteCorrect = false;
-                        if (!state.concreteCompleted) {
-                            state.concreteMission.phReady = false;
-                            state.phFeedback = `pH is ${val} ([H3O+] = 10^-${val} M). Adjust to 3 to satisfy the pH mission step.`;
-                        }
-                    }
-                    syncConcreteMission();
+                    updatePHState(val);
                     persist('pH slider shifted');
                     this.mount({ host, state, onStateChange });
+                });
+            }
+            if (phInput) {
+                phInput.addEventListener('change', (e) => {
+                    let val = parseInt(e.target.value);
+                    if (!isNaN(val)) {
+                        val = Math.max(1, Math.min(14, val));
+                        updatePHState(val);
+                        persist('pH input changed');
+                        this.mount({ host, state, onStateChange });
+                    }
                 });
             }
 
@@ -651,6 +707,38 @@ export function createStage10Advanced() {
             if (waveInput) {
                 waveInput.addEventListener('input', (e) => {
                     state.waveWavelength = e.target.value;
+                });
+            }
+
+            // L10.12 & L10.13: Applied pKa / log sig figs check
+            host.querySelector('#s10-check-pka')?.addEventListener('click', () => {
+                const rawInput = host.querySelector('#s10-pka-input').value.trim();
+                state.pKaInput = rawInput;
+                const normalized = rawInput.toLowerCase().replace(/\s+/g, '').replace(/[\*x×]10\^/g, 'e');
+                const expected = s10Antilog.answerKey.toLowerCase().replace(/\s+/g, '').replace(/[\*x×]10\^/g, 'e');
+                
+                if (normalized === expected) {
+                    state.pKaCorrect = true;
+                    state.pKaFeedback = `Correct! Ka = ${s10Antilog.answerKey}. Since pKa has 2 decimal places, Ka must be reported to exactly 2 significant figures.`;
+                } else {
+                    const userNum = parseFloat(normalized);
+                    const expectedNum = parseFloat(expected);
+                    if (!isNaN(userNum) && !isNaN(expectedNum) && Math.abs(userNum - expectedNum) / expectedNum < 0.05) {
+                        state.pKaCorrect = false;
+                        state.pKaFeedback = `Incorrect. You calculated Ka correctly, but failed to apply logarithmic significant figure rules. For 2 decimal places in pKa, Ka must have exactly 2 significant figures (round to ${s10Antilog.answerKey}).`;
+                    } else {
+                        state.pKaCorrect = false;
+                        state.pKaFeedback = `Incorrect. Calculate Ka = 10^-${s10Antilog.ph}. Express it in scientific notation with 2 significant figures (e.g. ${s10Antilog.answerKey}).`;
+                    }
+                }
+                persist('pKa units checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            const pKaInputEl = host.querySelector('#s10-pka-input');
+            if (pKaInputEl) {
+                pKaInputEl.addEventListener('input', (e) => {
+                    state.pKaInput = e.target.value;
                 });
             }
         },

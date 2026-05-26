@@ -77,6 +77,15 @@ const createInitialStage6State = () => ({
     compoundAnswers: { value: '', unit: '' },
     compoundFeedback: 'L6.7 Compound Units: Evaluate 25 g x 2 J/(g*C) x 3 C and confirm the final unit.',
 
+    // L6.9 Multidimensional Unit Scaling (3D Cube)
+    cubeLengthDm: 10,
+    cubeVolumeAnswer: '',
+    cubeVolumeFeedback: 'L6.9 Multidimensional Unit Scaling: Adjust the slider to see how length scales to volume. Solve the volume in dm^3 for a 10 dm cube.',
+
+    // L6.10 Compound Metric Conversion Chains
+    densityConvAnswer: '',
+    densityConvFeedback: 'L6.10 Compound Conversions: Convert 1.00 g/cm^3 to kg/m^3. Hint: multiply 1.00 by 1,000,000 and divide by 1000.',
+
     adaptive: {
         loading: false,
         error: '',
@@ -106,6 +115,16 @@ export function createStage6Scientific() {
                     state[key] = defaults[key];
                 }
             });
+
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+
+            const s6Cube = getParams('s6-cube', null);
+            if (s6Cube) {
+                state.cubeLengthDm = s6Cube.decimeters;
+            }
+
+            const s6Density = getParams('s6-density', { density: 1.00, answerKey: '1000' });
 
             if (!state.concreteMission || typeof state.concreteMission !== 'object') {
                 state.concreteMission = { ...defaults.concreteMission };
@@ -331,6 +350,45 @@ export function createStage6Scientific() {
                         </div>
                         <div class="s6-feedback">${state.trackFeedback}</div>
 
+                        <!-- L6.9 Multidimensional Unit Scaling (3D Cube) -->
+                        <div class="s6-pane" style="margin-top:0.75rem;">
+                            <strong>L6.9 Multidimensional Unit Scaling (3D Cube)</strong>
+                            <p>A length scales linearly, but volume scales by the cube of the factor: $\text{Volume} = \text{Length}^3$. Drag the slider to adjust the side length of the cube in decimeters (dm).</p>
+                            <div class="s6-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
+                                <div style="background:#0f172a; height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">
+                                    <div style="width: 80px; height: 80px; perspective: 400px;">
+                                        <div style="width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transform: rotateX(-20deg) rotateY(30deg) scale3d(${state.cubeLengthDm / 10}, ${state.cubeLengthDm / 10}, ${state.cubeLengthDm / 10}); transition: transform 0.2s ease;">
+                                            <!-- Front face -->
+                                            <div style="position: absolute; width: 80px; height: 80px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.25); transform: rotateY(0deg) translateZ(40px);"></div>
+                                            <!-- Back face -->
+                                            <div style="position: absolute; width: 80px; height: 80px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.25); transform: rotateY(180deg) translateZ(40px);"></div>
+                                            <!-- Right face -->
+                                            <div style="position: absolute; width: 80px; height: 80px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.25); transform: rotateY(90deg) translateZ(40px);"></div>
+                                            <!-- Left face -->
+                                            <div style="position: absolute; width: 80px; height: 80px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.25); transform: rotateY(-90deg) translateZ(40px);"></div>
+                                            <!-- Top face -->
+                                            <div style="position: absolute; width: 80px; height: 80px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.25); transform: rotateX(90deg) translateZ(40px);"></div>
+                                            <!-- Bottom face -->
+                                            <div style="position: absolute; width: 80px; height: 80px; border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.25); transform: rotateX(-90deg) translateZ(40px);"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="s6-label">Cube Side Length: ${state.cubeLengthDm} dm (${(state.cubeLengthDm / 10).toFixed(1)} m)</label>
+                                    <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                                        <input type="range" id="s6-cube-length-slider" min="1" max="10" value="${state.cubeLengthDm}" style="flex:1;" ${disabled(state.pictorialUnlocked) || (s6Cube ? 'disabled' : '')} />
+                                        <input type="number" id="s6-cube-length-num" min="1" max="10" value="${state.cubeLengthDm}" class="s6-input" style="width:60px; padding:0.25rem;" ${disabled(state.pictorialUnlocked) || (s6Cube ? 'disabled' : '')} />
+                                    </div>
+                                    <p style="margin:6px 0 3px; font-size:0.85rem;">How many cubic decimeters ($\text{dm}^3$) fit in a ${s6Cube ? s6Cube.decimeters : 10}\text{ dm} (${s6Cube ? s6Cube.meters : 1}\text{ m})$ cube?</p>
+                                    <div style="display:flex; gap:6px;">
+                                        <input type="number" id="s6-cubevol-input" class="s6-input" placeholder="e.g. 1000" value="${state.cubeVolumeAnswer}" data-tutor-question-id="s6-cube" ${disabled(state.pictorialUnlocked)} />
+                                        <button id="s6-check-cubevol" class="s6-btn" data-tutor-question-id="s6-cube" ${disabled(state.pictorialUnlocked)}>Check Volume</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="s6-feedback" id="s6-cubevol-feedback">${state.cubeVolumeFeedback}</div>
+                        </div>
+
                         <div class="s6-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s6-btn ghost" title="Reinforcement" data-prompt="Explain the 'train tracks' dimensional analysis workspace. How does canceling units diagonally work?" ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
                         </div>
@@ -372,6 +430,17 @@ export function createStage6Scientific() {
                             <button id="s6-app-right" class="s6-btn" ${disabled(state.appliedUnlocked)}>12.0 g because 10.0 mL × (1.2 g / 1.0 mL) cancels mL, leaving grams (10.0 × 1.2 = 12.0)</button>
                         </div>
                         <div class="s6-feedback">${state.appliedFeedback}</div>
+
+                        <!-- L6.10 Compound Metric Conversion Chains -->
+                        <div class="s6-pane" style="margin-top:0.75rem;">
+                            <strong>L6.10 Compound Metric Conversion Chains</strong>
+                            <p>Density is a compound unit. Convert $${s6Density.density}\text{ g/cm}^3$ to $\text{kg/m}^3$. Multiply by $1\text{ kg} / 1000\text{ g}$ and $1,000,000\text{ cm}^3 / 1\text{ m}^3$.</p>
+                            <div style="display:flex; gap:6px; margin-bottom:8px;">
+                                <input type="number" id="s6-densityconv-input" class="s6-input" placeholder="Value in kg/m^3" value="${state.densityConvAnswer}" data-tutor-question-id="s6-density" ${disabled(state.appliedUnlocked)} />
+                                <button id="s6-check-densityconv" class="s6-btn" data-tutor-question-id="s6-density" ${disabled(state.appliedUnlocked)}>Check Density</button>
+                            </div>
+                            <div class="s6-feedback" id="s6-densityconv-feedback">${state.densityConvFeedback}</div>
+                        </div>
 
                         <div class="s6-pane" style="margin-top:0.75rem;">
                             <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Gemma4)</h3>
@@ -1182,6 +1251,46 @@ export function createStage6Scientific() {
                 });
             }
 
+            // L6.9 Multidimensional Scaling
+            const handleCubeLength = (val) => {
+                const num = parseInt(val);
+                if (num >= 1 && num <= 10) {
+                    state.cubeLengthDm = num;
+                    persist('Cube length changed');
+                    this.mount({ host, state, onStateChange });
+                }
+            };
+
+            host.querySelector('#s6-cube-length-slider')?.addEventListener('input', (e) => handleCubeLength(e.target.value));
+            host.querySelector('#s6-cube-length-num')?.addEventListener('change', (e) => handleCubeLength(e.target.value));
+
+            host.querySelector('#s6-check-cubevol')?.addEventListener('click', () => {
+                const ans = host.querySelector('#s6-cubevol-input').value.trim();
+                state.cubeVolumeAnswer = ans;
+                const expected = s6Cube ? String(s6Cube.answerKey) : '1000';
+                if (ans === expected) {
+                    state.cubeVolumeFeedback = `Correct! Since 1 m = 10 dm, a volume of a cube is (length)^3. Volume = ${expected} dm^3.`;
+                } else {
+                    state.cubeVolumeFeedback = `Incorrect. A cube of ${state.cubeLengthDm} dm on each side has a volume of ${state.cubeLengthDm} dm × ${state.cubeLengthDm} dm × ${state.cubeLengthDm} dm = ?`;
+                }
+                persist('Cube volume checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L6.10 Compound Conversions
+            host.querySelector('#s6-check-densityconv')?.addEventListener('click', () => {
+                const ans = host.querySelector('#s6-densityconv-input').value.trim();
+                state.densityConvAnswer = ans;
+                const expected = String(s6Density.answerKey);
+                if (ans === expected) {
+                    state.densityConvFeedback = `Correct! ${s6Density.density} g/cm^3 = ${expected} kg/m^3.`;
+                } else {
+                    state.densityConvFeedback = `Incorrect. Multiply ${s6Density.density} by 1000 to convert g/cm^3 to kg/m^3.`;
+                }
+                persist('Density conversion checked');
+                this.mount({ host, state, onStateChange });
+            });
+
             // Input sync listeners to preserve values across re-renders
             const cubeInput = host.querySelector('#s6-cube-input');
             if (cubeInput) {
@@ -1209,6 +1318,20 @@ export function createStage6Scientific() {
                 adaptiveResponse.addEventListener('input', (e) => {
                     state.adaptive.response = e.target.value;
                     persist('Adaptive response changed');
+                });
+            }
+            const cubevolInput = host.querySelector('#s6-cubevol-input');
+            if (cubevolInput) {
+                cubevolInput.addEventListener('input', (e) => {
+                    state.cubeVolumeAnswer = e.target.value;
+                    persist('Cube volume input changed');
+                });
+            }
+            const densityconvInput = host.querySelector('#s6-densityconv-input');
+            if (densityconvInput) {
+                densityconvInput.addEventListener('input', (e) => {
+                    state.densityConvAnswer = e.target.value;
+                    persist('Density conv input changed');
                 });
             }
         },

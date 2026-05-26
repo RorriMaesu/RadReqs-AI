@@ -69,16 +69,91 @@ function parseJsonObject(rawText) {
         throw new Error('Model returned empty response text.');
     }
 
-    try {
-        return JSON.parse(text);
-    } catch (_err) {
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
-        if (start === -1 || end === -1 || end <= start) {
-            throw new Error('No JSON object found in model response.');
+    const escapeInvalidJsonBackslashes = (input) => {
+        let output = '';
+        let inString = false;
+
+        for (let i = 0; i < input.length; i += 1) {
+            const ch = input[i];
+
+            if (ch === '"') {
+                let slashCount = 0;
+                let j = i - 1;
+                while (j >= 0 && input[j] === '\\') {
+                    slashCount += 1;
+                    j -= 1;
+                }
+                if (slashCount % 2 === 0) {
+                    inString = !inString;
+                }
+                output += ch;
+                continue;
+            }
+
+            if (!inString || ch !== '\\') {
+                output += ch;
+                continue;
+            }
+
+            const next = input[i + 1];
+            if (!next) {
+                output += '\\\\';
+                continue;
+            }
+
+            const validSimpleEscapes = '"\\/bfnrt';
+            if (validSimpleEscapes.includes(next)) {
+                output += ch;
+                continue;
+            }
+
+            if (next === 'u') {
+                const unicodeDigits = input.slice(i + 2, i + 6);
+                if (/^[0-9a-fA-F]{4}$/.test(unicodeDigits)) {
+                    output += ch;
+                    continue;
+                }
+            }
+
+            // Preserve literal backslash content by escaping invalid JSON escape starts.
+            output += '\\\\';
         }
-        return JSON.parse(text.slice(start, end + 1));
+
+        return output;
+    };
+
+    const tryParse = (candidate) => {
+        try {
+            return JSON.parse(candidate);
+        } catch (_err) {
+            return null;
+        }
+    };
+
+    const directParsed = tryParse(text);
+    if (directParsed) {
+        return directParsed;
     }
+
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start === -1 || end === -1 || end <= start) {
+        throw new Error('No JSON object found in model response.');
+    }
+
+    const objectSlice = text.slice(start, end + 1);
+    const slicedParsed = tryParse(objectSlice);
+    if (slicedParsed) {
+        return slicedParsed;
+    }
+
+    const sanitized = escapeInvalidJsonBackslashes(objectSlice);
+    const recoveredParsed = tryParse(sanitized);
+    if (recoveredParsed) {
+        return recoveredParsed;
+    }
+
+    throw new Error('Failed to parse model JSON response after sanitation attempts.');
 }
 
 async function runGenerateCall(prompt, system, options = {}) {
@@ -280,3 +355,213 @@ export async function gradeAdaptiveResponse(input = {}) {
         };
     }
 }
+
+export const QUESTION_TEMPLATES = {
+    // Stage 1
+    's1-comparison-a': {
+        description: 'Comparison between a single digit number and another single digit number.',
+        schema: '{"left": number, "right": number, "answerKey": "lt"|"gt"|"eq"}',
+        defaults: { left: 9, right: 7, answerKey: 'gt' }
+    },
+    's1-comparison-b': {
+        description: 'Comparison between an addition expression (e.g. A + B) and a single sum C.',
+        schema: '{"leftText": "string", "right": number, "leftVal": number, "rightVal": number, "answerKey": "lt"|"gt"|"eq"}',
+        defaults: { leftText: '3 + 2', right: 5, leftVal: 5, rightVal: 5, answerKey: 'eq' }
+    },
+    's1-addition': {
+        description: 'Multi-digit vertical addition with no carrying. Sum of columns must not exceed 9.',
+        schema: '{"left": number, "right": number, "answerKey": string|number, "text": "string", "rubric": {"scoring": "string", "max_points": number}, "workedSolution": "string"}',
+        defaults: {
+            left: 143,
+            right: 25,
+            answerKey: '168',
+            text: '  143\\n+  25',
+            rubric: {
+                scoring: 'exact-match',
+                max_points: 1
+            },
+            workedSolution: 'Add ones, tens, and hundreds by column: 143 + 25 = 168.'
+        }
+    },
+    's1-applied-tare': {
+        description: 'Free-response: conceptual understanding of relative zero (tare) versus absolute scales (Kelvin). Generated prompts must be unique and require learner explanation.',
+        schema: '{"responseMode": "free-response", "questionText": "string", "answerKey": "string", "rubric": {"scoring": "string", "max_points": number}, "workedSolution": "string"}',
+        defaults: {
+            responseMode: 'free-response',
+            questionText: 'A flask on a balance reads 3.12 g before reagent is added, then Tare resets the display to 0.00 g for net-mass measurement. Explain why this reset is a relative zero and how that differs from Kelvin absolute zero.',
+            answerKey: 'Tare resets the instrument reference baseline for that measurement setup, while Kelvin remains an absolute thermodynamic scale anchored at 0 K.',
+            rubric: {
+                scoring: 'concept-match',
+                max_points: 1
+            },
+            workedSolution: 'Strong response should state that tare creates a relative reference for displayed mass differences, not a physical absence of mass, while Kelvin zero corresponds to absolute thermodynamic zero.'
+        }
+    },
+    // Stage 2
+    's2-partition': {
+        description: 'Dividing stock solution volume/concentration by portion size to get integer partition count.',
+        schema: '{"stock": number, "portion": number, "answerKey": string}',
+        defaults: { stock: 1.20, portion: 0.05, answerKey: '24' }
+    },
+    's2-estimate': {
+        description: 'Free response: estimate a stoichiometric mass-to-moles ratio and provide a numeric benchmark answer key.',
+        schema: '{"questionText": "string", "answerKey": "string|number", "rubric": {"scoring": "string", "max_points": number}, "workedSolution": "string"}',
+        defaults: {
+            questionText: 'Estimate the ratio: 48.2 g of carbon divided by 12.01 g/mol molar mass. How many moles is this approximately?',
+            answerKey: 'about 4 moles',
+            rubric: {
+                scoring: 'reasonableness-check',
+                max_points: 1
+            },
+            workedSolution: '48.2/12.01 is approximately 48/12, so the estimate is about 4 moles.'
+        }
+    },
+    's2-division': {
+        description: 'Long division resulting in an integer quotient with no remainders.',
+        schema: '{"dividend": number, "divisor": number, "answerKey": string}',
+        defaults: { dividend: 456, divisor: 4, answerKey: '114' }
+    },
+    // Stage 3
+    's3-calorimeter': {
+        description: 'Computing signed temperature difference: deltaT = Tf - Ti.',
+        schema: '{"ti": number, "tf": number, "answerKey": string}',
+        defaults: { ti: -15, tf: 25, answerKey: '40' }
+    },
+    's3-absolute': {
+        description: 'Evaluating comparison using absolute value: |A| vs |B|.',
+        schema: '{"a": number, "b": number, "answerKey": "lt"|"gt"|"eq"}',
+        defaults: { a: -8, b: 8, answerKey: 'eq' }
+    },
+    's3-signdiffs': {
+        description: 'Summing ion charges to find net charge (e.g. A Fe3+ and B Cl-).',
+        schema: '{"cation": "string", "cationCharge": number, "cationCount": number, "anion": "string", "anionCharge": number, "anionCount": number, "answerKey": string}',
+        defaults: { cation: 'Fe', cationCharge: 3, cationCount: 1, anion: 'Cl', anionCharge: -1, anionCount: 3, answerKey: '0' }
+    },
+    // Stage 4
+    's4-mixture': {
+        description: 'Mole fraction of helium in a helium-neon atomic gas mixture.',
+        schema: '{"molesHe": number, "molesNe": number, "answerKey": string}',
+        defaults: { molesHe: 3, molesNe: 7, answerKey: '0.3' }
+    },
+    's4-fractions': {
+        description: 'Equivalent fractions equation: num/denom = X/targetDenom.',
+        schema: '{"num": number, "denom": number, "targetDenom": number, "answerKey": string}',
+        defaults: { num: 3, denom: 6, targetDenom: 12, answerKey: '6' }
+    },
+    's4-stoich-ratio': {
+        description: 'Calculating atomic mass ratio vs atom composition ratio in a molecule (e.g. CO2).',
+        schema: '{"molecule": "string", "atomCount1": number, "atomMass1": number, "atomCount2": number, "atomMass2": number, "atomRatioKey": string, "massRatioKey": string}',
+        defaults: { molecule: 'CO2', atomCount1: 1, atomMass1: 12.01, atomCount2: 2, atomMass2: 16.00, atomRatioKey: '1:2', massRatioKey: '3:8' }
+    },
+    // Stage 5
+    's5-sigfigs': {
+        description: 'Significant figures identification for an inexact decimal value.',
+        schema: '{"value": "string", "answerKey": string}',
+        defaults: { value: '0.00340', answerKey: '3' }
+    },
+    's5-multistep': {
+        description: 'Solving multi-step decimal arithmetic with sig fig rules: (A - B) * C.',
+        schema: '{"a": number, "b": number, "c": number, "intermediate": string, "answerKey": string}',
+        defaults: { a: 14.28, b: 11.2, c: 1.503, intermediate: '3.1', answerKey: '4.7' }
+    },
+    // Stage 6
+    's6-cube': {
+        description: '3D cube metric volume scaling: A meters to B decimeters.',
+        schema: '{"meters": number, "decimeters": number, "answerKey": string}',
+        defaults: { meters: 1, decimeters: 10, answerKey: '1000' }
+    },
+    's6-density': {
+        description: 'Density compound unit conversion: g/cm³ to kg/m³.',
+        schema: '{"density": number, "answerKey": string}',
+        defaults: { density: 2.7, answerKey: '2700' }
+    },
+    // Stage 7
+    's7-drag': {
+        description: 'Algebraic isolate: clearance of a denominator block.',
+        schema: '{"equation": "string", "isolate": "string", "answerKey": "string"}',
+        defaults: { equation: 'q = m * c * (Tf - Ti)', isolate: 'Tf - Ti', answerKey: 'q / (m * c)' }
+    },
+    's7-calorimetry': {
+        description: 'Solving calorimetry equation q = m * c * (Tf - Ti) for final temperature Tf.',
+        schema: '{"q": number, "m": number, "c": number, "ti": number, "answerKey": string}',
+        defaults: { q: 836, m: 10.0, c: 4.184, ti: 20.0, answerKey: '40.0' }
+    },
+    // Stage 8
+    's8-extrapolate': {
+        description: 'Extrapolating a linear Charles\'s Law graph to find absolute zero.',
+        schema: '{"slope": number, "intercept": number, "answerKey": string}',
+        defaults: { slope: 0.366, intercept: 100, answerKey: '-273.15' }
+    },
+    // Stage 9
+    's9-bal': {
+        description: 'Balancing coefficients of a hydrocarbon combustion reaction (e.g. Butane).',
+        schema: '{"reaction": "string", "a": number, "b": number, "c": number, "d": number}',
+        defaults: { reaction: 'C4H10 + O2 -> CO2 + H2O', a: 2, b: 13, c: 8, d: 10 }
+    },
+    's9-factoring': {
+        description: 'Factoring a quadratic trinomial x^2 + Bx + C into (x + p)(x + q).',
+        schema: '{"b": number, "c": number, "p": number, "q": number}',
+        defaults: { b: 5, c: 6, p: 2, q: 3 }
+    },
+    // Stage 10
+    's10-antilog': {
+        description: 'Logarithmic antilog calculation: solving for H3O+ concentration from pH.',
+        schema: '{"ph": number, "answerKey": string}',
+        defaults: { ph: 3.45, answerKey: '3.5e-4' }
+    },
+    // Stage 11
+    's11-linear': {
+        description: 'Beer\'s Law saturation limit identification from data points.',
+        schema: '{"limit": "string", "cutoff": number}',
+        defaults: { limit: '0.010', cutoff: 0.010 }
+    },
+    's11-arrhenius': {
+        description: 'Arrhenius plot activation energy (Ea) from slope. Slope is -Ea/R.',
+        schema: '{"x1": number, "y1": number, "x2": number, "y2": number, "slope": number, "answerKey": string}',
+        defaults: { x1: 0.0030, y1: -2.0, x2: 0.0035, y2: -4.0, slope: -4000, answerKey: '33.2' }
+    },
+    // Stage 12
+    's12-spec': {
+        description: 'Isotopic weighted average calculation for average mass (e.g. Boron).',
+        schema: '{"mass1": number, "mass2": number, "abundance1": number, "abundance2": number, "averageMass": number}',
+        defaults: { mass1: 10.0, mass2: 11.0, abundance1: 19, abundance2: 81, averageMass: 10.81 }
+    },
+    's12-salt': {
+        description: 'Calculating Kb and pH of a weak base salt solution (e.g. acetate salt).',
+        schema: '{"ka": number, "kb": number, "concentration": number, "ph": number}',
+        defaults: { ka: 1.8e-5, kb: 5.6e-10, concentration: 0.10, ph: 8.87 }
+    }
+};
+
+export async function generateQuestionVariant(questionId, phaseId) {
+    const template = QUESTION_TEMPLATES[questionId];
+    if (!template) {
+        throw new Error(`No template found for question ID: ${questionId}`);
+    }
+
+    const system = [
+        'You are a professional chemistry and math question generator.',
+        'Your goal is to generate a new variation of a chemistry math problem.',
+        'You MUST return a strict JSON object containing the new parameters.',
+        'Return ONLY JSON. No markdown backticks or formatting outside the JSON.',
+        `Target JSON Schema: ${template.schema}`
+    ].join('\n');
+
+    const prompt = [
+        `Question ID: ${questionId}`,
+        `Description: ${template.description}`,
+        `Original Parameters: ${JSON.stringify(template.defaults)}`,
+        'Please generate a mathematically valid, new variation of this question.',
+        'The new variation must be semantically distinct from the original wording and scenario details.',
+        'Ensure the values are realistic for general chemistry experiments.',
+        'Double-check all calculations and ensure the answerKey is perfectly accurate.'
+    ].join('\n');
+
+    const { parsed, model } = await runGenerateCall(prompt, system, { temperature: 0.7 });
+    return {
+        ok: true,
+        model,
+        data: parsed
+    };
+}
+

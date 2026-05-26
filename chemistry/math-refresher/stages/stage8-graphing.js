@@ -36,7 +36,13 @@ const createInitialStage8State = () => ({
     // Probability and counting
     probabilityAnswer: '',
     probabilityFeedback: 'L8.8 Probability: For 3 red and 2 blue chips, P(red then blue without replacement) = 3/10.',
-    probabilityCorrect: false
+    probabilityCorrect: false,
+
+    // L8.9 & L8.10 Boundaries
+    axisChoice: '',
+    limitChoice: '',
+    boundaryFeedback: 'L8.9 & L8.10: Identify the axes designation and the physical boundaries of the Charles\'s Law linear model.',
+    showIdealLine: false
 });
 
 export function createStage8Graphing() {
@@ -55,8 +61,13 @@ export function createStage8Graphing() {
                 }
             });
 
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+            const s8Extrapolate = getParams('s8-extrapolate', { slope: 0.366, intercept: 100, answerKey: '-273.15' });
+
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's8-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
+            const xPos = 170 + parseFloat(s8Extrapolate.answerKey) / 2.0;
 
             host.innerHTML = `
                 <style>
@@ -243,6 +254,67 @@ export function createStage8Graphing() {
                         
                         <div class="s8-feedback" id="s8-slope-feedback">${state.slopeFeedback}</div>
 
+                        <!-- L8.9 & L8.10 Boundaries Panel -->
+                        <div class="s8-pane" style="margin-top:0.75rem;">
+                            <strong>L8.9 &amp; L8.10 Ideal Gas extrapolation vs. Real Gas physical limits</strong>
+                            <p>Real gases liquefy at cold temperatures, deviating from linear behavior. The ideal gas model can be extrapolated to zero volume to define Absolute Zero ($0\text{ K} = ${s8Extrapolate.answerKey}^\circ\text{C}$).</p>
+                            
+                            <div class="s8-svg-container">
+                                <svg class="s8-plot-svg" style="width:240px; height:200px; background:#0f172a; border: 1px solid rgba(255,255,255,0.08);" viewBox="0 0 240 200">
+                                    <!-- Grid lines -->
+                                    <line class="s8-grid-line" x1="${xPos}" y1="0" x2="${xPos}" y2="200" style="stroke-dasharray:2; stroke:rgba(251,191,36,0.3);" />
+                                    <text class="s8-axis-text" x="${xPos + 2}" y="195" style="fill:#fbbf24;">${parseFloat(s8Extrapolate.answerKey).toFixed(0)}°C</text>
+                                    <line class="s8-grid-line" x1="120" y1="0" x2="120" y2="200" />
+                                    <text class="s8-axis-text" x="110" y="195">-100°C</text>
+                                    <line class="s8-grid-line" x1="170" y1="0" x2="170" y2="200" />
+                                    <text class="s8-axis-text" x="165" y="195">0°C</text>
+                                    
+                                    <!-- Axes -->
+                                    <line class="s8-axis" x1="10" y1="180" x2="230" y2="180" /> <!-- X axis -->
+                                    <line class="s8-axis" x1="170" y1="10" x2="170" y2="190" /> <!-- Y axis -->
+                                    
+                                    <!-- Real Gas Curve (Red) -->
+                                    <path d="M 220 32 L 170 72 L 120 112 Q 95 132 80 160 Q 60 176 20 176" fill="none" stroke="#ef4444" stroke-width="2.5" />
+                                    <text class="s8-axis-text" x="75" y="150" style="fill:#ef4444; font-size:8px;">Real Gas</text>
+
+                                    <!-- Ideal Gas Extrapolation (Yellow dashed) -->
+                                    ${state.showIdealLine ? `
+                                    <line x1="220" y1="32" x2="${xPos}" y2="180" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3" />
+                                    <circle cx="${xPos}" cy="180" r="4" fill="#fbbf24" />
+                                    <text class="s8-axis-text" x="${xPos + 6}" y="170" style="fill:#fbbf24; font-size:8px;">Ideal Gas Extrapolation</text>
+                                    ` : ''}
+                                </svg>
+                            </div>
+                            
+                            <div style="margin-bottom:8px; display:flex; justify-content:center;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                                    <input type="checkbox" id="s8-toggle-ideal" ${state.showIdealLine ? 'checked' : ''} />
+                                    Show Ideal Gas Extrapolation Line
+                                </label>
+                            </div>
+
+                            <div class="s8-grid" style="grid-template-columns: 1fr 1fr; gap:8px;">
+                                <div>
+                                    <label class="s8-label">1. Temperature axis (independent variable):</label>
+                                    <select id="s8-axis-select" class="s8-input" ${disabled(state.pictorialUnlocked)}>
+                                        <option value="">Choose...</option>
+                                        <option value="x" ${state.axisChoice === 'x' ? 'selected' : ''}>X-Axis (Horizontal)</option>
+                                        <option value="y" ${state.axisChoice === 'y' ? 'selected' : ''}>Y-Axis (Vertical)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="s8-label">2. Projected limit of zero volume (Absolute Zero):</label>
+                                    <select id="s8-limit-select" class="s8-input" ${disabled(state.pictorialUnlocked)}>
+                                        <option value="">Choose...</option>
+                                        <option value="zero" ${state.limitChoice === 'zero' ? 'selected' : ''}>${s8Extrapolate.answerKey}°C (0 K)</option>
+                                        <option value="liquefy" ${state.limitChoice === 'liquefy' ? 'selected' : ''}>-150°C (Liquefaction)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button id="s8-check-boundaries" class="s8-btn" style="margin-top:8px; width:100%;" ${disabled(state.pictorialUnlocked)}>Verify Answers</button>
+                            <div class="s8-feedback" id="s8-boundaries-feedback">${state.boundaryFeedback}</div>
+                        </div>
+
                         <div class="s8-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s8-btn ghost" title="Reinforcement" data-prompt="Walk me through calculating slope (rate of change) from two points on a graph: Point A (2, 4) and Point B (5, 10)." ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
                         </div>
@@ -297,13 +369,15 @@ export function createStage8Graphing() {
                         
                         <div class="s8-pane">
                             <div class="s8-slider-group">
-                                <div class="s8-slider-row">
-                                    <span>Slope (m): <strong>${state.slopeM}</strong></span>
-                                    <input type="range" id="s8-slider-m" class="s8-slider" min="-3" max="3" step="0.5" value="${state.slopeM}" ${disabled(state.abstractUnlocked)}>
+                                <div class="s8-slider-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                                    <span style="flex-shrink: 0; min-width: 5.5rem;">Slope (m):</span>
+                                    <input type="range" id="s8-slider-m" class="s8-slider" min="-3" max="3" step="0.5" value="${state.slopeM}" ${disabled(state.abstractUnlocked)} style="flex-grow: 1;">
+                                    <input type="number" id="s8-input-m" class="s8-input" min="-3" max="3" step="0.5" value="${state.slopeM}" ${disabled(state.abstractUnlocked)} style="width: 70px; margin-left: 0.5rem;">
                                 </div>
-                                <div class="s8-slider-row" style="margin-top:0.4rem;">
-                                    <span>y-Intercept (b): <strong>${state.interceptB}</strong></span>
-                                    <input type="range" id="s8-slider-b" class="s8-slider" min="-3" max="3" step="0.5" value="${state.interceptB}" ${disabled(state.abstractUnlocked)}>
+                                <div class="s8-slider-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top:0.4rem;">
+                                    <span style="flex-shrink: 0; min-width: 5.5rem;">y-Intercept (b):</span>
+                                    <input type="range" id="s8-slider-b" class="s8-slider" min="-3" max="3" step="0.5" value="${state.interceptB}" ${disabled(state.abstractUnlocked)} style="flex-grow: 1;">
+                                    <input type="number" id="s8-input-b" class="s8-input" min="-3" max="3" step="0.5" value="${state.interceptB}" ${disabled(state.abstractUnlocked)} style="width: 70px; margin-left: 0.5rem;">
                                 </div>
                             </div>
                             <p style="text-align:center; font-family:monospace; font-weight:bold; font-size:1.1rem; color:#2563eb; margin-top:0.5rem;">
@@ -389,6 +463,12 @@ export function createStage8Graphing() {
                         level: 'abstract',
                         keys: 'slopeM,interceptB',
                         prompt: 'Help me tune m and b to match the target line y = 2x - 1.'
+                    },
+                    's8-check-boundaries': {
+                        id: 's8-extrapolate',
+                        level: 'pictorial',
+                        keys: 'axisChoice,limitChoice',
+                        prompt: 'Help me identify the axis and absolute zero extrapolation limit under Charles\'s Law.'
                     },
                     's8-check-applied': {
                         id: 's8-interpolation-extrapolation',
@@ -534,6 +614,30 @@ export function createStage8Graphing() {
                 this.mount({ host, state, onStateChange });
             });
 
+            // L8.9 & L8.10 boundaries click & toggle handlers
+            host.querySelector('#s8-toggle-ideal')?.addEventListener('change', (e) => {
+                state.showIdealLine = e.target.checked;
+                persist('Ideal line toggled');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s8-check-boundaries')?.addEventListener('click', () => {
+                const axis = host.querySelector('#s8-axis-select').value;
+                const limit = host.querySelector('#s8-limit-select').value;
+                state.axisChoice = axis;
+                state.limitChoice = limit;
+
+                if (axis === 'x' && limit === 'zero') {
+                    state.boundaryFeedback = `Correct! The independent variable (Temperature) belongs on the x-axis, and the theoretical limit where gas volume extrapolates to zero is ${s8Extrapolate.answerKey}°C (Absolute Zero). Note that the real gas curve deviates due to liquefaction!`;
+                } else if (axis !== 'x') {
+                    state.boundaryFeedback = 'Incorrect. In scientific experiments, the variable controlled by the experimenter (Temperature) is the independent variable and belongs on the x-axis.';
+                } else {
+                    state.boundaryFeedback = `Incorrect. Although Temperature is on the x-axis, the ideal gas model extrapolates to zero volume at ${s8Extrapolate.answerKey}°C (Absolute Zero), not at liquefaction point.`;
+                }
+                persist('Boundaries verified');
+                this.mount({ host, state, onStateChange });
+            });
+
             // Abstract Sliders
             const sliderM = host.querySelector('#s8-slider-m');
             const sliderB = host.querySelector('#s8-slider-b');
@@ -562,6 +666,29 @@ export function createStage8Graphing() {
                     checkAbstractMatch();
                     persist('B slider shifted');
                     this.mount({ host, state, onStateChange });
+                });
+            }
+
+            const inputM = host.querySelector('#s8-input-m');
+            const inputB = host.querySelector('#s8-input-b');
+            if (inputM && inputB) {
+                inputM.addEventListener('change', (e) => {
+                    let val = parseFloat(e.target.value);
+                    if (!isNaN(val)) {
+                        state.slopeM = Math.max(-3, Math.min(3, val));
+                        checkAbstractMatch();
+                        persist('M input changed');
+                        this.mount({ host, state, onStateChange });
+                    }
+                });
+                inputB.addEventListener('change', (e) => {
+                    let val = parseFloat(e.target.value);
+                    if (!isNaN(val)) {
+                        state.interceptB = Math.max(-3, Math.min(3, val));
+                        checkAbstractMatch();
+                        persist('B input changed');
+                        this.mount({ host, state, onStateChange });
+                    }
                 });
             }
 
@@ -625,6 +752,18 @@ export function createStage8Graphing() {
             if (probInput) {
                 probInput.addEventListener('input', (e) => {
                     state.probabilityAnswer = e.target.value;
+                });
+            }
+            const axisSelect = host.querySelector('#s8-axis-select');
+            if (axisSelect) {
+                axisSelect.addEventListener('change', (e) => {
+                    state.axisChoice = e.target.value;
+                });
+            }
+            const limitSelect = host.querySelector('#s8-limit-select');
+            if (limitSelect) {
+                limitSelect.addEventListener('change', (e) => {
+                    state.limitChoice = e.target.value;
                 });
             }
         },

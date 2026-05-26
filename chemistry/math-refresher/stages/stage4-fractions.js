@@ -64,6 +64,16 @@ const createInitialStage4State = () => ({
     // Direct vs inverse variation (L4.9)
     variationAnswers: { direct: '', inverse: '', joint: '' },
     variationFeedback: 'L4.9 Direct, Inverse, and Joint Variation: Solve one case of each relationship.',
+
+    // L4.10 Mass Ratios vs Atomic Composition
+    massRatioChoice: '',
+    massRatioFeedback: 'L4.10 Mass Ratios: Compare H2O atom ratio to mass ratio using atomic weights.',
+
+    // L4.11 Mole Fractions (mixture)
+    heCount: 6,
+    moleFractionAnswerNum: '',
+    moleFractionAnswerDen: '',
+    moleFractionFeedback: 'L4.11 Mole Fraction: Drag slider to adjust He particles and compute X_He.',
 });
 
 export function createStage4Fractions() {
@@ -81,6 +91,23 @@ export function createStage4Fractions() {
                     state[key] = defaults[key];
                 }
             });
+
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+
+            const s4Mixture = getParams('s4-mixture', null);
+            if (s4Mixture) {
+                state.heCount = s4Mixture.molesHe;
+            }
+
+            const s4Fractions = getParams('s4-fractions', { num: 2.5, denom: 10, targetDenom: 40, answerKey: '10' });
+            const s4StoichRatio = getParams('s4-stoich-ratio', { molecule: 'H2O', atomCount1: 2, atomMass1: 1.008, atomCount2: 1, atomMass2: 16.00, atomRatioKey: '2:1', massRatioKey: '1:8' });
+
+            const optCorrect = s4StoichRatio.massRatioKey;
+            const optAtom = s4StoichRatio.atomRatioKey;
+            const swapRatio = (r) => r.split(':').reverse().join(':');
+            const optSwapMass = swapRatio(s4StoichRatio.massRatioKey);
+            const optSwapAtom = swapRatio(s4StoichRatio.atomRatioKey);
 
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's4-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
@@ -341,6 +368,31 @@ export function createStage4Fractions() {
 
                         <div class="s4-feedback" id="s4-div-feedback">${state.divFeedback}</div>
 
+                        <div class="s4-pane" style="margin-top:0.75rem;">
+                            <strong>L4.11 Mole Fractions in Mixtures</strong>
+                            <p>Mole fraction ($X_{He}$) is the ratio of Helium moles to total moles: $X_{He} = \frac{n_{He}}{n_{He} + n_{Ne}}$. Adjust the Helium moles with the slider/number box, then enter the simplified mole fraction of Helium.</p>
+                            <div class="s4-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
+                                <div style="background:#0f172a; height:120px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); position:relative; overflow:hidden; display:flex; flex-wrap:wrap; padding:8px;">
+                                    ${Array.from({ length: s4Mixture ? s4Mixture.molesHe : state.heCount }, () => '<div style="width:16px; height:16px; background:#38bdf8; border-radius:50%; margin:4px; box-shadow:0 0 6px #38bdf8;" title="Helium"></div>').join('')}
+                                    ${Array.from({ length: s4Mixture ? s4Mixture.molesNe : 10 - state.heCount }, () => '<div style="width:16px; height:16px; background:#f87171; border-radius:50%; margin:4px; box-shadow:0 0 6px #f87171;" title="Neon"></div>').join('')}
+                                </div>
+                                <div>
+                                    <label class="s4-label">Helium Particles (n_He): ${s4Mixture ? s4Mixture.molesHe : state.heCount} moles</label>
+                                    <label class="s4-label">Neon Particles (n_Ne): ${s4Mixture ? s4Mixture.molesNe : 10 - state.heCount} moles</label>
+                                    <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                                        <input type="range" id="s4-he-slider" min="1" max="9" value="${state.heCount}" style="flex:1;" ${disabled(state.pictorialUnlocked) || (s4Mixture ? 'disabled' : '')} />
+                                        <input type="number" id="s4-he-num" min="1" max="9" value="${state.heCount}" class="s4-input" style="width:60px; padding:0.25rem;" ${disabled(state.pictorialUnlocked) || (s4Mixture ? 'disabled' : '')} />
+                                    </div>
+                                    <div class="s4-grid" style="grid-template-columns: 1fr 1fr auto; gap:6px;">
+                                        <input id="s4-xhe-num" class="s4-input" placeholder="X_He Num" value="${state.moleFractionAnswerNum || ''}" data-tutor-question-id="s4-mixture" ${disabled(state.pictorialUnlocked)} />
+                                        <input id="s4-xhe-den" class="s4-input" placeholder="X_He Den" value="${state.moleFractionAnswerDen || ''}" data-tutor-question-id="s4-mixture" ${disabled(state.pictorialUnlocked)} />
+                                        <button id="s4-check-xhe" class="s4-btn" data-tutor-question-id="s4-mixture" ${disabled(state.pictorialUnlocked)}>Verify X_He</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="s4-feedback" id="s4-xhe-feedback">${state.moleFractionFeedback}</div>
+                        </div>
+
                         <div class="s4-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s4-btn ghost" title="Reinforcement" data-prompt="Explain why we multiply by the reciprocal when dividing fractions. What is the physical concept?" ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
                         </div>
@@ -383,10 +435,11 @@ export function createStage4Fractions() {
                         <!-- L4.8 Proportions -->
                         <div class="s4-pane">
                             <strong>L4.8 Proportions</strong>
-                            <p>Solve the dilution proportion: A concentration of 2.5 g of NaCl dissolved in 10 mL of water is scaled up. How many grams of NaCl are needed in 40 mL of water? <br/>Solve for <code>x</code>: <code>2.5 / 10 = x / 40</code></p>
+                            <p>Solve the proportion: 
+                            <br/>Solve for <code>x</code>: <code>${s4Fractions.num} / ${s4Fractions.denom} = x / ${s4Fractions.targetDenom}</code></p>
                             <div class="s4-grid" style="grid-template-columns: 1fr auto; gap: 6px;">
-                                <input id="s4-prop-val" class="s4-input" placeholder="Value of x (grams)" value="${state.propVal}" ${disabled(state.appliedUnlocked)} />
-                                <button id="s4-check-prop" class="s4-btn" ${disabled(state.appliedUnlocked)}>Check Proportion</button>
+                                <input id="s4-prop-val" class="s4-input" placeholder="Value of x" value="${state.propVal}" data-tutor-question-id="s4-fractions" ${disabled(state.appliedUnlocked)} />
+                                <button id="s4-check-prop" class="s4-btn" data-tutor-question-id="s4-fractions" ${disabled(state.appliedUnlocked)}>Check Proportion</button>
                             </div>
                             <div class="s4-feedback" id="s4-prop-feedback">${state.propFeedback}</div>
                         </div>
@@ -404,6 +457,19 @@ export function createStage4Fractions() {
                             </div>
                             <button id="s4-check-variation" class="s4-btn" style="margin-top:8px; width:100%;" ${disabled(state.appliedUnlocked)}>Check Variation</button>
                             <div class="s4-feedback" id="s4-variation-feedback">${state.variationFeedback}</div>
+                        </div>
+
+                        <!-- L4.10 Mass Ratios vs. Atomic Composition -->
+                        <div class="s4-pane" style="margin-top:0.75rem;">
+                            <strong>L4.10 Mass Ratios vs. Atomic Composition</strong>
+                            <p>${s4StoichRatio.molecule} has an atomic composition ratio of <strong>${s4StoichRatio.atomRatioKey}</strong>. Given the atomic masses of element 1 (${s4StoichRatio.atomMass1} g/mol) and element 2 (${s4StoichRatio.atomMass2} g/mol), calculate the simplified mass ratio of element 1 to element 2 in ${s4StoichRatio.molecule}.</p>
+                            <div class="s4-grid" style="grid-template-columns: 1fr 1fr; gap:6px;">
+                                <button class="s4-btn ghost ${state.massRatioChoice === optAtom ? 'active' : ''} s4-ratio-btn" data-value="${optAtom}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optAtom} (same as atom ratio)</button>
+                                <button class="s4-btn ghost ${state.massRatioChoice === optCorrect ? 'active' : ''} s4-ratio-btn" data-value="${optCorrect}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optCorrect} (by mass)</button>
+                                <button class="s4-btn ghost ${state.massRatioChoice === optSwapMass ? 'active' : ''} s4-ratio-btn" data-value="${optSwapMass}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optSwapMass} (inverse mass ratio)</button>
+                                <button class="s4-btn ghost ${state.massRatioChoice === optSwapAtom ? 'active' : ''} s4-ratio-btn" data-value="${optSwapAtom}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optSwapAtom} (inverse atom ratio)</button>
+                            </div>
+                            <div class="s4-feedback" id="s4-mass-ratio-feedback">${state.massRatioFeedback}</div>
                         </div>
 
                         <div class="s4-grid" style="margin-top: 0.6rem;">
@@ -827,16 +893,70 @@ export function createStage4Fractions() {
                 this.mount({ host, state, onStateChange });
             });
 
+            // L4.10 Mass Ratios
+            host.querySelectorAll('.s4-ratio-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const val = btn.getAttribute('data-value');
+                    state.massRatioChoice = val;
+                    if (val === optCorrect) {
+                        state.massRatioFeedback = `Correct! The simplified mass ratio in ${s4StoichRatio.molecule} is ${optCorrect}, which is very different from the atom ratio of ${optAtom}.`;
+                    } else if (val === optAtom) {
+                        state.massRatioFeedback = `Incorrect. This is the atom composition ratio (${optAtom}). Since atoms have different masses, the mass ratio is different.`;
+                    } else {
+                        state.massRatioFeedback = `Incorrect. Try calculating the mass of each element and simplifying the ratio.`;
+                    }
+                    persist('Mass ratio chosen');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            // L4.11 Mole Fraction
+            const handleHeChange = (val) => {
+                const num = parseInt(val);
+                if (num >= 1 && num <= 9) {
+                    state.heCount = num;
+                    state.moleFractionFeedback = `Mixture updated: ${num} moles of He, ${10 - num} moles of Ne. Total is 10 moles. Calculate X_He as a simplified fraction.`;
+                    persist('Helium count changed');
+                    this.mount({ host, state, onStateChange });
+                }
+            };
+
+            host.querySelector('#s4-he-slider')?.addEventListener('input', (e) => handleHeChange(e.target.value));
+            host.querySelector('#s4-he-num')?.addEventListener('change', (e) => handleHeChange(e.target.value));
+
+            host.querySelector('#s4-check-xhe')?.addEventListener('click', () => {
+                const numVal = parseInt(host.querySelector('#s4-xhe-num').value.trim());
+                const denVal = parseInt(host.querySelector('#s4-xhe-den').value.trim());
+                state.moleFractionAnswerNum = numVal;
+                state.moleFractionAnswerDen = denVal;
+                
+                const gcd = (a, b) => b ? gcd(b, a % b) : a;
+                const total = s4Mixture ? (s4Mixture.molesHe + s4Mixture.molesNe) : 10;
+                const heVal = s4Mixture ? s4Mixture.molesHe : state.heCount;
+                const d = gcd(heVal, total);
+                const expNum = heVal / d;
+                const expDen = total / d;
+                
+                if (numVal === expNum && denVal === expDen) {
+                    state.moleFractionFeedback = `Correct! X_He = n_He / n_total = ${heVal} / ${total} = ${expNum}/${expDen}.`;
+                } else {
+                    state.moleFractionFeedback = `Incorrect. Total moles = ${total}. n_He = ${heVal}. Divide ${heVal} by ${total} and reduce to lowest terms.`;
+                }
+                persist('Mole fraction checked');
+                this.mount({ host, state, onStateChange });
+            });
+
             // L4.8 Proportions
             host.querySelector('#s4-check-prop').addEventListener('click', () => {
                 const val = host.querySelector('#s4-prop-val').value.trim();
                 state.propVal = val;
-                if (val === '10') {
+                const expected = String(s4Fractions.answerKey);
+                if (val === expected) {
                     state.propCorrect = true;
-                    state.propFeedback = 'Correct! Solve: x = (2.5 &times; 40) / 10 = 100 / 10 = 10 grams.';
+                    state.propFeedback = `Correct! Solve: x = (${s4Fractions.num} &times; ${s4Fractions.targetDenom}) / ${s4Fractions.denom} = ${expected}.`;
                 } else {
                     state.propCorrect = false;
-                    state.propFeedback = 'Incorrect. Cross-multiply and solve: 10 &times; x = 2.5 &times; 40, so 10x = 100.';
+                    state.propFeedback = `Incorrect. Cross-multiply and solve: ${s4Fractions.denom} &times; x = ${s4Fractions.num} &times; ${s4Fractions.targetDenom}.`;
                 }
                 persist('Proportions checked');
                 this.mount({ host, state, onStateChange });
@@ -893,6 +1013,8 @@ export function createStage4Fractions() {
             bindInputSync('#s4-var-direct', 'variationAnswers', 'direct');
             bindInputSync('#s4-var-inverse', 'variationAnswers', 'inverse');
             bindInputSync('#s4-var-joint', 'variationAnswers', 'joint');
+            bindInputSync('#s4-xhe-num', 'moleFractionAnswerNum');
+            bindInputSync('#s4-xhe-den', 'moleFractionAnswerDen');
         },
         unmount() {}
     };

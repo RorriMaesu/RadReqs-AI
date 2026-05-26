@@ -16,6 +16,14 @@ const createInitialStage9State = () => ({
     concreteMission: { intersectionFound: false },
     concreteCompleted: false,
 
+    // L9.10: Balancing equations via linear systems
+    balA: '',
+    balB: '',
+    balC: '',
+    balD: '',
+    balFeedback: 'L9.10: Balance the combustion of butane: a C₄H₁₀ + b O₂ → c CO₂ + d H₂O (Hint: try setting a = 2).',
+    balCorrect: false,
+
     // Pictorial: Right triangle geometry
     triangleC: '',
     triangleFeedback: 'Leg A = 6, Leg B = 8. Solve for Hypotenuse C using c = sqrt(a^2 + b^2).',
@@ -35,7 +43,12 @@ const createInitialStage9State = () => ({
     // Applied: Equilibrium quadratic
     appliedChoice: '',
     appliedFeedback: 'Solve x^2 + 2x - 3 = 0. Since concentrations cannot be negative, pick the positive physical root.',
-    appliedCorrect: false
+    appliedCorrect: false,
+
+    // L9.11: Exponents in Unit Systems
+    kcExponent: '',
+    kcFeedback: 'L9.11: Find the exponent n for the units of Kc (M^n) for N2 + 3 H2 ⇌ 2 NH3.',
+    kcCorrect: false
 });
 
 export function createStage9Quadratics() {
@@ -54,8 +67,39 @@ export function createStage9Quadratics() {
                 }
             });
 
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+            const s9Bal = getParams('s9-bal', { reaction: 'C4H10 + O2 -> CO2 + H2O', a: 2, b: 13, c: 8, d: 10 });
+            const s9Factoring = getParams('s9-factoring', { b: 5, c: 6, p: 2, q: 3 });
+
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's9-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
+
+            // Helpers for dynamic parameters
+            const hcMatch = s9Bal.reaction.match(/C(\d*)H(\d*)/);
+            const carbonCount = hcMatch ? parseInt(hcMatch[1] || 1) : 4;
+            const hydrogenCount = hcMatch ? parseInt(hcMatch[2] || 1) : 10;
+            const toSubscript = (str) => {
+                const map = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' };
+                return str.replace(/[0-9]/g, (m) => map[m]);
+            };
+            const subHcFormula = toSubscript(`C${carbonCount}H${hydrogenCount}`);
+
+            const formatQuadratic = (b, c) => {
+                let termB = b === 0 ? '' : (b > 0 ? `+ ${b}x` : `- ${Math.abs(b)}x`);
+                let termC = c === 0 ? '' : (c > 0 ? `+ ${c}` : `- ${Math.abs(c)}`);
+                return `x² ${termB} ${termC}`.replace(/\s+/g, ' ').trim();
+            };
+            const quadExpr = formatQuadratic(s9Factoring.b, s9Factoring.c);
+
+            const generateSelectOptions = (selectedVal) => {
+                let html = '<option value="">Choose...</option>';
+                for (let i = -10; i <= 10; i++) {
+                    const sel = String(selectedVal) === String(i) ? 'selected' : '';
+                    html += `<option value="${i}" ${sel}>${i}</option>`;
+                }
+                return html;
+            };
 
             host.innerHTML = `
                 <style>
@@ -194,9 +238,41 @@ export function createStage9Quadratics() {
                         </div>
 
                         <div class="s9-pane" style="margin-top:0.75rem;">
+                            <strong>L9.10 Balancing Equations via Linear Systems</strong>
+                            <p>Balance the combustion reaction: <code>a ${subHcFormula} + b O₂ → c CO₂ + d H₂O</code>.</p>
+                            <p style="font-size:0.85rem; color:#cbd5e1; line-height: 1.5;">By element conservation, we write a system of equations:
+                            <br>• Carbon: ${carbonCount}a = c
+                            <br>• Hydrogen: ${hydrogenCount}a = 2d  (giving d = ${(hydrogenCount/2).toFixed(1).replace(/\.0$/, '')}a)
+                            <br>• Oxygen: 2b = 2c + d
+                            <br>If we set <strong>a = ${s9Bal.a}</strong> to avoid fractional coefficients, solve for the remaining integers.</p>
+                            
+                            <div class="s9-grid" style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 0.5rem;">
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">a (${subHcFormula}):</label>
+                                    <input type="number" id="s9-bal-a" class="s9-input" value="${state.balA}" placeholder="a" ${disabled(state.concreteUnlocked)}>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">b (O₂):</label>
+                                    <input type="number" id="s9-bal-b" class="s9-input" value="${state.balB}" placeholder="b" ${disabled(state.concreteUnlocked)}>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">c (CO₂):</label>
+                                    <input type="number" id="s9-bal-c" class="s9-input" value="${state.balC}" placeholder="c" ${disabled(state.concreteUnlocked)}>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">d (H₂O):</label>
+                                    <input type="number" id="s9-bal-d" class="s9-input" value="${state.balD}" placeholder="d" ${disabled(state.concreteUnlocked)}>
+                                </div>
+                            </div>
+                            <button id="s9-check-bal" class="s9-btn" style="margin-top: 8px; width: 100%;" ${disabled(state.concreteUnlocked)}>Verify Balancing Coefficients</button>
+                            <div id="s9-bal-feedback" class="s9-feedback">${state.balFeedback}</div>
+                        </div>
+
+                        <div class="s9-pane" style="margin-top:0.75rem;">
                             <h3 style="margin:0 0 0.45rem;">Concrete Mission</h3>
                             <div class="s9-status" style="margin-top:0; margin-bottom:0.5rem;">
                                 <span class="s9-pill ${state.concreteMission.intersectionFound ? 'good' : 'locked'}">Click the intersection at (2, 3)</span>
+                                <span class="s9-pill ${state.balCorrect ? 'good' : 'locked'}">Balance ${subHcFormula} Combustion</span>
                             </div>
                             <div class="s9-grid" style="gap:4px;">
                                 <button id="s9-hint-concrete" class="s9-btn ghost" ${disabled(state.concreteUnlocked)}>Need a Hint? (Required)</button>
@@ -258,32 +334,20 @@ export function createStage9Quadratics() {
                     <!-- ABSTRACT LEVEL -->
                     <article class="s9-card s9-level ${levelLocked(state.abstractUnlocked)}">
                         <h2>Abstract Level: Polynomial Factoring Blocks</h2>
-                        <p><strong>[Required Unlock] L9.8 Factoring Quadratics:</strong> Factor the quadratic trinomial <strong>x^2 + 5x + 6</strong> into binomial blocks <strong>(x + p)(x + q)</strong>. Pick p and q from the dropdowns so their sum is 5 and product is 6.</p>
+                        <p><strong>[Required Unlock] L9.8 Factoring Quadratics:</strong> Factor the quadratic trinomial <strong>${quadExpr}</strong> into binomial blocks <strong>(x + p)(x + q)</strong>. Pick p and q from the dropdowns so their sum is ${s9Factoring.b} and product is ${s9Factoring.c}.</p>
                         
                         <div class="s9-pane">
                             <div class="s9-grid" style="grid-template-columns: 1fr 1fr;">
                                 <div>
                                     <label style="font-size:0.82rem; font-weight:700;">Value p:</label>
                                     <select id="s9-factor-p" class="s9-input" ${disabled(state.abstractUnlocked)}>
-                                        <option value="">Choose...</option>
-                                        <option value="1" ${state.factorP === '1' ? 'selected' : ''}>1</option>
-                                        <option value="2" ${state.factorP === '2' ? 'selected' : ''}>2</option>
-                                        <option value="3" ${state.factorP === '3' ? 'selected' : ''}>3</option>
-                                        <option value="4" ${state.factorP === '4' ? 'selected' : ''}>4</option>
-                                        <option value="5" ${state.factorP === '5' ? 'selected' : ''}>5</option>
-                                        <option value="6" ${state.factorP === '6' ? 'selected' : ''}>6</option>
+                                        ${generateSelectOptions(state.factorP)}
                                     </select>
                                 </div>
                                 <div>
                                     <label style="font-size:0.82rem; font-weight:700;">Value q:</label>
                                     <select id="s9-factor-q" class="s9-input" ${disabled(state.abstractUnlocked)}>
-                                        <option value="">Choose...</option>
-                                        <option value="1" ${state.factorQ === '1' ? 'selected' : ''}>1</option>
-                                        <option value="2" ${state.factorQ === '2' ? 'selected' : ''}>2</option>
-                                        <option value="3" ${state.factorQ === '3' ? 'selected' : ''}>3</option>
-                                        <option value="4" ${state.factorQ === '4' ? 'selected' : ''}>4</option>
-                                        <option value="5" ${state.factorQ === '5' ? 'selected' : ''}>5</option>
-                                        <option value="6" ${state.factorQ === '6' ? 'selected' : ''}>6</option>
+                                        ${generateSelectOptions(state.factorQ)}
                                     </select>
                                 </div>
                             </div>
@@ -309,6 +373,20 @@ export function createStage9Quadratics() {
                             <button id="s9-app-right" class="s9-btn" ${disabled(state.appliedUnlocked)}>x = 1.0 M (Physical root)</button>
                         </div>
                         <div class="s9-feedback" id="s9-applied-feedback">${state.appliedFeedback}</div>
+
+                        <!-- L9.11 Exponents in Unit Systems -->
+                        <div class="s9-pane" style="margin-top:0.75rem;">
+                            <strong>L9.11 Exponents in Unit Systems</strong>
+                            <p>For the gas-phase synthesis of ammonia: <code>N₂ (g) + 3 H₂ (g) ⇌ 2 NH₃ (g)</code>
+                            <br>The equilibrium constant expression is:
+                            <br><code style="font-size:1.05rem;">K_c = [NH₃]² / ([N₂] [H₂]³)</code>
+                            <br>What is the exponent <strong>n</strong> for the composite units of K_c (expressed as <code>Mⁿ</code>, where M is Molarity)?</p>
+                            <div class="s9-grid" style="grid-template-columns: 1fr auto; gap: 8px;">
+                                <input type="number" id="s9-kc-input" class="s9-input" placeholder="e.g. -2" value="${state.kcExponent}" ${disabled(state.appliedUnlocked)}>
+                                <button id="s9-check-kc" class="s9-btn" ${disabled(state.appliedUnlocked)}>Verify Exponent</button>
+                            </div>
+                            <div id="s9-kc-feedback" class="s9-feedback">${state.kcFeedback}</div>
+                        </div>
 
                         <div class="s9-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s9-btn ghost" title="Reinforcement" data-prompt="Walk me through solving the equation x² + 2x - 3 = 0 using the quadratic formula, and explain why we reject the negative root in chemical stoichiometry." ${disabled(state.appliedUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -349,13 +427,25 @@ export function createStage9Quadratics() {
                         id: 's9-factoring',
                         level: 'abstract',
                         keys: 'factorP,factorQ',
-                        prompt: 'Help me factor x squared plus 5x plus 6 into two binomials.'
+                        prompt: 'Help me factor the quadratic trinomial.'
                     },
                     's9-app-right': {
                         id: 's9-applied-quadratic-root',
                         level: 'applied',
                         keys: 'appliedChoice',
                         prompt: 'Help me choose the physically valid root for x squared plus 2x minus 3 equals 0.'
+                    },
+                    's9-check-bal': {
+                        id: 's9-bal',
+                        level: 'concrete',
+                        keys: 'balA,balB,balC,balD',
+                        prompt: 'Help me balance the chemical combustion reaction.'
+                    },
+                    's9-check-kc': {
+                        id: 's9-kc-exponent-units',
+                        level: 'applied',
+                        keys: 'kcExponent',
+                        prompt: 'Help me determine the exponent units for the equilibrium constant Kc.'
                     }
                 };
 
@@ -373,10 +463,10 @@ export function createStage9Quadratics() {
 
             const syncConcreteMission = () => {
                 if (state.fastTrack) return;
-                if (state.concreteMission.intersectionFound && !state.concreteCompleted) {
+                if (state.concreteMission.intersectionFound && state.balCorrect && !state.concreteCompleted) {
                     state.concreteCompleted = true;
                     state.pictorialUnlocked = true;
-                    state.concreteFeedback = 'Concrete mission complete. Intersection is correct. Pictorial unlocked. Continue below.';
+                    state.concreteFeedback = 'Concrete mission complete. Both linear systems solved. Pictorial unlocked. Continue below.';
                 }
             };
 
@@ -511,16 +601,17 @@ export function createStage9Quadratics() {
                 state.factorP = host.querySelector('#s9-factor-p').value;
                 state.factorQ = host.querySelector('#s9-factor-q').value;
 
-                if ((pVal === 2 && qVal === 3) || (pVal === 3 && qVal === 2)) {
+                const isCorrect = (pVal === s9Factoring.p && qVal === s9Factoring.q) || (pVal === s9Factoring.q && qVal === s9Factoring.p);
+                if (isCorrect) {
                     state.factorCorrect = true;
-                    state.factorFeedback = 'Correct! Factored expression is (x + 2)(x + 3) which equals x^2 + 5x + 6. Applied unlocked. Continue below.';
+                    state.factorFeedback = `Correct! Factored expression is (x + ${s9Factoring.p})(x + ${s9Factoring.q}) which equals ${quadExpr}. Applied unlocked. Continue below.`;
                     state.appliedUnlocked = true;
                 } else if (!pVal || !qVal) {
                     state.factorCorrect = false;
                     state.factorFeedback = 'Please select both p and q values.';
                 } else {
                     state.factorCorrect = false;
-                    state.factorFeedback = `Incorrect. (x + ${pVal})(x + ${qVal}) expands to x^2 + ${pVal + qVal}x + ${pVal * qVal}. That does not match x^2 + 5x + 6. Find numbers where sum is 5 and product is 6.`;
+                    state.factorFeedback = `Incorrect. (x + ${pVal})(x + ${qVal}) expands to x^2 + ${pVal + qVal}x + ${pVal * qVal}. That does not match ${quadExpr}. Find numbers where sum is ${s9Factoring.b} and product is ${s9Factoring.c}.`;
                 }
                 persist('Factoring checked');
                 this.mount({ host, state, onStateChange });
@@ -555,6 +646,69 @@ export function createStage9Quadratics() {
                     state.transversalAnswer = e.target.value;
                 });
             }
+
+            // L9.10: Check balancing equations
+            host.querySelector('#s9-check-bal')?.addEventListener('click', () => {
+                const a = parseFloat(host.querySelector('#s9-bal-a').value);
+                const b = parseFloat(host.querySelector('#s9-bal-b').value);
+                const c = parseFloat(host.querySelector('#s9-bal-c').value);
+                const d = parseFloat(host.querySelector('#s9-bal-d').value);
+                
+                state.balA = host.querySelector('#s9-bal-a').value;
+                state.balB = host.querySelector('#s9-bal-b').value;
+                state.balC = host.querySelector('#s9-bal-c').value;
+                state.balD = host.querySelector('#s9-bal-d').value;
+
+                if (a === s9Bal.a && b === s9Bal.b && c === s9Bal.c && d === s9Bal.d) {
+                    state.balCorrect = true;
+                    state.balFeedback = `Correct! The balanced coefficients are ${s9Bal.a}, ${s9Bal.b}, ${s9Bal.c}, and ${s9Bal.d}. You successfully scaled to clear fractions!`;
+                } else if (a && b && c && d) {
+                    // Check if they didn't scale or used wrong proportions
+                    const ratioB = s9Bal.b / s9Bal.a;
+                    const ratioC = s9Bal.c / s9Bal.a;
+                    const ratioD = s9Bal.d / s9Bal.a;
+                    if (b / a === ratioB && c / a === ratioC && d / a === ratioD) {
+                        state.balCorrect = false;
+                        state.balFeedback = `The ratios are correct, but please simplify to the lowest whole integer coefficients (a = ${s9Bal.a}).`;
+                    } else {
+                        state.balCorrect = false;
+                        state.balFeedback = `Incorrect. Double check conservation of Carbon, Hydrogen and Oxygen.`;
+                    }
+                } else {
+                    state.balCorrect = false;
+                    state.balFeedback = 'Please enter all coefficients.';
+                }
+                syncConcreteMission();
+                persist('Combustion balancing checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L9.11: Check Kc exponent
+            host.querySelector('#s9-check-kc')?.addEventListener('click', () => {
+                const val = host.querySelector('#s9-kc-input').value.trim();
+                state.kcExponent = val;
+                if (parseInt(val) === -2) {
+                    state.kcCorrect = true;
+                    state.kcFeedback = 'Correct! The units are M^-2. Exponent math: 2 - (1 + 3) = -2.';
+                } else {
+                    state.kcCorrect = false;
+                    state.kcFeedback = 'Incorrect. Units: [NH₃]² / ([N₂][H₂]³) => M² / (M * M³) = M² / M⁴ = M^(2-4) = M^-2.';
+                }
+                persist('Kc exponent checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // Sync other inputs
+            const balAEl = host.querySelector('#s9-bal-a');
+            if (balAEl) balAEl.addEventListener('input', (e) => { state.balA = e.target.value; });
+            const balBEl = host.querySelector('#s9-bal-b');
+            if (balBEl) balBEl.addEventListener('input', (e) => { state.balB = e.target.value; });
+            const balCEl = host.querySelector('#s9-bal-c');
+            if (balCEl) balCEl.addEventListener('input', (e) => { state.balC = e.target.value; });
+            const balDEl = host.querySelector('#s9-bal-d');
+            if (balDEl) balDEl.addEventListener('input', (e) => { state.balD = e.target.value; });
+            const kcInputEl = host.querySelector('#s9-kc-input');
+            if (kcInputEl) kcInputEl.addEventListener('input', (e) => { state.kcExponent = e.target.value; });
         },
         unmount() {}
     };

@@ -8,6 +8,8 @@ import { createStage7Algebra } from './stages/stage7-algebra.js';
 import { createStage8Graphing } from './stages/stage8-graphing.js';
 import { createStage9Quadratics } from './stages/stage9-quadratics.js';
 import { createStage10Advanced } from './stages/stage10-advanced.js';
+import { createStage11Linearization } from './stages/stage11-linearization.js';
+import { createStage12Equilibrium } from './stages/stage12-equilibrium.js';
 import { CURRICULUM_MAP, TOTAL_LESSON_COUNT } from './curriculum-map.js';
 import {
     COURSE_STATE_VERSION,
@@ -18,7 +20,9 @@ import {
 } from './adaptive-core.js';
 import {
     generateAdaptiveChallenge,
-    gradeAdaptiveResponse
+    gradeAdaptiveResponse,
+    generateQuestionVariant,
+    QUESTION_TEMPLATES
 } from './gemma-adaptive-service.js';
 import {
     createCalculatorCoreState,
@@ -51,7 +55,9 @@ const phaseRegistry = [
     createStage7Algebra(),
     createStage8Graphing(),
     createStage9Quadratics(),
-    createStage10Advanced()
+    createStage10Advanced(),
+    createStage11Linearization(),
+    createStage12Equilibrium()
 ];
 
 const refs = {
@@ -91,6 +97,8 @@ let resetModalKeyHandler = null;
 
 const QUESTION_HELP_STYLE_ID = 'cmr-question-help-style';
 const RESET_UNDO_TIMEOUT_MS = 20000;
+const GENERATED_SIGNATURE_HISTORY_LIMIT = 12;
+const GENERATED_SIGNATURE_MAX_RETRIES = 5;
 
 function createDefaultQuestionCalculatorState() {
     return createCalculatorCoreState();
@@ -528,6 +536,37 @@ function ensureQuestionHelpStyles() {
         .s6-calc-status.error { color: #fca5a5; }
         .s6-calc-step { margin-top: 0.35rem; font-size: 0.78rem; color: #a5b4fc; }
 
+        .cmr-question-practice-btn {
+            margin-left: 0.35rem;
+            margin-top: 0.4rem;
+            border: 1px solid rgba(139, 92, 246, 0.45);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.72);
+            color: #c084fc;
+            padding: 0.26rem 0.56rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            white-space: nowrap;
+        }
+
+        .cmr-question-practice-btn:hover {
+            border-color: rgba(167, 139, 250, 0.9);
+            color: #f3e8ff;
+            background: rgba(76, 29, 149, 0.25);
+        }
+
+        .cmr-question-practice-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .cmr-question-practice-btn.compact span {
+            display: none;
+        }
     `;
     document.head.appendChild(style);
 }
@@ -582,11 +621,51 @@ function sanitizeQuestionText(text) {
     return text.replace(/\s+/g, ' ').trim();
 }
 
+function getStage1AdditionStateParams(stageState) {
+    const defaults = { text: '  143\n+  25', answerKey: '168' };
+    const overrides = stageState?.questionOverrides || {};
+    return overrides['s1-addition']?.parameters || overrides['s1-addition'] || defaults;
+}
+
+function getStage1AdditionTutorQuestion(stageState) {
+    const addition = getStage1AdditionStateParams(stageState);
+    const leftNum = Number(addition?.left);
+    const rightNum = Number(addition?.right);
+    if (Number.isFinite(leftNum) && Number.isFinite(rightNum)) {
+        return `Help me solve this aligned place-value columns problem: ${leftNum} + ${rightNum} = ?`;
+    }
+
+    const lines = String(addition?.text || '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+    if (lines.length >= 2) {
+        const top = lines[0].replace(/[^0-9.-]/g, '');
+        const bottom = lines[1].replace(/^[+]/, '').replace(/[^0-9.-]/g, '');
+        if (top && bottom) {
+            return `Help me solve this aligned place-value columns problem: ${top} + ${bottom} = ?`;
+        }
+    }
+
+    return 'Help me solve this aligned place-value columns problem.';
+}
+
+function isGenericTutorQuestionText(text) {
+    const normalized = sanitizeQuestionText(text).toLowerCase();
+    if (!normalized) return true;
+    return normalized.includes('aligned place-value columns problem') ||
+        normalized.includes('problem using aligned place-value columns') ||
+        normalized === 'help me with this current step.' ||
+        normalized === 'help me with this math question.';
+}
+
 function getNearbyQuestionText(target) {
-    const pane = target.closest('[class*="-pane"], .s1-card, .s2-card, .s3-card, .s4-card, .s5-card, .s6-card, .s7-card, .s8-card, .s9-card, .s10-card');
+    const pane = target.closest('[class*="-pane"], .s1-card, .s2-card, .s3-card, .s4-card, .s5-card, .s6-card, .s7-card, .s8-card, .s9-card, .s10-card, .s11-card, .s12-card');
     if (!pane) return 'Help me with this math question.';
 
     const questionSelectors = [
+        'div[style*="white-space:pre"]',
+        'div[style*="font-family:monospace"]',
         'p > strong',
         'p',
         'label',
@@ -670,8 +749,13 @@ function resetQuestionState(phaseId, questionId) {
     const phase = phaseById(phaseId);
     const stageState = courseState.phases[phaseId] || phase.getInitialState();
     const defaults = phase.getInitialState();
+
+    if (stageState.questionOverrides && stageState.questionOverrides[questionId]) {
+        delete stageState.questionOverrides[questionId];
+    }
+
     const answerKeys = collectQuestionAnswerKeys(questionId);
-    if (!answerKeys.length) return false;
+    if (!answerKeys.length && !stageState.questionOverrides) return false;
 
     answerKeys.forEach((keyPath) => {
         const fallbackValue = getNestedStateValue(defaults, keyPath);
@@ -682,7 +766,369 @@ function resetQuestionState(phaseId, questionId) {
 
     courseState.phases[phaseId] = stageState;
     setActivePhase(phaseId);
-    setResetStatus('Question reset to its default values.');
+    setResetStatus('Question reset to its default textbook values.');
+    return true;
+}
+
+function normalizeSignatureText(value) {
+    return String(value ?? '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getQuestionGenerationBucket(stageState, questionId) {
+    if (!stageState.__questionGeneration || typeof stageState.__questionGeneration !== 'object') {
+        stageState.__questionGeneration = {};
+    }
+    if (!stageState.__questionGeneration[questionId] || typeof stageState.__questionGeneration[questionId] !== 'object') {
+        stageState.__questionGeneration[questionId] = {};
+    }
+    const bucket = stageState.__questionGeneration[questionId];
+    if (!Array.isArray(bucket.signatures)) {
+        bucket.signatures = [];
+    }
+    return bucket;
+}
+
+function buildQuestionVariantSignature(questionId, variantData) {
+    const params = variantData?.parameters || variantData || {};
+    if (questionId === 's1-applied-tare') {
+        const mode = normalizeSignatureText(params.responseMode || (Array.isArray(params.options) && params.options.length ? 'multiple-choice' : 'free-response'));
+        const prompt = normalizeSignatureText(params.questionText);
+        const answer = normalizeSignatureText(params.answerKey);
+        const options = Array.isArray(params.options)
+            ? params.options.map((opt) => normalizeSignatureText(opt?.text || opt?.id || '')).join('|')
+            : '';
+        return `${questionId}|${mode}|${prompt}|${answer}|${options}`;
+    }
+    return '';
+}
+
+function isDuplicateQuestionVariant(stageState, questionId, signature) {
+    if (!signature) return false;
+    const bucket = getQuestionGenerationBucket(stageState, questionId);
+    return bucket.signatures.includes(signature);
+}
+
+function recordQuestionVariantSignature(stageState, questionId, signature) {
+    if (!signature) return;
+    const bucket = getQuestionGenerationBucket(stageState, questionId);
+    bucket.signatures = [...bucket.signatures.filter((entry) => entry !== signature), signature]
+        .slice(-GENERATED_SIGNATURE_HISTORY_LIMIT);
+    bucket.lastSignature = signature;
+    bucket.generatedAt = Date.now();
+}
+
+function normalizeStage1AppliedVariant(rawData) {
+    const params = rawData?.parameters || rawData || {};
+    const rawQuestion = typeof params.questionText === 'string' ? params.questionText.trim() : '';
+    const normalizedQuestion = (() => {
+        if (!rawQuestion) {
+            return 'A container is tared on a balance before reagent is added. Explain why tare establishes a relative zero and how this differs from Kelvin absolute zero.';
+        }
+        if (/which statement is correct\??/i.test(rawQuestion)) {
+            return 'A balance is tared with a container before reagent is added. Explain why tare defines a relative measurement zero and how this differs from Kelvin absolute zero (0 K).';
+        }
+        return rawQuestion;
+    })();
+    const rawAnswer = typeof params.answerKey === 'string' ? params.answerKey.trim() : '';
+    const normalizedAnswer = (() => {
+        if (!rawAnswer || /^(right|wrong)$/i.test(rawAnswer)) {
+            return 'Tare resets a local measurement baseline, while Kelvin is an absolute thermodynamic scale with 0 K as absolute zero.';
+        }
+        return rawAnswer;
+    })();
+    const normalized = {
+        ...params,
+        responseMode: 'free-response',
+        questionText: normalizedQuestion,
+        answerKey: normalizedAnswer,
+        rubric: (params.rubric && typeof params.rubric === 'object')
+            ? params.rubric
+            : { scoring: 'concept-match', max_points: 1 },
+        workedSolution: typeof params.workedSolution === 'string' && params.workedSolution.trim()
+            ? params.workedSolution.trim()
+            : 'Expected explanation: tare is a relative reference reset for displayed mass; Kelvin remains an absolute thermodynamic scale.'
+    };
+    delete normalized.options;
+    return normalized;
+}
+
+function isCoherentStage1AppliedVariant(variantData) {
+    const params = variantData?.parameters || variantData || {};
+    const question = normalizeSignatureText(params.questionText);
+    const answer = normalizeSignatureText(params.answerKey);
+
+    if (!question || !answer) return false;
+    if (/which statement is correct\??/.test(question)) return false;
+    if (/\bright\b|\bwrong\b/.test(answer)) return false;
+
+    const hasRelative = /relative|tare|baseline|reference/.test(question) || /relative|tare|baseline|reference/.test(answer);
+    const hasAbsolute = /absolute|kelvin|0 k|thermodynamic/.test(question) || /absolute|kelvin|0 k|thermodynamic/.test(answer);
+    return hasRelative && hasAbsolute;
+}
+
+async function triggerQuestionGeneration(phaseId, questionId, btnEl) {
+    if (btnEl.disabled) return;
+    const originalHtml = btnEl.innerHTML;
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Generating...</span>';
+    setResetStatus('Generating new practice problem...');
+
+    try {
+        // L1.6 is intentionally local-only for speed and deterministic grading.
+        if (questionId === 's1-addition') {
+            const success = applyOfflineFallbackQuestion(phaseId, questionId);
+            if (success) {
+                setResetStatus('New L1.6 practice problem generated locally.');
+            } else {
+                setResetStatus('Local L1.6 practice generation failed.');
+            }
+            return;
+        }
+
+        setResetStatus('Generating new practice problem with local Gemma 4...');
+        const phase = phaseById(phaseId);
+        const stageState = courseState.phases[phaseId] || phase.getInitialState();
+        const maxRetries = questionId === 's1-applied-tare' ? GENERATED_SIGNATURE_MAX_RETRIES : 1;
+        let generated = null;
+        let acceptedSignature = '';
+        let duplicateRejected = false;
+        let qualityRejected = false;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+            if (maxRetries > 1) {
+                setResetStatus(`Generating new L1.9 practice challenge (attempt ${attempt}/${maxRetries})...`);
+            }
+
+            const result = await generateQuestionVariant(questionId, phaseId);
+            if (!result.ok || !result.data) {
+                throw new Error('Invalid generation response format.');
+            }
+
+            const nextData = questionId === 's1-applied-tare'
+                ? normalizeStage1AppliedVariant(result.data)
+                : result.data;
+            if (questionId === 's1-applied-tare' && !isCoherentStage1AppliedVariant(nextData)) {
+                qualityRejected = true;
+                continue;
+            }
+            const signature = buildQuestionVariantSignature(questionId, nextData);
+            if (questionId === 's1-applied-tare' && signature && isDuplicateQuestionVariant(stageState, questionId, signature)) {
+                duplicateRejected = true;
+                continue;
+            }
+
+            generated = {
+                data: nextData,
+                model: result.model || 'Gemma 4'
+            };
+            acceptedSignature = signature;
+            break;
+        }
+
+        if (generated) {
+            
+            if (!stageState.questionOverrides) {
+                stageState.questionOverrides = {};
+            }
+            stageState.questionOverrides[questionId] = generated.data;
+            if (acceptedSignature) {
+                recordQuestionVariantSignature(stageState, questionId, acceptedSignature);
+            }
+
+            const answerKeys = collectQuestionAnswerKeys(questionId);
+            const defaults = phase.getInitialState();
+            answerKeys.forEach((keyPath) => {
+                const fallbackValue = getNestedStateValue(defaults, keyPath);
+                setNestedStateValue(stageState, keyPath, deepClone(fallbackValue));
+            });
+            clearQuestionCalculatorState(phaseId, questionId);
+
+            courseState.phases[phaseId] = stageState;
+            saveState('New question generated');
+            setActivePhase(phaseId);
+            setResetStatus(`New practice question generated using ${generated.model}.`);
+        } else {
+            if (duplicateRejected) {
+                throw new Error('Gemma returned duplicate L1.9 prompts repeatedly. Try generating again for a fresh prompt.');
+            }
+            if (qualityRejected) {
+                throw new Error('Gemma returned low-quality L1.9 prompts repeatedly. Try generating again for a clearer conceptual prompt.');
+            }
+            throw new Error('Invalid generation response format.');
+        }
+    } catch (error) {
+        console.error('Question generation failed:', error);
+        const success = applyOfflineFallbackQuestion(phaseId, questionId);
+        if (success) {
+            setResetStatus('Gemma 4 offline or failed. Generated a practice problem variant locally.');
+        } else {
+            setResetStatus(`Generation failed: ${error.message}`);
+        }
+    } finally {
+        btnEl.disabled = false;
+        btnEl.innerHTML = originalHtml;
+    }
+}
+
+function applyOfflineFallbackQuestion(phaseId, questionId) {
+    const template = QUESTION_TEMPLATES[questionId];
+    if (!template) return false;
+
+    const phase = phaseById(phaseId);
+    const stageState = courseState.phases[phaseId] || phase.getInitialState();
+    
+    const formatStage1AdditionText = (leftValue, rightValue) => {
+        const top = String(leftValue).padStart(3, ' ');
+        const bottom = String(rightValue).padStart(3, ' ');
+        return `  ${top}\n+ ${bottom}`;
+    };
+
+    const generateStage1NoCarryAddition = () => {
+        const hundreds = Math.floor(Math.random() * 9) + 1; // 1-9
+        const rightTens = Math.floor(Math.random() * 9) + 1; // 1-9 (keeps right addend two-digit)
+        const leftTens = Math.floor(Math.random() * (10 - rightTens)); // ensures leftTens + rightTens < 10
+        const leftOnes = Math.floor(Math.random() * 10); // 0-9
+        const rightOnes = Math.floor(Math.random() * (10 - leftOnes)); // ensures leftOnes + rightOnes < 10
+
+        const left = (hundreds * 100) + (leftTens * 10) + leftOnes;
+        const right = (rightTens * 10) + rightOnes;
+        return { left, right };
+    };
+
+    let generated = null;
+    if (questionId === 's1-addition') {
+        if (!stageState.__questionGeneration || typeof stageState.__questionGeneration !== 'object') {
+            stageState.__questionGeneration = {};
+        }
+
+        const previousPair = stageState.__questionGeneration[questionId];
+        let pair = generateStage1NoCarryAddition();
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+            const isRepeat = previousPair && previousPair.left === pair.left && previousPair.right === pair.right;
+            if (!isRepeat) break;
+            pair = generateStage1NoCarryAddition();
+        }
+
+        stageState.__questionGeneration[questionId] = {
+            left: pair.left,
+            right: pair.right,
+            generatedAt: Date.now()
+        };
+
+        generated = {
+            questionId,
+            parameters: {
+                left: pair.left,
+                right: pair.right,
+                answerKey: `${pair.left + pair.right}`,
+                text: formatStage1AdditionText(pair.left, pair.right)
+            }
+        };
+    } else if (questionId === 's1-comparison-a') {
+        const left = Math.floor(1 + Math.random() * 9);
+        const right = Math.floor(1 + Math.random() * 9);
+        const answerKey = left > right ? 'gt' : (left < right ? 'lt' : 'eq');
+        generated = {
+            questionId,
+            parameters: { left, right, answerKey }
+        };
+    } else if (questionId === 's1-comparison-b') {
+        const a = Math.floor(1 + Math.random() * 5);
+        const b = Math.floor(1 + Math.random() * 5);
+        const right = Math.floor(2 + Math.random() * 8);
+        const sum = a + b;
+        const answerKey = sum > right ? 'gt' : (sum < right ? 'lt' : 'eq');
+        generated = {
+            questionId,
+            parameters: {
+                leftText: `${a} + ${b}`,
+                right,
+                leftVal: sum,
+                rightVal: right,
+                answerKey
+            }
+        };
+    } else if (questionId === 's2-division') {
+        const divisor = Math.floor(2 + Math.random() * 8);
+        const quotient = Math.floor(20 + Math.random() * 150);
+        generated = {
+            questionId,
+            parameters: { dividend: divisor * quotient, divisor, answerKey: `${quotient}` }
+        };
+    } else if (questionId === 's3-calorimeter') {
+        const ti = Math.floor(-30 + Math.random() * 25);
+        const tf = Math.floor(5 + Math.random() * 50);
+        generated = {
+            questionId,
+            parameters: { ti, tf, answerKey: `${tf - ti}` }
+        };
+    } else if (questionId === 's1-applied-tare') {
+        const scenarios = [
+            {
+                questionText: 'A beaker reads 2.84 g on a balance, then Tare resets display to 0.00 g before solution is added. Explain why this is a relative zero and not absolute zero.',
+                answerKey: 'Tare resets a local measurement baseline for net mass, while absolute zero in Kelvin is a physical thermodynamic limit at 0 K.'
+            },
+            {
+                questionText: 'A weighing boat is tared before powder is added so only added mass is displayed. Explain how this tare zero differs from Kelvin zero.',
+                answerKey: 'Tare defines a relative instrument reference; Kelvin zero is an absolute thermodynamic reference, not a user-defined baseline.'
+            },
+            {
+                questionText: 'A flask plus stopper is zeroed with Tare, then reagent mass is tracked from 0.00 g. Explain what kind of zero this is and contrast with absolute temperature scales.',
+                answerKey: 'Tare zero is a relative measurement origin for that setup, while Kelvin starts at absolute zero where thermal energy reaches its minimum limit.'
+            }
+        ];
+
+        const bucket = getQuestionGenerationBucket(stageState, questionId);
+        let pick = scenarios[Math.floor(Math.random() * scenarios.length)];
+        for (let attempt = 0; attempt < 10; attempt += 1) {
+            const candidate = scenarios[Math.floor(Math.random() * scenarios.length)];
+            const candidateSig = buildQuestionVariantSignature(questionId, {
+                responseMode: 'free-response',
+                questionText: candidate.questionText,
+                answerKey: candidate.answerKey
+            });
+            if (!bucket.signatures.includes(candidateSig)) {
+                pick = candidate;
+                break;
+            }
+        }
+
+        generated = {
+            questionId,
+            parameters: {
+                responseMode: 'free-response',
+                questionText: pick.questionText,
+                answerKey: pick.answerKey,
+                rubric: {
+                    scoring: 'concept-match',
+                    max_points: 1
+                },
+                workedSolution: 'Expected idea: tare sets a relative measurement baseline, while Kelvin uses absolute thermodynamic zero.'
+            }
+        };
+    }
+
+    if (!generated) {
+        generated = {
+            questionId,
+            parameters: deepClone(template.defaults)
+        };
+    }
+
+    if (!stageState.questionOverrides) {
+        stageState.questionOverrides = {};
+    }
+    stageState.questionOverrides[questionId] = generated;
+    if (questionId === 's1-applied-tare') {
+        const signature = buildQuestionVariantSignature(questionId, generated);
+        recordQuestionVariantSignature(stageState, questionId, signature);
+    }
+    courseState.phases[phaseId] = stageState;
+    saveState('Offline fallback question generated');
+    setActivePhase(phaseId);
     return true;
 }
 
@@ -820,7 +1266,11 @@ function buildQuestionTutorContext({ phaseId, state, target }) {
     const explicitLevel = target.getAttribute('data-tutor-level');
 
     const questionId = explicitQuestionId || target.id || target.name || target.getAttribute('data-question-id') || 'unknown-question';
-    const questionText = explicitQuestionText || getNearbyQuestionText(target);
+    const nearbyQuestionText = getNearbyQuestionText(target);
+    let questionText = explicitQuestionText || nearbyQuestionText;
+    if (questionId === 's1-addition' && isGenericTutorQuestionText(questionText)) {
+        questionText = getStage1AdditionTutorQuestion(stageState);
+    }
     const currentAnswer = answerKeys.length
         ? getAnswerSnapshotFromKeys(stageState, answerKeys)
         : getTargetValue(target);
@@ -947,7 +1397,7 @@ function hasExistingQuestionHelp(parentEl, questionId) {
 
 function findQuestionContainer(el) {
     if (!el) return null;
-    return el.closest('.s1-pane, .s2-pane, .s3-pane, .s4-pane, .s5-pane, .s6-pane, .s7-pane, .s8-pane, .s9-pane, .s10-pane, [class*="-pane"], [class*="-card"], .question, [data-question-group]');
+    return el.closest('.s1-pane, .s2-pane, .s3-pane, .s4-pane, .s5-pane, .s6-pane, .s7-pane, .s8-pane, .s9-pane, .s10-pane, .s11-pane, .s12-pane, [class*="-pane"], [class*="-card"], .question, [data-question-group]');
 }
 
 function resolveQuestionId(el) {
@@ -987,7 +1437,7 @@ function findPrimaryAnchor(phaseRoot, questionId) {
 
 function getDenseContainer(el) {
     if (!el) return null;
-    const container = el.closest('.s1-grid, .s2-grid, .s3-grid, .s4-grid, .s5-grid, .s6-grid, .s7-grid, .s8-grid, .s9-grid, .s10-grid');
+    const container = el.closest('.s1-grid, .s2-grid, .s3-grid, .s4-grid, .s5-grid, .s6-grid, .s7-grid, .s8-grid, .s9-grid, .s10-grid, .s11-grid, .s12-grid');
     if (!container) return null;
     const interactiveCount = container.querySelectorAll('input, select, textarea, button').length;
     return interactiveCount >= 4 ? container : null;
@@ -1146,6 +1596,26 @@ function addQuestionHelpButtons(phaseId, phaseState) {
             });
         }
 
+        const practiceBtn = (questionId && QUESTION_TEMPLATES[questionId])
+            ? document.createElement('button')
+            : null;
+        if (practiceBtn) {
+            practiceBtn.type = 'button';
+            practiceBtn.className = 'cmr-question-practice-btn';
+            practiceBtn.setAttribute('aria-label', 'Generate a new practice version of this question');
+            practiceBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span>New Practice</span>';
+            if (denseContainer) {
+                practiceBtn.classList.add('compact');
+                practiceBtn.title = 'New Practice';
+            }
+            if (disabled) {
+                practiceBtn.disabled = true;
+            }
+            practiceBtn.addEventListener('click', async () => {
+                await triggerQuestionGeneration(phaseId, questionId, practiceBtn);
+            });
+        }
+
         helpBtn.addEventListener('click', () => {
             const liveState = courseState.phases[phaseId] || phaseState || {};
             const context = buildQuestionTutorContext({ phaseId, state: liveState, target: el });
@@ -1165,6 +1635,9 @@ function addQuestionHelpButtons(phaseId, phaseState) {
             if (resetBtn) {
                 denseContainer.appendChild(resetBtn);
             }
+            if (practiceBtn) {
+                denseContainer.appendChild(practiceBtn);
+            }
             if (calcBtn) {
                 denseContainer.appendChild(calcBtn);
             }
@@ -1173,8 +1646,12 @@ function addQuestionHelpButtons(phaseId, phaseState) {
             if (resetBtn) {
                 helpBtn.insertAdjacentElement('afterend', resetBtn);
             }
-            if (calcBtn) {
+            if (practiceBtn) {
                 const anchor = resetBtn || helpBtn;
+                anchor.insertAdjacentElement('afterend', practiceBtn);
+            }
+            if (calcBtn) {
+                const anchor = practiceBtn || resetBtn || helpBtn;
                 anchor.insertAdjacentElement('afterend', calcBtn);
             }
         }

@@ -34,6 +34,22 @@ const createInitialStage7State = () => ({
     radicalAnswer: '',
     radicalFeedback: 'L7.10 Radical Cage: Solve sqrt(x + 5) = 9 by isolating the radical then squaring both sides.',
 
+    // L7.12 & L7.13 Calorimetry & Gas Laws
+    calorimetryStep: 0,
+    calorimetryFeedback: 'L7.12 & L7.13: Solve q = mc(T_f - T_i) for T_f. Select the first algebraic move.',
+    gasLawChoice: '',
+    gasLawFeedback: 'L7.12: Rearrange P1*V1/T1 = P2*V2/T2 to solve for T2.',
+
+    // s7-drag literal isolation properties
+    dragAnswer: '',
+    dragFeedback: 'Enter the isolated formula.',
+    dragCorrect: false,
+
+    // s7-calorimetry final temp calculator properties
+    calorimetryAnswer: '',
+    calorimetryCalcFeedback: 'Enter the final temperature.',
+    calorimetryCalcCorrect: false,
+
     adaptive: {
         loading: false,
         error: '',
@@ -63,6 +79,12 @@ export function createStage7Algebra() {
                     state[key] = defaults[key];
                 }
             });
+
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+
+            const s7Drag = getParams('s7-drag', { equation: 'q = m * c * (Tf - Ti)', isolate: 'Tf - Ti', answerKey: 'q / (m * c)' });
+            const s7Calorimetry = getParams('s7-calorimetry', { q: 836, m: 10.0, c: 4.184, ti: 20.0, answerKey: '40.0' });
 
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's7-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
@@ -246,20 +268,58 @@ export function createStage7Algebra() {
                             <div class="s7-feedback" id="s7-radical-feedback">${state.radicalFeedback}</div>
                         </div>
 
-                        <p><strong>[Required Unlock] L7.11 Literal Equations:</strong> Rearrange the ideal gas formula PV = nRT to solve for Temperature T.</p>
+                        <p><strong>[Required Unlock] L7.11 Literal Equations (s7-drag):</strong> Rearrange the equation: <strong>${s7Drag.equation}</strong> to isolate <strong>${s7Drag.isolate}</strong>.</p>
                         <div class="s7-pane">
-                            <p>Rearrange equation PV = nRT by dividing out the multipliers of T:</p>
-                            <div class="s7-grid" style="grid-template-columns: 1fr auto;">
-                                <select id="s7-formula-divide" class="s7-input" ${disabled(state.abstractUnlocked)}>
-                                    <option value="" ${state.formulaDivide === '' ? 'selected' : ''}>Divide both sides by...</option>
-                                    <option value="nr" ${state.formulaDivide === 'nr' ? 'selected' : ''}>nR</option>
-                                    <option value="pv" ${state.formulaDivide === 'pv' ? 'selected' : ''}>PV</option>
-                                    <option value="r" ${state.formulaDivide === 'r' ? 'selected' : ''}>R only</option>
-                                </select>
-                                <button id="s7-check-formula" class="s7-btn" ${disabled(state.abstractUnlocked)}>Apply Division</button>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" id="s7-drag-input" class="s7-input" placeholder="e.g. q / (m * c)" value="${state.dragAnswer || ''}" data-tutor-question-id="s7-drag" ${disabled(state.abstractUnlocked)} />
+                                <button id="s7-check-drag" class="s7-btn" data-tutor-question-id="s7-drag" ${disabled(state.abstractUnlocked)}>Verify Rearrangement</button>
                             </div>
+                            <div class="s7-feedback" id="s7-drag-feedback">${state.dragFeedback}</div>
                         </div>
-                        <div class="s7-feedback" id="s7-formula-feedback">${state.formulaFeedback}</div>
+
+                        <!-- L7.12 Combined Gas Law Rearrangement -->
+                        <div class="s7-pane" style="margin-top:0.75rem;">
+                            <strong>L7.12 Combined Gas Law Denominator Isolation</strong>
+                            <p>In $\frac{P_1 V_1}{T_1} = \frac{P_2 V_2}{T_2}$, solve for the denominator variable $T_2$:</p>
+                            <div class="s7-grid" style="grid-template-columns: 1fr; gap:6px;">
+                                <button id="s7-gas-correct" class="s7-btn ghost ${state.gasLawChoice === 'correct' ? 'active' : ''}" ${disabled(state.abstractUnlocked)}>$T_2 = \frac{P_2 V_2 T_1}{P_1 V_1}$</button>
+                                <button id="s7-gas-wrong1" class="s7-btn ghost ${state.gasLawChoice === 'wrong1' ? 'active' : ''}" ${disabled(state.abstractUnlocked)}>$T_2 = \frac{P_1 V_1 T_1}{P_2 V_2}$</button>
+                                <button id="s7-gas-wrong2" class="s7-btn ghost ${state.gasLawChoice === 'wrong2' ? 'active' : ''}" ${disabled(state.abstractUnlocked)}>$T_2 = \frac{P_2 V_2}{P_1 V_1 T_1}$</button>
+                            </div>
+                            <div class="s7-feedback" id="s7-gas-feedback">${state.gasLawFeedback}</div>
+                        </div>
+
+                        <!-- L7.13 Calorimetry Temperature Isolation -->
+                        <div class="s7-pane" style="margin-top:0.75rem;">
+                            <strong>L7.13 Calorimetry Temperature Isolation</strong>
+                            <p>Solve the heat equation $q = mc(T_f - T_i)$ for final temperature $T_f$ step-by-step:</p>
+                            <div style="font-family:monospace; font-size:1.2rem; text-align:center; margin-bottom:6px; background:#0f172a; padding:6px; border-radius:6px; color:#38bdf8;">
+                                ${state.calorimetryStep === 0 ? 'q = mc(T_f - T_i)' : ''}
+                                ${state.calorimetryStep === 1 ? 'q / (mc) = T_f - T_i' : ''}
+                                ${state.calorimetryStep === 2 ? 'T_f = q / (mc) + T_i' : ''}
+                            </div>
+                            <div class="s7-grid" style="gap:4px;">
+                                <button class="s7-btn ghost s7-calorimetry-btn" data-step="div_mc" ${state.calorimetryStep === 0 ? '' : 'disabled'} ${disabled(state.abstractUnlocked)}>Divide both sides by mc</button>
+                                <button class="s7-btn ghost s7-calorimetry-btn" data-step="add_ti" ${state.calorimetryStep === 1 ? '' : 'disabled'} ${disabled(state.abstractUnlocked)}>Add T_i to both sides</button>
+                                <button id="s7-reset-calorimetry" class="s7-btn ghost" ${disabled(state.abstractUnlocked)}>Reset Isolation</button>
+                            </div>
+                            <div class="s7-feedback" id="s7-calorimetry-feedback">${state.calorimetryFeedback}</div>
+                        </div>
+
+                        <!-- Final Temperature Calculator (s7-calorimetry) -->
+                        <div class="s7-pane" style="margin-top:0.75rem;">
+                            <strong>L7.13 Final Temperature Calculator (s7-calorimetry)</strong>
+                            <p>Using the isolated equation $T_f = \frac{q}{mc} + T_i$, calculate the final temperature $T_f$ (in °C) for the following system:
+                            <br>• Heat absorbed ($q$): <strong>${s7Calorimetry.q} J</strong>
+                            <br>• Mass of water ($m$): <strong>${s7Calorimetry.m} g</strong>
+                            <br>• Specific heat ($c$): <strong>${s7Calorimetry.c} J/(g·°C)</strong>
+                            <br>• Initial temperature ($T_i$): <strong>${s7Calorimetry.ti}°C</strong></p>
+                            <div style="display:flex; gap:6px;">
+                                <input type="number" id="s7-calorimetry-input" class="s7-input" placeholder="T_f in °C" value="${state.calorimetryAnswer || ''}" data-tutor-question-id="s7-calorimetry" ${disabled(state.abstractUnlocked)} />
+                                <button id="s7-check-calorimetry-calc" class="s7-btn" data-tutor-question-id="s7-calorimetry" ${disabled(state.abstractUnlocked)}>Verify T_f</button>
+                            </div>
+                            <div class="s7-feedback" id="s7-calorimetry-calc-feedback">${state.calorimetryCalcFeedback}</div>
+                        </div>
 
                         <div class="s7-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s7-btn ghost" title="Reinforcement" data-prompt="What is a literal equation and why do we solve formulas using only letter symbols without numbers?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -536,18 +596,82 @@ export function createStage7Algebra() {
                 this.mount({ host, state, onStateChange });
             });
 
-            // Abstract Literal
-            host.querySelector('#s7-check-formula').addEventListener('click', () => {
-                const val = host.querySelector('#s7-formula-divide').value;
-                if (val === 'nr') {
-                    state.formulaFeedback = 'Correct! Dividing by nR leaves T isolated: T = PV / nR. Applied unlocked. Continue below.';
+            // Abstract Literal (s7-drag)
+            host.querySelector('#s7-check-drag')?.addEventListener('click', () => {
+                const ans = host.querySelector('#s7-drag-input').value.trim();
+                state.dragAnswer = ans;
+                const normalizeFormula = (f) => String(f).replace(/\s+/g, '').toLowerCase();
+                const expected = normalizeFormula(s7Drag.answerKey);
+                if (normalizeFormula(ans) === expected) {
+                    state.dragCorrect = true;
+                    state.dragFeedback = `Correct! ${s7Drag.isolate} = ${s7Drag.answerKey}. Applied unlocked. Continue below.`;
                     state.appliedUnlocked = true;
-                } else if (val === 'r') {
-                    state.formulaFeedback = 'Incorrect. Dividing by R leaves nT on the right, which is not fully isolated.';
                 } else {
-                    state.formulaFeedback = 'Incorrect. Dividing by PV moves items to the wrong side of the equals sign.';
+                    state.dragCorrect = false;
+                    state.dragFeedback = `Incorrect. Rearrange ${s7Drag.equation} to isolate ${s7Drag.isolate}.`;
                 }
-                persist('Formula checked');
+                persist('Formula isolation checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L7.12 Gas Law click handlers
+            host.querySelector('#s7-gas-correct')?.addEventListener('click', () => {
+                state.gasLawChoice = 'correct';
+                state.gasLawFeedback = 'Correct! Multiplying by T_2 gives T_2 × (P_1 V_1 / T_1) = P_2 V_2. Then multiplying by T_1 and dividing by P_1 V_1 yields T_2 = P_2 V_2 T_1 / (P_1 V_1). Denominators must be cleared first!';
+                persist('Gas law correct');
+                this.mount({ host, state, onStateChange });
+            });
+            host.querySelector('#s7-gas-wrong1')?.addEventListener('click', () => {
+                state.gasLawChoice = 'wrong1';
+                state.gasLawFeedback = 'Incorrect. If you cross-multiply, you get P_1 V_1 T_2 = P_2 V_2 T_1. Dividing by P_1 V_1 isolates T_2 correctly, which is P_2 V_2 T_1 / (P_1 V_1).';
+                persist('Gas law wrong1');
+                this.mount({ host, state, onStateChange });
+            });
+            host.querySelector('#s7-gas-wrong2')?.addEventListener('click', () => {
+                state.gasLawChoice = 'wrong2';
+                state.gasLawFeedback = 'Incorrect. Check your algebraic steps. Cross-multiplying yields P_1 V_1 T_2 = P_2 V_2 T_1.';
+                persist('Gas law wrong2');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L7.13 Calorimetry handlers
+            host.querySelectorAll('.s7-calorimetry-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const step = btn.getAttribute('data-step');
+                    if (step === 'div_mc' && state.calorimetryStep === 0) {
+                        state.calorimetryStep = 1;
+                        state.calorimetryFeedback = 'Correct! Dividing by mc isolates the temperature block: q / (mc) = T_f - T_i. Now isolate T_f.';
+                    } else if (step === 'add_ti' && state.calorimetryStep === 1) {
+                        state.calorimetryStep = 2;
+                        state.calorimetryFeedback = 'Correct! Adding T_i to both sides isolates T_f: T_f = q / (mc) + T_i. You successfully isolated the final temperature!';
+                    } else {
+                        state.calorimetryFeedback = 'Incorrect move. Think about the order of operations in reverse (SADMEP) to unwrap T_f.';
+                    }
+                    persist('Calorimetry step run');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelector('#s7-reset-calorimetry')?.addEventListener('click', () => {
+                state.calorimetryStep = 0;
+                state.calorimetryFeedback = 'Solve q = mc(T_f - T_i) for T_f. Select the first algebraic move.';
+                persist('Calorimetry reset');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // s7-calorimetry validation
+            host.querySelector('#s7-check-calorimetry-calc')?.addEventListener('click', () => {
+                const ansVal = parseFloat(host.querySelector('#s7-calorimetry-input').value.trim());
+                state.calorimetryAnswer = host.querySelector('#s7-calorimetry-input').value.trim();
+                const expected = parseFloat(s7Calorimetry.answerKey);
+                if (Math.abs(ansVal - expected) < 0.1) {
+                    state.calorimetryCalcCorrect = true;
+                    state.calorimetryCalcFeedback = `Correct! T_f = q / (m * c) + T_i = ${s7Calorimetry.q} / (${s7Calorimetry.m} * ${s7Calorimetry.c}) + ${s7Calorimetry.ti} = ${expected}°C.`;
+                } else {
+                    state.calorimetryCalcCorrect = false;
+                    state.calorimetryCalcFeedback = `Incorrect. The formula is T_f = q / (m * c) + T_i. Check your calculations.`;
+                }
+                persist('Calorimetry calculation checked');
                 this.mount({ host, state, onStateChange });
             });
 

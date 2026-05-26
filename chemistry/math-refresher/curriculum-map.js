@@ -11,7 +11,9 @@ export const CURRICULUM_MAP = [
             'L1.4 Single-Digit Subtraction',
             'L1.5 Base-10 Grid & Place Value',
             'L1.6 Multi-Digit Addition',
-            'L1.7 Addition Carrying'
+            'L1.7 Addition Carrying',
+            'L1.8 Meniscus Reading & Parallax Error',
+            'L1.9 Relative Zero vs. Absolute Scales'
         ]
     },
     {
@@ -27,7 +29,9 @@ export const CURRICULUM_MAP = [
             'L2.5 Multiplication Grid Mechanics',
             'L2.6 Division Concept',
             'L2.7 The Division Loop',
-            'L2.8 Mental Benchmarking & Estimation'
+            'L2.8 Mental Benchmarking & Estimation',
+            'L2.9 Division as Measurement Partitioning',
+            'L2.10 Stoichiometric Mental Benchmarks'
         ]
     },
     {
@@ -43,7 +47,9 @@ export const CURRICULUM_MAP = [
             'L3.5 The Operations Stack (PEMDAS/GEMS)',
             'L3.6 Factors & Multiples',
             'L3.7 Primes & Composites',
-            'L3.8 Introduction to Descriptive Statistics'
+            'L3.8 Introduction to Descriptive Statistics',
+            'L3.9 Thermal Gradients & Signed Differences',
+            'L3.10 Ionic Charge Balance & Enthalpy Signs'
         ]
     },
     {
@@ -60,7 +66,9 @@ export const CURRICULUM_MAP = [
             'L4.6 Fraction Multiplication & Division',
             'L4.7 Ratios & Scaling',
             'L4.8 Proportions',
-            'L4.9 Direct vs. Inverse Variation'
+            'L4.9 Direct vs. Inverse Variation',
+            'L4.10 Mass Ratios vs. Atomic Composition',
+            'L4.11 Mole Fractions in Mixtures'
         ]
     },
     {
@@ -75,7 +83,9 @@ export const CURRICULUM_MAP = [
             'L5.4 Percentages',
             'L5.5 Percent Equations',
             'L5.6 Percent Change, Relative Risk, and Percent Error',
-            'L5.7 Significant Figures & Rounding'
+            'L5.7 Significant Figures & Rounding',
+            'L5.8 Sig Figs in Multi-Step Equations',
+            'L5.9 Exact vs. Inexact Numbers'
         ]
     },
     {
@@ -91,7 +101,9 @@ export const CURRICULUM_MAP = [
             'L6.5 Dimensional Analysis Foundations',
             'L6.6 Multi-Step Train Tracks',
             'L6.7 Navigating Compound Science Units',
-            'L6.8 Derived Unit Scaling'
+            'L6.8 Derived Unit Scaling',
+            'L6.9 Multidimensional Unit Scaling',
+            'L6.10 Compound Metric Conversion Chains'
         ]
     },
     {
@@ -110,7 +122,9 @@ export const CURRICULUM_MAP = [
             'L7.8 Reverse PEMDAS Checklist',
             'L7.9 Rational Isolation (Variables in the Denominator)',
             'L7.10 Radical Isolation (Unwrapping Square Roots)',
-            'L7.11 Literal Equations'
+            'L7.11 Literal Equations',
+            'L7.12 Rational Denominator Block Extraction',
+            'L7.13 Calorimetry Temperature Isolation'
         ]
     },
     {
@@ -126,7 +140,9 @@ export const CURRICULUM_MAP = [
             'L8.5 Intercepts & Roots',
             'L8.6 Linear Inequalities',
             'L8.7 Data Boundary Analysis',
-            'L8.8 Basic Probability & Counting'
+            'L8.8 Basic Probability & Counting',
+            'L8.9 Variable Designation (X vs. Y Axis)',
+            'L8.10 Physical Limits & Model Domains'
         ]
     },
     {
@@ -143,7 +159,9 @@ export const CURRICULUM_MAP = [
             'L9.6 Negative & Fractional Exponents',
             'L9.7 Polynomial Operations',
             'L9.8 Factoring Quadratic Trinomials',
-            'L9.9 Solving Quadratic Equations'
+            'L9.9 Solving Quadratic Equations',
+            'L9.10 Balancing Equations via Systems of Equations',
+            'L9.11 Exponents in Unit Systems'
         ]
     },
     {
@@ -162,7 +180,42 @@ export const CURRICULUM_MAP = [
             'L10.8 Right-Triangle Trigonometry',
             'L10.9 The Unit Circle',
             'L10.10 Trigonometric Wave Mechanics',
-            'L10.11 Wave Kinematics'
+            'L10.11 Wave Kinematics',
+            'L10.12 The Mathematical p-Operator (pX)',
+            'L10.13 Logarithmic Significant Figures'
+        ]
+    },
+    {
+        id: 'stage11',
+        label: 'Data Linearization',
+        title: 'Stage 11: Data Linearization & Graphical Analysis',
+        objective: 'Convert non-linear scientific data into linear forms (y = mx + b) to extract physical constants.',
+        lessons: [
+            'L11.1 Reciprocal & Inverse Graphing',
+            'L11.2 The Linearization Concept',
+            'L11.3 Linearizing Kinetics (First & Second Order)',
+            'L11.4 Linearizing Thermodynamic Data (Arrhenius & CC)',
+            'L11.5 Extrapolation & Interpolation',
+            'L11.6 Two-Point Equations',
+            'L11.7 Beer\'s Law Deviations & Linearity Limits',
+            'L11.8 Residual Plots & Fit Quality'
+        ]
+    },
+    {
+        id: 'stage12',
+        label: 'Equilibrium Algebra',
+        title: 'Stage 12: Equilibrium Algebra, Power Ratios & Approximations',
+        objective: 'Solve chemical equilibrium expressions, isotope mixtures, and master algebraic approximations.',
+        lessons: [
+            'L12.1 Weighted Averages & Isotope Mixtures',
+            'L12.2 Concentration Blending (Mixture Algebra)',
+            'L12.3 Equilibrium Expressions & Ratios of Powers',
+            'L12.4 The ICE Table Setup (Algebraic Representation)',
+            'L12.5 The Small-x Approximation',
+            'L12.6 Exact Equilibrium Solves (Quadratic Formula)',
+            'L12.7 Multi-Variable Solves in Weak Acids/Bases',
+            'L12.8 Common Ion Effect Equilibrium Algebra',
+            'L12.9 Conjugate Transposition (Ka · Kb = Kw)'
         ]
     }
 ];

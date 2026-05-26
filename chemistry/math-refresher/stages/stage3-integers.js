@@ -18,6 +18,18 @@ const createInitialStage3State = () => ({
     },
     concreteCompleted: false,
 
+    // Calorimeter Temp Difference (L3.9)
+    tempInitial: -15,
+    tempFinal: 25,
+    deltaTempAnswer: '',
+    deltaTempFeedback: 'L3.9 Thermal Gradients: Set T_i and T_f and calculate the signed temperature difference ΔT = T_f - T_i.',
+    deltaTempCorrect: false,
+
+    // Enthalpy Signs & Charge Balance (L3.10)
+    enthalpyChoice: '',
+    enthalpyFeedback: 'L3.10 Enthalpy & Charge: Identify the flow sign for exothermic vs endothermic reactions and verify polyatomic charge balances.',
+    enthalpyCorrect: false,
+
     // Quotient zeros & remainders (L3.1)
     quotientAnswer: '',
     quotientFeedback: 'L3.1 Quotient Zeros: Solve 412 / 4. Watch for the zero in the tens place.',
@@ -42,7 +54,17 @@ const createInitialStage3State = () => ({
     statsFeedback: 'L3.8 Statistics: For data [8, 10, 10, 12, 15], compute mean, median, mode, and range.',
 
     appliedFeedback: 'Applied level: calculate the Net Charge of a Carbon atom with 6 protons and 8 electrons.',
-    appliedChoice: ''
+    appliedChoice: '',
+    
+    // Absolute value properties
+    absAnswer: '',
+    absFeedback: 'Choose the correct comparison symbol: >, <, or =.',
+    absCorrect: false,
+
+    // Signdiffs compound charge properties
+    signdiffsAnswer: '',
+    signdiffsFeedback: 'Enter the net charge.',
+    signdiffsCorrect: false
 });
 
 export function createStage3Integers() {
@@ -60,6 +82,18 @@ export function createStage3Integers() {
                     state[key] = defaults[key];
                 }
             });
+
+            const overrides = state.questionOverrides || {};
+            const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
+
+            const s3Calorimeter = getParams('s3-calorimeter', null);
+            if (s3Calorimeter) {
+                state.tempInitial = s3Calorimeter.ti;
+                state.tempFinal = s3Calorimeter.tf;
+            }
+
+            const s3Absolute = getParams('s3-absolute', { a: -8, b: 8, answerKey: 'eq' });
+            const s3SignDiffs = getParams('s3-signdiffs', { cation: 'Fe', cationCharge: 3, cationCount: 1, anion: 'Cl', anionCharge: -1, anionCount: 3, answerKey: '0' });
 
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's3-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
@@ -164,6 +198,53 @@ export function createStage3Integers() {
                                 <button id="s3-reset-signed" class="s3-btn ghost" ${disabled(state.concreteUnlocked)}>Reset</button>
                             </div>
                         </div>
+
+                        <div class="s3-pane" style="margin-top:0.75rem;">
+                            <h3>L3.9 Calorimeter: Temperature Differences</h3>
+                            <p>Reaction calorimetry measures temperature changes. Set initial ($T_i$) and final ($T_f$) temperatures, then calculate the temperature gradient (difference): $\Delta T = T_f - T_i$.</p>
+                            <div class="s3-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
+                                <div style="display:flex; justify-content:space-around; align-items:center; background:rgba(15,23,42,0.6); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                                    <!-- Thermometer T_i -->
+                                    <div style="text-align:center;">
+                                        <div style="height:100px; width:12px; background:#1e293b; border-radius:6px; position:relative; margin: 0 auto; border: 1px solid rgba(255,255,255,0.1);">
+                                            <div style="position:absolute; bottom:0; left:0; right:0; background:#3b82f6; border-radius:6px; height:${((state.tempInitial - (-30)) / 80) * 100}px; transition: height 0.3s ease;"></div>
+                                        </div>
+                                        <span style="font-size:0.72rem; color:#93c5fd; font-weight:700;">T_i = ${state.tempInitial}°C</span>
+                                    </div>
+                                    <!-- Thermometer T_f -->
+                                    <div style="text-align:center;">
+                                        <div style="height:100px; width:12px; background:#1e293b; border-radius:6px; position:relative; margin: 0 auto; border: 1px solid rgba(255,255,255,0.1);">
+                                            <div style="position:absolute; bottom:0; left:0; right:0; background:#ef4444; border-radius:6px; height:${((state.tempFinal - (-30)) / 80) * 100}px; transition: height 0.3s ease;"></div>
+                                        </div>
+                                        <span style="font-size:0.72rem; color:#f87171; font-weight:700;">T_f = ${state.tempFinal}°C</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="s3-grid" style="grid-template-columns: 1fr; gap:6px;">
+                                        <div>
+                                            <label class="s3-label">Initial Temp (T_i) [-30 to 50°C]:</label>
+                                            <div style="display:flex; gap:6px; align-items:center;">
+                                                <input type="range" id="s3-temp-i-slider" min="-30" max="50" value="${state.tempInitial}" style="flex:1;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                                <input type="number" id="s3-temp-i-num" min="-30" max="50" value="${state.tempInitial}" class="s3-input" style="width:65px; padding:0.25rem;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="s3-label">Final Temp (T_f) [-30 to 50°C]:</label>
+                                            <div style="display:flex; gap:6px; align-items:center;">
+                                                <input type="range" id="s3-temp-f-slider" min="-30" max="50" value="${state.tempFinal}" style="flex:1;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                                <input type="number" id="s3-temp-f-num" min="-30" max="50" value="${state.tempFinal}" class="s3-input" style="width:65px; padding:0.25rem;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p style="margin:6px 0 3px; font-size:0.85rem;">Calculate: <strong>ΔT = T_f - T_i</strong></p>
+                                    <div style="display:flex; gap:6px;">
+                                        <input type="number" id="s3-dtemp-input" class="s3-input" placeholder="ΔT in °C" value="${state.deltaTempAnswer}" data-tutor-question-id="s3-calorimeter" ${disabled(state.concreteUnlocked)} />
+                                        <button id="s3-check-dtemp" class="s3-btn" data-tutor-question-id="s3-calorimeter" ${disabled(state.concreteUnlocked)}>Verify ΔT</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="s3-feedback" id="s3-dtemp-feedback">${state.deltaTempFeedback}</div>
+                        </div>
                         <div class="s3-feedback">${state.signedFeedback}</div>
 
                         <div class="s3-grid" style="margin-top: 0.6rem;">
@@ -190,6 +271,23 @@ export function createStage3Integers() {
                             </div>
                         </div>
                         <div class="s3-feedback">${state.pemdasFeedback}</div>
+
+                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
+
+                        <p><strong>L3.4 Absolute Value (s3-absolute):</strong> Absolute value represents the positive magnitude or distance from zero. Compare the absolute values:
+                        <br>Compare: <strong>|${s3Absolute.a}| ___ |${s3Absolute.b}|</strong></p>
+                        <div class="s3-pane" style="margin-bottom:0.75rem;">
+                            <div class="s3-grid" style="grid-template-columns: 1fr auto; gap: 4px;">
+                                <select id="s3-abs-select" class="s3-input" data-tutor-question-id="s3-absolute" ${disabled(state.pictorialUnlocked)}>
+                                    <option value="">Choose...</option>
+                                    <option value="lt" ${state.absAnswer === 'lt' ? 'selected' : ''}>&lt;</option>
+                                    <option value="gt" ${state.absAnswer === 'gt' ? 'selected' : ''}>&gt;</option>
+                                    <option value="eq" ${state.absAnswer === 'eq' ? 'selected' : ''}>=</option>
+                                </select>
+                                <button id="s3-check-abs" class="s3-btn" data-tutor-question-id="s3-absolute" ${disabled(state.pictorialUnlocked)}>Verify Absolute</button>
+                            </div>
+                            <div class="s3-feedback" id="s3-abs-feedback">${state.absFeedback}</div>
+                        </div>
 
                         <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
 
@@ -251,6 +349,16 @@ export function createStage3Integers() {
                         <div class="s3-feedback">${state.appliedFeedback}</div>
 
                         <div class="s3-pane" style="margin-top:0.75rem;">
+                            <p><strong>L3.10 Enthalpy Sign Check:</strong> Classify the sign of enthalpy for this statement:
+                            <br><em>"The reaction releases 85 kJ of heat to the surroundings."</em></p>
+                            <div class="s3-grid" style="grid-template-columns: 1fr 1fr; gap:6px;">
+                                <button id="s3-enthalpy-exo" class="s3-btn ${state.enthalpyChoice === 'exo' ? 'active' : 'ghost'}" ${disabled(state.appliedUnlocked)}>Exothermic, ΔH < 0</button>
+                                <button id="s3-enthalpy-endo" class="s3-btn ${state.enthalpyChoice === 'endo' ? 'active' : 'ghost'}" ${disabled(state.appliedUnlocked)}>Endothermic, ΔH > 0</button>
+                            </div>
+                            <div class="s3-feedback" id="s3-enthalpy-feedback">${state.enthalpyFeedback}</div>
+                        </div>
+
+                        <div class="s3-pane" style="margin-top:0.75rem;">
                             <p><strong>[Reinforcement] L3.8 Descriptive Statistics:</strong> A mini lab reports trial values <code>[8, 10, 10, 12, 15]</code>. Enter mean, median, mode, and range.</p>
                             <div class="s3-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;">
                                 <input id="s3-stats-mean" class="s3-input" placeholder="Mean" value="${state.statsAnswers.mean}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
@@ -260,6 +368,18 @@ export function createStage3Integers() {
                             </div>
                             <button id="s3-check-stats" class="s3-btn" style="margin-top:8px; width:100%;" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)}>Check Statistics</button>
                             <div class="s3-feedback" id="s3-stats-feedback">${state.statsFeedback}</div>
+                        </div>
+
+                        <div class="s3-pane" style="margin-top:0.75rem;">
+                            <p><strong>L3.10 Compound Net Charge Balance (s3-signdiffs):</strong> In general chemistry, we must sum ionic charges to determine the overall net charge of a complex or compound.
+                            <br>Calculate the net charge for a mixture of:
+                            <br>• <strong>${s3SignDiffs.cationCount} ${s3SignDiffs.cation}<sup>${s3SignDiffs.cationCharge >= 0 ? '+' : ''}${s3SignDiffs.cationCharge}</sup></strong> ions
+                            <br>• <strong>${s3SignDiffs.anionCount} ${s3SignDiffs.anion}<sup>${s3SignDiffs.anionCharge >= 0 ? '+' : ''}${s3SignDiffs.anionCharge}</sup></strong> ions</p>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" id="s3-signdiffs-input" class="s3-input" placeholder="Net charge (e.g. 0)" value="${state.signdiffsAnswer || ''}" data-tutor-question-id="s3-signdiffs" ${disabled(state.appliedUnlocked)} />
+                                <button id="s3-check-signdiffs" class="s3-btn" data-tutor-question-id="s3-signdiffs" ${disabled(state.appliedUnlocked)}>Verify Net Charge</button>
+                            </div>
+                            <div class="s3-feedback" id="s3-signdiffs-feedback">${state.signdiffsFeedback}</div>
                         </div>
 
                         <div class="s3-grid" style="margin-top: 0.6rem;">
@@ -469,6 +589,45 @@ export function createStage3Integers() {
                 this.mount({ host, state, onStateChange });
             });
 
+            // Temperature adjustment handlers
+            const handleTempI = (val) => {
+                const num = parseInt(val);
+                if (num >= -30 && num <= 50) {
+                    state.tempInitial = num;
+                    persist('Temp initial changed');
+                    this.mount({ host, state, onStateChange });
+                }
+            };
+            const handleTempF = (val) => {
+                const num = parseInt(val);
+                if (num >= -30 && num <= 50) {
+                    state.tempFinal = num;
+                    persist('Temp final changed');
+                    this.mount({ host, state, onStateChange });
+                }
+            };
+
+            host.querySelector('#s3-temp-i-slider')?.addEventListener('input', (e) => handleTempI(e.target.value));
+            host.querySelector('#s3-temp-i-num')?.addEventListener('change', (e) => handleTempI(e.target.value));
+            host.querySelector('#s3-temp-f-slider')?.addEventListener('input', (e) => handleTempF(e.target.value));
+            host.querySelector('#s3-temp-f-num')?.addEventListener('change', (e) => handleTempF(e.target.value));
+
+            host.querySelector('#s3-check-dtemp')?.addEventListener('click', () => {
+                const rawVal = host.querySelector('#s3-dtemp-input').value.trim();
+                const ans = parseFloat(rawVal);
+                state.deltaTempAnswer = rawVal;
+                const expected = s3Calorimeter ? parseFloat(s3Calorimeter.answerKey) : state.tempFinal - state.tempInitial;
+                if (Math.abs(ans - expected) < 0.01) {
+                    state.deltaTempCorrect = true;
+                    state.deltaTempFeedback = `Correct! ΔT = T_f - T_i = ${state.tempFinal} - (${state.tempInitial >= 0 ? '' : '('}${state.tempInitial}${state.tempInitial >= 0 ? '' : ')'}) = ${expected}°C.`;
+                } else {
+                    state.deltaTempCorrect = false;
+                    state.deltaTempFeedback = `Incorrect. Remember: ΔT = T_f - T_i. Current values: ${state.tempFinal} - (${state.tempInitial}) = ?`;
+                }
+                persist('Delta T checked');
+                this.mount({ host, state, onStateChange });
+            });
+
             host.querySelector('#s3-continue-pictorial').addEventListener('click', () => {
                 if (state.pictorialUnlocked) {
                     state.signedFeedback = 'Pictorial is unlocked. Scroll to the next card and complete the PEMDAS stack challenge.';
@@ -524,6 +683,61 @@ export function createStage3Integers() {
                 state.appliedChoice = 'right';
                 state.appliedFeedback = 'Correct! 6 protons (+6) + 8 electrons (-8) = -2 net charge.';
                 persist('Applied choice correct');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L3.10 Enthalpy sign handlers
+            host.querySelector('#s3-enthalpy-exo')?.addEventListener('click', () => {
+                state.enthalpyChoice = 'exo';
+                state.enthalpyCorrect = true;
+                state.enthalpyFeedback = 'Correct! Heat released to surroundings means exothermic behavior, so ΔH is negative.';
+                persist('Enthalpy sign checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s3-enthalpy-endo')?.addEventListener('click', () => {
+                state.enthalpyChoice = 'endo';
+                state.enthalpyCorrect = false;
+                state.enthalpyFeedback = 'Not yet. If heat is released, the system loses energy, so the sign is exothermic with ΔH < 0.';
+                persist('Enthalpy sign checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // Absolute Value handlers
+            host.querySelector('#s3-abs-select')?.addEventListener('change', (e) => {
+                state.absAnswer = e.target.value;
+                persist('Absolute value selection changed');
+            });
+
+            host.querySelector('#s3-check-abs')?.addEventListener('click', () => {
+                const ans = host.querySelector('#s3-abs-select').value;
+                state.absAnswer = ans;
+                const expected = s3Absolute.answerKey;
+                if (ans === expected) {
+                    state.absCorrect = true;
+                    state.absFeedback = `Correct! |${s3Absolute.a}| = ${Math.abs(s3Absolute.a)} and |${s3Absolute.b}| = ${Math.abs(s3Absolute.b)}. The comparison is ${ans === 'eq' ? 'equal' : ans === 'lt' ? 'less than' : 'greater than'}.`;
+                } else {
+                    state.absCorrect = false;
+                    state.absFeedback = `Incorrect. Compare the absolute positive magnitudes: |${s3Absolute.a}| and |${s3Absolute.b}|.`;
+                }
+                persist('Absolute value checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // Compound charge balance (signdiffs) handler
+            host.querySelector('#s3-check-signdiffs')?.addEventListener('click', () => {
+                const rawVal = host.querySelector('#s3-signdiffs-input').value.trim();
+                state.signdiffsAnswer = rawVal;
+                const ans = parseInt(rawVal);
+                const expected = parseInt(s3SignDiffs.answerKey);
+                if (ans === expected) {
+                    state.signdiffsCorrect = true;
+                    state.signdiffsFeedback = `Correct! The net charge is ${expected}. (${s3SignDiffs.cationCount} * ${s3SignDiffs.cationCharge}) + (${s3SignDiffs.anionCount} * ${s3SignDiffs.anionCharge}) = ${expected}.`;
+                } else {
+                    state.signdiffsCorrect = false;
+                    state.signdiffsFeedback = `Incorrect. Calculate: (${s3SignDiffs.cationCount} * ${s3SignDiffs.cationCharge}) + (${s3SignDiffs.anionCount} * ${s3SignDiffs.anionCharge}).`;
+                }
+                persist('Compound charge balance checked');
                 this.mount({ host, state, onStateChange });
             });
 
@@ -604,6 +818,12 @@ export function createStage3Integers() {
             if (lcmInput) {
                 lcmInput.addEventListener('input', (e) => {
                     state.lcmAnswer = e.target.value;
+                });
+            }
+            const dtempInput = host.querySelector('#s3-dtemp-input');
+            if (dtempInput) {
+                dtempInput.addEventListener('input', (e) => {
+                    state.deltaTempAnswer = e.target.value;
                 });
             }
         },
