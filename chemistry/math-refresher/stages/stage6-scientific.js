@@ -47,7 +47,17 @@ const createInitialStage6State = () => ({
     abstractUnlocked: false,
     appliedUnlocked: false,
 
-    // Exponents & Rosetta
+    // L6.1 Powers of 10
+    l61Answers: { q1: '', q2: '', q3: '' },
+    l61Feedback: 'Powers of 10: Match each power to its standard decimal value.',
+    l61Correct: false,
+
+    // L6.2 Scientific Notation
+    l62Answers: { value: '', power: '' },
+    l62Feedback: 'Scientific Notation: Convert 5400 to a x 10^b.',
+    l62Correct: false,
+
+    // L6.3 Exponents & Rosetta Calculator
     powerVal: 3,
     mantissa: 6.022,
     exponent: 23,
@@ -64,20 +74,31 @@ const createInitialStage6State = () => ({
     },
     concreteCompleted: false,
 
-    // Train tracks
+    // L6.4 Metric Prefixes
+    l64Answers: { micro: '', kilo: '', milli: '' },
+    l64Feedback: 'Metric Prefixes: Match the prefix to its corresponding power of 10 scale factor.',
+    l64Correct: false,
+
+    // L6.5 Train tracks dimensional analysis foundations
     trackSlots: { slot0: 'card-start', slot1: 'card-factor' },
     factorFlipped: false,
     trackFeedback: 'Build the train track to cancel units diagonal mL to milliliters.',
 
-    // Derived unit scaling
-    cubedAnswer: '',
-    cubedFeedback: 'Convert 2.0 m^3 to cm^3: since 1 m = 100 cm, 1 m^3 = 100^3 cm^3.',
+    // L6.6 Multi-Step Train Tracks
+    l66Factor1Flipped: true,
+    l66Factor2Flipped: true,
+    l66Feedback: 'Multi-Step Train Tracks: Flip the conversion factors so that mL -> L -> mol cancels correctly.',
+    l66Correct: false,
 
-    // Compound unit management
+    // L6.7 Compound unit management
     compoundAnswers: { value: '', unit: '' },
     compoundFeedback: 'L6.7 Compound Units: Evaluate 25 g x 2 J/(g*C) x 3 C and confirm the final unit.',
 
-    // L6.9 Multidimensional Unit Scaling (3D Cube)
+    // L6.8 Derived unit scaling
+    cubedAnswer: '',
+    cubedFeedback: 'Convert 2.0 m^3 to cm^3: since 1 m = 100 cm, 1 m^3 = 100^3 cm^3.',
+
+    // L6.9 Multidimensional Unit Scaling (3D Cube) - MOVED TO APPLIED
     cubeLengthDm: 10,
     cubeVolumeAnswer: '',
     cubeVolumeFeedback: 'L6.9 Multidimensional Unit Scaling: Adjust the slider to see how length scales to volume. Solve the volume in dm^3 for a 10 dm cube.',
@@ -170,6 +191,48 @@ export function createStage6Scientific() {
                 ? state.adaptive.item.hint_chain.slice(0, state.adaptive.hintRevealCount)
                 : [];
 
+            // Granular sequential lesson lock checks
+            const isLessonUnlocked = (lessonId) => {
+                if (state.fastTrack) return true;
+                switch (lessonId) {
+                    case 'L6.1':
+                        return true;
+                    case 'L6.2':
+                        return state.l61Correct;
+                    case 'L6.3':
+                        return state.l61Correct && state.l62Correct;
+                    case 'L6.4':
+                        return state.concreteCompleted || state.pictorialUnlocked;
+                    case 'L6.5':
+                        return (state.concreteCompleted || state.pictorialUnlocked) && state.l64Correct;
+                    case 'L6.5-applied':
+                        return (state.concreteCompleted || state.pictorialUnlocked) && state.l64Correct && !state.factorFlipped;
+                    case 'L6.6':
+                        return (state.concreteCompleted || state.pictorialUnlocked) && state.l64Correct && !state.factorFlipped && state.appliedChoice === 'right';
+                    case 'L6.7':
+                        return state.abstractUnlocked;
+                    case 'L6.8': {
+                        const compoundVal = Number(state.compoundAnswers.value);
+                        const compoundUnit = state.compoundAnswers.unit.toLowerCase().replace(/\s+/g, '');
+                        const compoundCorrect = compoundVal === 150 && (compoundUnit === 'j' || compoundUnit === 'joule' || compoundUnit === 'joules');
+                        return state.abstractUnlocked && compoundCorrect;
+                    }
+                    case 'L6.9':
+                        return state.appliedUnlocked;
+                    case 'L6.10': {
+                        const expectedVol = s6Cube ? String(s6Cube.answerKey) : '1000';
+                        return state.appliedUnlocked && state.cubeVolumeAnswer === expectedVol;
+                    }
+                    default:
+                        return false;
+                }
+            };
+
+            const paneLockedClass = (lessonId) => isLessonUnlocked(lessonId) ? '' : 'locked';
+            const statusPill = (lessonId) => isLessonUnlocked(lessonId)
+                ? '<span class="s6-pill good" style="font-size:10px; padding:1px 6px; float:right;">Open</span>'
+                : '<span class="s6-pill locked" style="font-size:10px; padding:1px 6px; float:right;">Locked</span>';
+
             host.innerHTML = `
                 <style>
                     .s6-wrap { display: grid; gap: 1.2rem; }
@@ -177,7 +240,8 @@ export function createStage6Scientific() {
                     .s6-card h2, .s6-card h3 { margin: 0 0 0.55rem; color: #f8fafc; }
                     .s6-card p { color: #cbd5e1; line-height: 1.62; margin: 0.4rem 0; }
                     .s6-grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-                    .s6-pane { border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; background: rgba(15, 23, 42, 0.5); padding: 0.8rem; color: #f8fafc; }
+                    .s6-pane { border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 12px; background: rgba(15, 23, 42, 0.5); padding: 0.8rem; color: #f8fafc; transition: all 0.2s ease; }
+                    .s6-pane.locked { opacity: 0.35; pointer-events: none; border-color: rgba(255, 255, 255, 0.03); }
                     .s6-feedback { margin-top: 0.65rem; border: 1px solid rgba(96, 165, 250, 0.25); border-radius: 10px; padding: 0.6rem; background: rgba(30, 58, 138, 0.35); color: #93c5fd; line-height: 1.5; font-size: 0.88rem; }
                     .s6-status { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem; }
                     .s6-pill { border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(30, 41, 59, 0.4); padding: 0.18rem 0.65rem; color: #94a3b8; font-size: 0.82rem; font-weight: 700; }
@@ -265,56 +329,115 @@ export function createStage6Scientific() {
 
                     <!-- CONCRETE LEVEL -->
                     <article class="s6-card s6-level ${levelLocked(state.concreteUnlocked)}">
-                        <h2>Concrete Level: E-Notation Rosetta & Keypad</h2>
-                        <p><strong>L6.3 E-Notation:</strong> First type <code>6.022E23</code> manually on the calculator, then watch the guided TI/Casio keystroke demo.</p>
-                        <div class="s6-grid">
-                            <div class="s6-pane">
-                                <strong>Textbook notation:</strong>
-                                <p style="font-family:serif; font-size:1.15rem; margin-top:4px;">6.022 x 10^23</p>
-                            </div>
-                            <div class="s6-pane" id="s6-calc-pane" tabindex="0" aria-label="Stage 6 scientific calculator keypad">
-                                <strong>Calculator display:</strong>
-                                <div class="s6-calc-screen" id="s6-calc-screen" aria-live="polite" role="status">${state.concreteMission.calculatorDisplay || '0'}</div>
-                                <div class="s6-keypad">
-                                    <button type="button" id="s6-key-7" class="s6-key" aria-label="Digit 7" data-calc-key="7" ${disabled(state.concreteUnlocked)} >7</button>
-                                    <button type="button" id="s6-key-8" class="s6-key" aria-label="Digit 8" data-calc-key="8" ${disabled(state.concreteUnlocked)} >8</button>
-                                    <button type="button" id="s6-key-9" class="s6-key" aria-label="Digit 9" data-calc-key="9" ${disabled(state.concreteUnlocked)} >9</button>
-                                    <button type="button" id="s6-key-del" class="s6-key utility" aria-label="Delete last digit" data-calc-key="DEL" ${disabled(state.concreteUnlocked)} >DEL</button>
-                                    <button type="button" id="s6-key-clear" class="s6-key utility" aria-label="Clear calculator" data-calc-key="C" ${disabled(state.concreteUnlocked)} >C</button>
-
-                                    <button type="button" id="s6-key-4" class="s6-key" aria-label="Digit 4" data-calc-key="4" ${disabled(state.concreteUnlocked)} >4</button>
-                                    <button type="button" id="s6-key-5" class="s6-key" aria-label="Digit 5" data-calc-key="5" ${disabled(state.concreteUnlocked)} >5</button>
-                                    <button type="button" id="s6-key-6" class="s6-key" aria-label="Digit 6" data-calc-key="6" ${disabled(state.concreteUnlocked)} >6</button>
-                                    <button type="button" id="s6-key-mul" class="s6-key operator" aria-label="Multiply" data-calc-key="*" ${disabled(state.concreteUnlocked)} >x</button>
-                                    <button type="button" id="s6-key-div" class="s6-key operator" aria-label="Divide" data-calc-key="/" ${disabled(state.concreteUnlocked)} >/</button>
-
-                                    <button type="button" id="s6-key-1" class="s6-key" aria-label="Digit 1" data-calc-key="1" ${disabled(state.concreteUnlocked)} >1</button>
-                                    <button type="button" id="s6-key-2" class="s6-key" aria-label="Digit 2" data-calc-key="2" ${disabled(state.concreteUnlocked)} >2</button>
-                                    <button type="button" id="s6-key-3" class="s6-key" aria-label="Digit 3" data-calc-key="3" ${disabled(state.concreteUnlocked)} >3</button>
-                                    <button type="button" id="s6-key-plus" class="s6-key operator" aria-label="Add" data-calc-key="+" ${disabled(state.concreteUnlocked)} >+</button>
-                                    <button type="button" id="s6-key-minus" class="s6-key operator" aria-label="Subtract" data-calc-key="-" ${disabled(state.concreteUnlocked)} >-</button>
-
-                                    <button type="button" id="s6-key-sign" class="s6-key utility" aria-label="Toggle sign" data-calc-key="+/-" ${disabled(state.concreteUnlocked)} >+/-</button>
-                                    <button type="button" id="s6-key-0" class="s6-key" aria-label="Digit 0" data-calc-key="0" ${disabled(state.concreteUnlocked)} >0</button>
-                                    <button type="button" id="s6-key-dot" class="s6-key" aria-label="Decimal point" data-calc-key="." ${disabled(state.concreteUnlocked)} >.</button>
-                                    <button type="button" id="s6-key-ee" class="s6-key ee" aria-label="Exponent key EE or EXP" data-calc-key="EE" ${disabled(state.concreteUnlocked)} >EE/EXP</button>
-                                    <button type="button" id="s6-key-equals" class="s6-key operator" aria-label="Equals" data-calc-key="=" ${disabled(state.concreteUnlocked)} >=</button>
-
-                                    <button type="button" id="s6-key-enter" class="s6-key utility" aria-label="Enter mission check" data-calc-key="ENTER" ${disabled(state.concreteUnlocked)} style="grid-column: span 5;">ENTER</button>
+                        <h2>Concrete Level: Powers, Scientific Notation, & E-Notation</h2>
+                        
+                        <!-- L6.1 Powers of 10 -->
+                        <div class="s6-pane ${paneLockedClass('L6.1')}">
+                            <strong>L6.1 Powers of 10</strong> ${statusPill('L6.1')}
+                            <p>Match each Power of 10 to its standard decimal value:</p>
+                            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                                <div>
+                                    <span style="display:inline-block; width: 60px; font-weight: bold;">10<sup>3</sup> = </span>
+                                    <div class="s6-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px; display: inline-grid; width: calc(100% - 70px); vertical-align: middle;">
+                                        <button type="button" aria-pressed="${state.l61Answers.q1 === '1000' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q1 === '1000' ? 'active' : ''}" data-l61="q1" data-value="1000">1000</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q1 === '100' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q1 === '100' ? 'active' : ''}" data-l61="q1" data-value="100">100</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q1 === '0.01' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q1 === '0.01' ? 'active' : ''}" data-l61="q1" data-value="0.01">0.01</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q1 === '0.001' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q1 === '0.001' ? 'active' : ''}" data-l61="q1" data-value="0.001">0.001</button>
+                                    </div>
                                 </div>
-                                <div class="s6-calc-status ${state.concreteMission.error ? 'error' : ''}" id="s6-calc-status">${state.concreteMission.error || 'Type the exact sequence: 6 . 0 2 2 EE 2 3'}</div>
-                                <div class="s6-calc-step" id="s6-mission-step">Progress 0/8 • Next mission key: ${state.concreteMission.requiredSequence[state.concreteMission.enteredSequence.length] || 'Completed'}</div>
+                                <div>
+                                    <span style="display:inline-block; width: 60px; font-weight: bold;">10<sup>-2</sup> = </span>
+                                    <div class="s6-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px; display: inline-grid; width: calc(100% - 70px); vertical-align: middle;">
+                                        <button type="button" aria-pressed="${state.l61Answers.q2 === '1000' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q2 === '1000' ? 'active' : ''}" data-l61="q2" data-value="1000">1000</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q2 === '100' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q2 === '100' ? 'active' : ''}" data-l61="q2" data-value="100">100</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q2 === '0.01' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q2 === '0.01' ? 'active' : ''}" data-l61="q2" data-value="0.01">0.01</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q2 === '0.001' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q2 === '0.001' ? 'active' : ''}" data-l61="q2" data-value="0.001">0.001</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="display:inline-block; width: 60px; font-weight: bold;">10<sup>-3</sup> = </span>
+                                    <div class="s6-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px; display: inline-grid; width: calc(100% - 70px); vertical-align: middle;">
+                                        <button type="button" aria-pressed="${state.l61Answers.q3 === '1000' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q3 === '1000' ? 'active' : ''}" data-l61="q3" data-value="1000">1000</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q3 === '100' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q3 === '100' ? 'active' : ''}" data-l61="q3" data-value="100">100</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q3 === '0.01' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q3 === '0.01' ? 'active' : ''}" data-l61="q3" data-value="0.01">0.01</button>
+                                        <button type="button" aria-pressed="${state.l61Answers.q3 === '0.001' ? 'true' : 'false'}" class="s6-btn ghost ${state.l61Answers.q3 === '0.001' ? 'active' : ''}" data-l61="q3" data-value="0.001">0.001</button>
+                                    </div>
+                                </div>
                             </div>
+                            <button type="button" id="s6-check-l61" class="s6-btn" style="margin-top: 0.6rem; width: 100%;">Check Powers of 10</button>
+                            <div class="s6-feedback" id="s6-l61-feedback">${state.l61Feedback}</div>
                         </div>
-                        <div class="s6-grid" style="margin-top:0.6rem; gap: 4px;">
-                            <button type="button" id="s6-reset-calc" class="s6-btn ghost" ${disabled(state.concreteUnlocked)}>Reset Mission + Calculator</button>
-                            <button type="button" id="s6-run-keypad" class="s6-btn" ${disabled(state.concreteUnlocked)} ${state.concreteMission.demoRunning ? 'disabled' : ''}>${state.concreteMission.demoRunning ? 'Running Demo...' : 'Run Guided Demo (Required)'}</button>
+
+                        <!-- L6.2 Scientific Notation -->
+                        <div class="s6-pane ${paneLockedClass('L6.2')}">
+                            <strong>L6.2 Scientific Notation</strong> ${statusPill('L6.2')}
+                            <p>Convert 5400 to scientific notation: <em>a</em> × 10<sup><em>b</em></sup></p>
+                            <div style="display: flex; gap: 8px; align-items: center; justify-content: center; margin: 0.4rem 0;">
+                                <input type="number" id="s6-l62-value" class="s6-input" style="max-width: 100px; text-align: center;" placeholder="e.g. 5.4" value="${state.l62Answers.value}" />
+                                <span style="font-weight: bold;">× 10</span>
+                                <sup style="font-weight: bold; position: relative; top: -6px;">
+                                    <input type="number" id="s6-l62-power" class="s6-input" style="max-width: 60px; text-align: center; padding: 0.25rem;" placeholder="b" value="${state.l62Answers.power}" />
+                                </sup>
+                            </div>
+                            <button type="button" id="s6-check-l62" class="s6-btn" style="margin-top: 0.6rem; width: 100%;">Check Scientific Notation</button>
+                            <div class="s6-feedback" id="s6-l62-feedback">${state.l62Feedback}</div>
                         </div>
-                        <div class="s6-feedback" id="s6-notation-feedback">${state.notationFeedback}</div>
+
+                        <!-- L6.3 E-Notation -->
+                        <div class="s6-pane ${paneLockedClass('L6.3')}">
+                            <strong>L6.3 E-Notation & Technology</strong> ${statusPill('L6.3')}
+                            <p>First type <code>6.022E23</code> manually on the calculator, then watch the guided TI/Casio keystroke demo.</p>
+                            <div class="s6-grid">
+                                <div class="s6-pane">
+                                    <strong>Textbook notation:</strong>
+                                    <p style="font-family:serif; font-size:1.15rem; margin-top:4px;">6.022 x 10<sup>23</sup></p>
+                                </div>
+                                <div class="s6-pane" id="s6-calc-pane" tabindex="0" aria-label="Stage 6 scientific calculator keypad">
+                                    <strong>Calculator display:</strong>
+                                    <div class="s6-calc-screen" id="s6-calc-screen" aria-live="polite" role="status">${state.concreteMission.calculatorDisplay || '0'}</div>
+                                    <div class="s6-keypad">
+                                        <button type="button" id="s6-key-7" class="s6-key" aria-label="Digit 7" data-calc-key="7">7</button>
+                                        <button type="button" id="s6-key-8" class="s6-key" aria-label="Digit 8" data-calc-key="8">8</button>
+                                        <button type="button" id="s6-key-9" class="s6-key" aria-label="Digit 9" data-calc-key="9">9</button>
+                                        <button type="button" id="s6-key-del" class="s6-key utility" aria-label="Delete last digit" data-calc-key="DEL">DEL</button>
+                                        <button type="button" id="s6-key-clear" class="s6-key utility" aria-label="Clear calculator" data-calc-key="C">C</button>
+
+                                        <button type="button" id="s6-key-4" class="s6-key" aria-label="Digit 4" data-calc-key="4">4</button>
+                                        <button type="button" id="s6-key-5" class="s6-key" aria-label="Digit 5" data-calc-key="5">5</button>
+                                        <button type="button" id="s6-key-6" class="s6-key" aria-label="Digit 6" data-calc-key="6">6</button>
+                                        <button type="button" id="s6-key-mul" class="s6-key operator" aria-label="Multiply" data-calc-key="*">x</button>
+                                        <button type="button" id="s6-key-div" class="s6-key operator" aria-label="Divide" data-calc-key="/">/</button>
+
+                                        <button type="button" id="s6-key-1" class="s6-key" aria-label="Digit 1" data-calc-key="1">1</button>
+                                        <button type="button" id="s6-key-2" class="s6-key" aria-label="Digit 2" data-calc-key="2">2</button>
+                                        <button type="button" id="s6-key-3" class="s6-key" aria-label="Digit 3" data-calc-key="3">3</button>
+                                        <button type="button" id="s6-key-plus" class="s6-key operator" aria-label="Add" data-calc-key="+">+</button>
+                                        <button type="button" id="s6-key-minus" class="s6-key operator" aria-label="Subtract" data-calc-key="-">-</button>
+
+                                        <button type="button" id="s6-key-sign" class="s6-key utility" aria-label="Toggle sign" data-calc-key="+/-">+/-\</button>
+                                        <button type="button" id="s6-key-0" class="s6-key" aria-label="Digit 0" data-calc-key="0">0</button>
+                                        <button type="button" id="s6-key-dot" class="s6-key" aria-label="Decimal point" data-calc-key=".">.</button>
+                                        <button type="button" id="s6-key-ee" class="s6-key ee" aria-label="Exponent key EE or EXP" data-calc-key="EE">EE/EXP</button>
+                                        <button type="button" id="s6-key-equals" class="s6-key operator" aria-label="Equals" data-calc-key="=">=</button>
+
+                                        <button type="button" id="s6-key-enter" class="s6-key utility" aria-label="Enter mission check" data-calc-key="ENTER" style="grid-column: span 5;">ENTER</button>
+                                    </div>
+                                    <div class="s6-calc-status" id="s6-calc-status">Type the exact sequence: 6 . 0 2 2 EE 2 3</div>
+                                    <div class="s6-calc-step" id="s6-mission-step">Progress 0/8 • Next mission key: 6</div>
+                                </div>
+                            </div>
+                            <div class="s6-grid" style="margin-top:0.6rem; gap: 4px;">
+                                <button type="button" id="s6-reset-calc" class="s6-btn ghost">Reset Mission + Calculator</button>
+                                <button type="button" id="s6-run-keypad" class="s6-btn">Run Guided Demo (Required)</button>
+                            </div>
+                            <div class="s6-feedback" id="s6-notation-feedback">${state.notationFeedback}</div>
+                        </div>
 
                         <div class="s6-pane" style="margin-top:0.75rem;">
                             <h3 style="margin:0 0 0.45rem;">Concrete Mission</h3>
                             <div class="s6-status" style="margin-top:0; margin-bottom:0.5rem;">
+                                <span class="s6-pill ${state.l61Correct ? 'good' : 'locked'}">Powers of 10</span>
+                                <span class="s6-pill ${state.l62Correct ? 'good' : 'locked'}">Scientific Notation</span>
                                 <span id="s6-pill-manual" class="s6-pill ${state.concreteMission.manualCompleted ? 'good' : 'locked'}">Manual entry complete</span>
                                 <span id="s6-pill-demo" class="s6-pill ${state.concreteMission.demoWatched ? 'good' : 'locked'}">Guided demo watched</span>
                             </div>
@@ -331,9 +454,49 @@ export function createStage6Scientific() {
 
                     <!-- PICTORIAL LEVEL -->
                     <article class="s6-card s6-level ${levelLocked(state.pictorialUnlocked)}">
-                        <h2>Pictorial Level: Kinetic Train Tracks</h2>
-                        <p><strong>[Required Unlock] L6.5 Unit Cancellation:</strong> Arrange factors to convert 250 mL of saline solution to grams. Conversion factor is 0.95 g per 100 mL. Diagonal mL cancel.</p>
-                        <div class="s6-pane">
+                        <h2>Pictorial Level: Metric Prefixes & Kinetic Train Tracks</h2>
+                        
+                        <!-- L6.4 Metric Prefixes -->
+                        <div class="s6-pane ${paneLockedClass('L6.4')}">
+                            <strong>L6.4 Metric Prefixes</strong> ${statusPill('L6.4')}
+                            <p>Match prefixes to their power of 10 scale factor:</p>
+                            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                                <div>
+                                    <span style="display:inline-block; width: 80px; font-weight: bold;">micro- (µ-) = </span>
+                                    <div class="s6-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px; display: inline-grid; width: calc(100% - 90px); vertical-align: middle;">
+                                        <button type="button" aria-pressed="${state.l64Answers.micro === '10^-6' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.micro === '10^-6' ? 'active' : ''}" data-l64="micro" data-value="10^-6">10<sup>-6</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.micro === '10^-3' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.micro === '10^-3' ? 'active' : ''}" data-l64="micro" data-value="10^-3">10<sup>-3</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.micro === '10^3' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.micro === '10^3' ? 'active' : ''}" data-l64="micro" data-value="10^3">10<sup>3</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.micro === '10^6' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.micro === '10^6' ? 'active' : ''}" data-l64="micro" data-value="10^6">10<sup>6</sup></button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="display:inline-block; width: 80px; font-weight: bold;">milli- (m-) = </span>
+                                    <div class="s6-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px; display: inline-grid; width: calc(100% - 90px); vertical-align: middle;">
+                                        <button type="button" aria-pressed="${state.l64Answers.milli === '10^-6' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.milli === '10^-6' ? 'active' : ''}" data-l64="milli" data-value="10^-6">10<sup>-6</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.milli === '10^-3' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.milli === '10^-3' ? 'active' : ''}" data-l64="milli" data-value="10^-3">10<sup>-3</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.milli === '10^3' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.milli === '10^3' ? 'active' : ''}" data-l64="milli" data-value="10^3">10<sup>3</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.milli === '10^6' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.milli === '10^6' ? 'active' : ''}" data-l64="milli" data-value="10^6">10<sup>6</sup></button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span style="display:inline-block; width: 80px; font-weight: bold;">kilo- (k-) = </span>
+                                    <div class="s6-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px; display: inline-grid; width: calc(100% - 90px); vertical-align: middle;">
+                                        <button type="button" aria-pressed="${state.l64Answers.kilo === '10^-6' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.kilo === '10^-6' ? 'active' : ''}" data-l64="kilo" data-value="10^-6">10<sup>-6</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.kilo === '10^-3' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.kilo === '10^-3' ? 'active' : ''}" data-l64="kilo" data-value="10^-3">10<sup>-3</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.kilo === '10^3' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.kilo === '10^3' ? 'active' : ''}" data-l64="kilo" data-value="10^3">10<sup>3</sup></button>
+                                        <button type="button" aria-pressed="${state.l64Answers.kilo === '10^6' ? 'true' : 'false'}" class="s6-btn ghost ${state.l64Answers.kilo === '10^6' ? 'active' : ''}" data-l64="kilo" data-value="10^6">10<sup>6</sup></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" id="s6-check-l64" class="s6-btn" style="margin-top: 0.6rem; width: 100%;">Check Metric Prefixes</button>
+                            <div class="s6-feedback" id="s6-l64-feedback">${state.l64Feedback}</div>
+                        </div>
+
+                        <!-- L6.5 Dimensional Analysis Foundations -->
+                        <div class="s6-pane ${paneLockedClass('L6.5')}">
+                            <strong>L6.5 Dimensional Analysis Foundations:</strong> ${statusPill('L6.5')}
+                            <p>Arrange factors to convert 250 mL of saline solution to grams. Conversion factor is 0.95 g per 100 mL. Diagonal mL cancel.</p>
                             <div class="s6-grid" style="margin-bottom:0.5rem; gap: 4px;">
                                 <div id="s6-bank-start" class="s6-card-tile">250 <span class="s6-unit">mL</span> / 1</div>
                                 <div id="s6-bank-factor" class="s6-card-tile">0.95 <span class="s6-unit">g</span> / 100 <span class="s6-unit">mL</span></div>
@@ -343,17 +506,133 @@ export function createStage6Scientific() {
                                 <div class="s6-slot" id="s6-slot1"></div>
                             </div>
                             <div class="s6-grid" style="margin-top:0.6rem; gap: 4px;">
-                                <button id="s6-flip-factor" class="s6-btn" ${disabled(state.pictorialUnlocked)}>Flip Conversion Factor</button>
-                                <button id="s6-reset-track" class="s6-btn ghost" ${disabled(state.pictorialUnlocked)}>Reset Track</button>
-                                <button id="s6-check-track" class="s6-btn" ${disabled(state.pictorialUnlocked)}>Check Cancellation</button>
+                                <button id="s6-flip-factor" class="s6-btn">Flip Conversion Factor</button>
+                                <button id="s6-reset-track" class="s6-btn ghost">Reset Track</button>
+                                <button id="s6-check-track" class="s6-btn">Check Cancellation</button>
                             </div>
                         </div>
-                        <div class="s6-feedback">${state.trackFeedback}</div>
+                        <div class="s6-feedback" id="s6-track-feedback">${state.trackFeedback}</div>
 
+                        <!-- L6.5 Applied Dose (Moved to match L6.5 sequence) -->
+                        <div class="s6-pane ${paneLockedClass('L6.5-applied')}" style="margin-top: 0.75rem; margin-bottom: 0.75rem;">
+                            <strong>L6.5 Applied Dose:</strong> ${statusPill('L6.5-applied')}
+                            <p>${state.adaptive.item?.prompt || 'A syringe holds 10.0 mL of liquid drug. The drug density is 1.2 g/mL. What mass of drug does this dose deliver?'}</p>
+                            <div class="s6-grid">
+                                <button id="s6-app-wrong" class="s6-btn ghost">8.33 g because we divide 10.0 / 1.2</button>
+                                <button id="s6-app-right" class="s6-btn">12.0 g because 10.0 mL × (1.2 g / 1.0 mL) cancels mL, leaving grams (10.0 × 1.2 = 12.0)</button>
+                            </div>
+                            <div class="s6-feedback" id="s6-applied-feedback-text">${state.appliedFeedback}</div>
+                        </div>
+
+                        <!-- L6.5 Adaptive Pilot (Gemma4) (Moved to match L6.5 sequence) -->
+                        <div class="s6-pane ${paneLockedClass('L6.5-applied')}" style="margin-top:0.75rem; margin-bottom: 0.75rem;">
+                            <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Gemma4)</h3>
+                            <p style="margin-top:0;">Generate a fresh challenge at your current level, submit your answer, and get adaptive feedback + mastery updates for L6.5.</p>
+                            <div class="s6-grid" style="gap:4px;">
+                                <button id="s6-generate-adaptive" class="s6-btn" ${state.adaptive.loading ? 'disabled' : ''}>${state.adaptive.loading ? 'Generating...' : 'Generate Adaptive Challenge'}</button>
+                            </div>
+                            <div class="s6-feedback" id="s6-adaptive-status">${state.adaptive.error || 'Ready for adaptive challenge generation.'}</div>
+                            ${state.adaptive.item ? `
+                                <div class="s6-pane" style="margin-top:0.6rem;">
+                                    <p><strong>Challenge:</strong> ${state.adaptive.item.prompt}</p>
+                                    <p><strong>Difficulty:</strong> ${state.adaptive.item.difficulty || 'unspecified'}</p>
+                                    <p><strong>Tags:</strong> ${(state.adaptive.item.tags || []).join(', ') || 'none'}</p>
+                                    <div class="s6-grid" style="grid-template-columns: 1fr auto;">
+                                        <input id="s6-adaptive-response" class="s6-input" placeholder="Enter your response" value="${state.adaptive.response || ''}" />
+                                        <button id="s6-submit-adaptive" class="s6-btn" ${state.adaptive.loading ? 'disabled' : ''}>Submit</button>
+                                    </div>
+                                    <div class="s6-grid" style="gap:4px; margin-top:0.5rem;">
+                                        <button id="s6-reveal-hint" class="s6-btn ghost" ${state.adaptive.loading ? 'disabled' : ''}>Reveal Next Hint</button>
+                                    </div>
+                                    <div class="s6-feedback">${visibleHints.length ? visibleHints.map((hint, idx) => `${idx + 1}. ${hint}`).join('<br>') : 'No hints revealed yet.'}</div>
+                                </div>
+                            ` : ''}
+                            <div class="s6-feedback" id="s6-adaptive-feedback">${state.adaptive.grading?.feedback || 'No adaptive submission yet.'}${state.adaptive.grading?.regraded ? `<br><strong>Regrade:</strong> ${state.adaptive.grading.regradeReason}` : ''}</div>
+                            <div class="s6-feedback" id="s6-adaptive-mastery">${state.adaptive.mastery ? `Mastery check: ${(state.adaptive.mastery.evaluation.accuracy * 100).toFixed(0)}% accuracy across ${state.adaptive.mastery.evaluation.attempts} attempts (${state.adaptive.mastery.evaluation.passed ? 'MASTERED' : 'IN PROGRESS'}).` : 'Mastery policy: 80%+ with minimum attempts and consistency window.'}</div>
+                            <div class="s6-feedback" id="s6-adaptive-history">
+                                <strong>Recent Trend:</strong> ${trendAccuracy}% over last ${trendWindow.length || 0} attempts.<br>
+                                <strong>Last Attempts:</strong><br>
+                                ${recentAttempts.length
+                                    ? recentAttempts.map((entry, idx) => `${idx + 1}. ${entry.isCorrect ? 'OK' : 'X'} | src=${entry.source || 'n/a'} | conf=${typeof entry.confidence === 'number' ? entry.confidence.toFixed(2) : 'n/a'} | score=${typeof entry.score === 'number' ? entry.score.toFixed(2) : 'n/a'}`).join('<br>')
+                                    : 'No attempt history yet.'}
+                            </div>
+                        </div>
+
+                        <!-- L6.6 Multi-Step Train Tracks -->
+                        <div class="s6-pane ${paneLockedClass('L6.6')}" style="margin-top: 0.75rem;">
+                            <strong>L6.6 Multi-Step Train Tracks</strong> ${statusPill('L6.6')}
+                            <p>Arrange factors to convert 250 mL of saline solution to moles of NaCl. The solution concentration is 0.1 mol/L. Standard metric conversion: 1000 mL = 1 L. Flip factor orientations so diagonal units cancel along the entire conversion chain: mL &rarr; L &rarr; mol.</p>
+                            
+                            <div class="s6-track" style="grid-template-columns: repeat(3, minmax(110px, 1fr));">
+                                <div class="s6-slot">
+                                    <div class="s6-frac">
+                                        <div>250 <span class="s6-unit kill">mL</span></div>
+                                        <div class="s6-frac-line"></div>
+                                        <div>1</div>
+                                    </div>
+                                </div>
+                                <div class="s6-slot" id="s6-l66-slot1">
+                                    <!-- Dynamic content inside mount -->
+                                </div>
+                                <div class="s6-slot" id="s6-l66-slot2">
+                                    <!-- Dynamic content inside mount -->
+                                </div>
+                            </div>
+                            
+                            <div class="s6-grid" style="margin-top:0.6rem; gap: 4px;">
+                                <button id="s6-l66-flip-factor1" class="s6-btn">Flip Metric Factor</button>
+                                <button id="s6-l66-flip-factor2" class="s6-btn">Flip Conc. Factor</button>
+                                <button id="s6-check-l66" class="s6-btn">Check Multi-Step Track</button>
+                            </div>
+                            <div class="s6-feedback" id="s6-l66-feedback">${state.l66Feedback}</div>
+                        </div>
+
+                        <div class="s6-grid" style="margin-top: 0.6rem;">
+                            <button class="tutor-btn s6-btn ghost" title="Reinforcement" data-prompt="Explain the 'train tracks' dimensional analysis workspace. How does canceling units diagonally work?" ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        </div>
+                    </article>
+
+                    <!-- ABSTRACT LEVEL -->
+                    <article class="s6-card s6-level ${levelLocked(state.abstractUnlocked)}">
+                        <h2>Abstract Level: Derived Unit Scaling (Cubed Volumes)</h2>
+                        
+                        <!-- L6.7 Navigating Compound Science Units -->
+                        <div class="s6-pane ${paneLockedClass('L6.7')}" style="margin-bottom:0.75rem;">
+                            <p><strong>L6.7 Navigating Compound Science Units:</strong> ${statusPill('L6.7')}</p>
+                            <p>Compute <code>25 g x 2 J/(g*C) x 3 C</code>. Track cancellations of <code>g</code> and <code>C</code> to isolate the final unit.</p>
+                            <div class="s6-grid" style="grid-template-columns: 1fr 1fr;">
+                                <input id="s6-compound-value" class="s6-input" placeholder="Numeric result" value="${state.compoundAnswers.value}" />
+                                <input id="s6-compound-unit" class="s6-input" placeholder="Final unit" value="${state.compoundAnswers.unit}" />
+                            </div>
+                            <button id="s6-check-compound" class="s6-btn" style="margin-top:8px; width:100%;">Check Compound Units</button>
+                            <div class="s6-feedback" id="s6-compound-feedback">${state.compoundFeedback}</div>
+                        </div>
+                        
+                        <!-- L6.8 Derived Unit Scaling -->
+                        <div class="s6-pane ${paneLockedClass('L6.8')}">
+                            <p><strong>L6.8 Derived Unit Scaling:</strong> ${statusPill('L6.8')}</p>
+                            <p>Convert 2.0 m<sup>3</sup> to cm<sup>3</sup>. Scale factor is 1 m = 100 cm, so volume factor is 100 x 100 x 100 = 1,000,000.</p>
+                            <p>Enter the volume in cm<sup>3</sup> (write in full, e.g. 2000000):</p>
+                            <div class="s6-grid" style="grid-template-columns: 1fr auto;">
+                                <input id="s6-cube-input" class="s6-input" placeholder="Volume in cm^3" value="${state.cubedAnswer}" />
+                                <button id="s6-check-cube" class="s6-btn">Check Volume</button>
+                            </div>
+                        </div>
+                        <div class="s6-feedback" id="s6-cubed-feedback">${state.cubedFeedback}</div>
+
+                        <div class="s6-grid" style="margin-top: 0.6rem;">
+                            <button class="tutor-btn s6-btn ghost" title="Reinforcement" data-prompt="Why do we have to cube the conversion factor when converting metric volumes like m^3 to cm^3?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        </div>
+                    </article>
+
+                    <!-- APPLIED LEVEL -->
+                    <article class="s6-card s6-level ${levelLocked(state.appliedUnlocked)}">
+                        <h2>Applied Level: Density & Multi-Step Conversions</h2>
+                        
                         <!-- L6.9 Multidimensional Unit Scaling (3D Cube) -->
-                        <div class="s6-pane" style="margin-top:0.75rem;">
-                            <strong>L6.9 Multidimensional Unit Scaling (3D Cube)</strong>
-                            <p>A length scales linearly, but volume scales by the cube of the factor: $\text{Volume} = \text{Length}^3$. Drag the slider to adjust the side length of the cube in decimeters (dm).</p>
+                        <div class="s6-pane ${paneLockedClass('L6.9')}" style="margin-bottom:0.75rem;">
+                            <strong>L6.9 Multidimensional Unit Scaling (3D Cube)</strong> ${statusPill('L6.9')}
+                            <p>A length scales linearly, but volume scales by the cube of the factor: Volume = Length<sup>3</sup>. Drag the slider to adjust the side length of the cube in decimeters (dm).</p>
                             <div class="s6-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
                                 <div style="background:#0f172a; height:140px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">
                                     <div style="width: 80px; height: 80px; perspective: 400px;">
@@ -376,103 +655,28 @@ export function createStage6Scientific() {
                                 <div>
                                     <label class="s6-label">Cube Side Length: ${state.cubeLengthDm} dm (${(state.cubeLengthDm / 10).toFixed(1)} m)</label>
                                     <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
-                                        <input type="range" id="s6-cube-length-slider" min="1" max="10" value="${state.cubeLengthDm}" style="flex:1;" ${disabled(state.pictorialUnlocked) || (s6Cube ? 'disabled' : '')} />
-                                        <input type="number" id="s6-cube-length-num" min="1" max="10" value="${state.cubeLengthDm}" class="s6-input" style="width:60px; padding:0.25rem;" ${disabled(state.pictorialUnlocked) || (s6Cube ? 'disabled' : '')} />
+                                        <input type="range" id="s6-cube-length-slider" min="1" max="10" value="${state.cubeLengthDm}" style="flex:1;" ${s6Cube ? 'disabled' : ''} />
+                                        <input type="number" id="s6-cube-length-num" min="1" max="10" value="${state.cubeLengthDm}" class="s6-input" style="width:60px; padding:0.25rem;" ${s6Cube ? 'disabled' : ''} />
                                     </div>
-                                    <p style="margin:6px 0 3px; font-size:0.85rem;">How many cubic decimeters ($\text{dm}^3$) fit in a ${s6Cube ? s6Cube.decimeters : 10}\text{ dm} (${s6Cube ? s6Cube.meters : 1}\text{ m})$ cube?</p>
+                                    <p style="margin:6px 0 3px; font-size:0.85rem;">How many cubic decimeters (dm<sup>3</sup>) fit in a ${s6Cube ? s6Cube.decimeters : 10} dm (${s6Cube ? s6Cube.meters : 1} m) cube?</p>
                                     <div style="display:flex; gap:6px;">
-                                        <input type="number" id="s6-cubevol-input" class="s6-input" placeholder="e.g. 1000" value="${state.cubeVolumeAnswer}" data-tutor-question-id="s6-cube" ${disabled(state.pictorialUnlocked)} />
-                                        <button id="s6-check-cubevol" class="s6-btn" data-tutor-question-id="s6-cube" ${disabled(state.pictorialUnlocked)}>Check Volume</button>
+                                        <input type="number" id="s6-cubevol-input" class="s6-input" placeholder="e.g. 1000" value="${state.cubeVolumeAnswer}" data-tutor-question-id="s6-cube" />
+                                        <button id="s6-check-cubevol" class="s6-btn" data-tutor-question-id="s6-cube">Check Volume</button>
                                     </div>
                                 </div>
                             </div>
                             <div class="s6-feedback" id="s6-cubevol-feedback">${state.cubeVolumeFeedback}</div>
                         </div>
 
-                        <div class="s6-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s6-btn ghost" title="Reinforcement" data-prompt="Explain the 'train tracks' dimensional analysis workspace. How does canceling units diagonally work?" ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
-                        </div>
-                    </article>
-
-                    <!-- ABSTRACT LEVEL -->
-                    <article class="s6-card s6-level ${levelLocked(state.abstractUnlocked)}">
-                        <h2>Abstract Level: Derived Unit Scaling (Cubed Volumes)</h2>
-                        <div class="s6-pane" style="margin-bottom:0.75rem;">
-                            <p><strong>[Reinforcement] L6.7 Navigating Compound Science Units:</strong> Compute <code>25 g x 2 J/(g*C) x 3 C</code>. Track cancellations of <code>g</code> and <code>C</code> to isolate the final unit.</p>
-                            <div class="s6-grid" style="grid-template-columns: 1fr 1fr;">
-                                <input id="s6-compound-value" class="s6-input" placeholder="Numeric result" value="${state.compoundAnswers.value}" ${disabled(state.abstractUnlocked)} />
-                                <input id="s6-compound-unit" class="s6-input" placeholder="Final unit" value="${state.compoundAnswers.unit}" ${disabled(state.abstractUnlocked)} />
-                            </div>
-                            <button id="s6-check-compound" class="s6-btn" style="margin-top:8px; width:100%;" ${disabled(state.abstractUnlocked)}>Check Compound Units</button>
-                            <div class="s6-feedback" id="s6-compound-feedback">${state.compoundFeedback}</div>
-                        </div>
-                        <p><strong>[Required Unlock] L6.8 Volumes:</strong> Convert 2.0 m^3 to cm^3. Scale factor is 1 m = 100 cm, so volume factor is 100 x 100 x 100 = 1,000,000.</p>
-                        <div class="s6-pane">
-                            <p>Enter the volume in cm^3 (write in full, e.g. 2000000):</p>
-                            <div class="s6-grid" style="grid-template-columns: 1fr auto;">
-                                <input id="s6-cube-input" class="s6-input" placeholder="Volume in cm^3" value="${state.cubedAnswer}" ${disabled(state.abstractUnlocked)} />
-                                <button id="s6-check-cube" class="s6-btn" ${disabled(state.abstractUnlocked)}>Check Volume</button>
-                            </div>
-                        </div>
-                        <div class="s6-feedback">${state.cubedFeedback}</div>
-
-                        <div class="s6-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s6-btn ghost" title="Reinforcement" data-prompt="Why do we have to cube the conversion factor when converting metric volumes like m^3 to cm^3?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
-                        </div>
-                    </article>
-
-                    <!-- APPLIED LEVEL -->
-                    <article class="s6-card s6-level ${levelLocked(state.appliedUnlocked)}">
-                        <h2>Applied Level: Density Dosing conversion</h2>
-                        <p><strong>L6.5 Applied:</strong> ${state.adaptive.item?.prompt || 'A syringe holds 10.0 mL of liquid drug. The drug density is 1.2 g/mL. What mass of drug does this dose deliver?'}</p>
-                        <div class="s6-grid">
-                            <button id="s6-app-wrong" class="s6-btn ghost" ${disabled(state.appliedUnlocked)}>8.33 g because we divide 10.0 / 1.2</button>
-                            <button id="s6-app-right" class="s6-btn" ${disabled(state.appliedUnlocked)}>12.0 g because 10.0 mL × (1.2 g / 1.0 mL) cancels mL, leaving grams (10.0 × 1.2 = 12.0)</button>
-                        </div>
-                        <div class="s6-feedback">${state.appliedFeedback}</div>
-
                         <!-- L6.10 Compound Metric Conversion Chains -->
-                        <div class="s6-pane" style="margin-top:0.75rem;">
-                            <strong>L6.10 Compound Metric Conversion Chains</strong>
-                            <p>Density is a compound unit. Convert $${s6Density.density}\text{ g/cm}^3$ to $\text{kg/m}^3$. Multiply by $1\text{ kg} / 1000\text{ g}$ and $1,000,000\text{ cm}^3 / 1\text{ m}^3$.</p>
+                        <div class="s6-pane ${paneLockedClass('L6.10')}" style="margin-bottom:0.75rem;">
+                            <strong>L6.10 Compound Metric Conversion Chains</strong> ${statusPill('L6.10')}
+                            <p>Density is a compound unit. Convert ${s6Density.density} g/cm<sup>3</sup> to kg/m<sup>3</sup>. Multiply by 1 kg / 1000 g and 1,000,000 cm<sup>3</sup> / 1 m<sup>3</sup>.</p>
                             <div style="display:flex; gap:6px; margin-bottom:8px;">
-                                <input type="number" id="s6-densityconv-input" class="s6-input" placeholder="Value in kg/m^3" value="${state.densityConvAnswer}" data-tutor-question-id="s6-density" ${disabled(state.appliedUnlocked)} />
-                                <button id="s6-check-densityconv" class="s6-btn" data-tutor-question-id="s6-density" ${disabled(state.appliedUnlocked)}>Check Density</button>
+                                <input type="number" id="s6-densityconv-input" class="s6-input" placeholder="Value in kg/m^3" value="${state.densityConvAnswer}" data-tutor-question-id="s6-density" />
+                                <button id="s6-check-densityconv" class="s6-btn" data-tutor-question-id="s6-density">Check Density</button>
                             </div>
                             <div class="s6-feedback" id="s6-densityconv-feedback">${state.densityConvFeedback}</div>
-                        </div>
-
-                        <div class="s6-pane" style="margin-top:0.75rem;">
-                            <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Gemma4)</h3>
-                            <p style="margin-top:0;">Generate a fresh challenge at your current level, submit your answer, and get adaptive feedback + mastery updates for L6.5.</p>
-                            <div class="s6-grid" style="gap:4px;">
-                                <button id="s6-generate-adaptive" class="s6-btn" ${disabled(state.appliedUnlocked)} ${state.adaptive.loading ? 'disabled' : ''}>${state.adaptive.loading ? 'Generating...' : 'Generate Adaptive Challenge'}</button>
-                            </div>
-                            <div class="s6-feedback" id="s6-adaptive-status">${state.adaptive.error || 'Ready for adaptive challenge generation.'}</div>
-                            ${state.adaptive.item ? `
-                                <div class="s6-pane" style="margin-top:0.6rem;">
-                                    <p><strong>Challenge:</strong> ${state.adaptive.item.prompt}</p>
-                                    <p><strong>Difficulty:</strong> ${state.adaptive.item.difficulty || 'unspecified'}</p>
-                                    <p><strong>Tags:</strong> ${(state.adaptive.item.tags || []).join(', ') || 'none'}</p>
-                                    <div class="s6-grid" style="grid-template-columns: 1fr auto;">
-                                        <input id="s6-adaptive-response" class="s6-input" placeholder="Enter your response" value="${state.adaptive.response || ''}" ${disabled(state.appliedUnlocked)} />
-                                        <button id="s6-submit-adaptive" class="s6-btn" ${disabled(state.appliedUnlocked)} ${state.adaptive.loading ? 'disabled' : ''}>Submit</button>
-                                    </div>
-                                    <div class="s6-grid" style="gap:4px; margin-top:0.5rem;">
-                                        <button id="s6-reveal-hint" class="s6-btn ghost" ${disabled(state.appliedUnlocked)} ${state.adaptive.loading ? 'disabled' : ''}>Reveal Next Hint</button>
-                                    </div>
-                                    <div class="s6-feedback">${visibleHints.length ? visibleHints.map((hint, idx) => `${idx + 1}. ${hint}`).join('<br>') : 'No hints revealed yet.'}</div>
-                                </div>
-                            ` : ''}
-                            <div class="s6-feedback" id="s6-adaptive-feedback">${state.adaptive.grading?.feedback || 'No adaptive submission yet.'}${state.adaptive.grading?.regraded ? `<br><strong>Regrade:</strong> ${state.adaptive.grading.regradeReason}` : ''}</div>
-                            <div class="s6-feedback" id="s6-adaptive-mastery">${state.adaptive.mastery ? `Mastery check: ${(state.adaptive.mastery.evaluation.accuracy * 100).toFixed(0)}% accuracy across ${state.adaptive.mastery.evaluation.attempts} attempts (${state.adaptive.mastery.evaluation.passed ? 'MASTERED' : 'IN PROGRESS'}).` : 'Mastery policy: 80%+ with minimum attempts and consistency window.'}</div>
-                            <div class="s6-feedback" id="s6-adaptive-history">
-                                <strong>Recent Trend:</strong> ${trendAccuracy}% over last ${trendWindow.length || 0} attempts.<br>
-                                <strong>Last Attempts:</strong><br>
-                                ${recentAttempts.length
-                                    ? recentAttempts.map((entry, idx) => `${idx + 1}. ${entry.isCorrect ? 'OK' : 'X'} | src=${entry.source || 'n/a'} | conf=${typeof entry.confidence === 'number' ? entry.confidence.toFixed(2) : 'n/a'} | score=${typeof entry.score === 'number' ? entry.score.toFixed(2) : 'n/a'}`).join('<br>')
-                                    : 'No attempt history yet.'}
-                            </div>
                         </div>
 
                         <div class="s6-grid" style="margin-top: 0.6rem;">
@@ -492,17 +696,41 @@ export function createStage6Scientific() {
                         keys: 'diagnosticAnswers.q1,diagnosticAnswers.q2,diagnosticAnswers.q3',
                         prompt: 'Help me review my Stage 6 diagnostic answers about E-notation, conversion factors, and cubed scaling.'
                     },
+                    's6-check-l61': {
+                        id: 's6-powers-10',
+                        level: 'concrete',
+                        keys: 'l61Answers.q1,l61Answers.q2,l61Answers.q3',
+                        prompt: 'Help me review my powers of 10 matching answers.'
+                    },
+                    's6-check-l62': {
+                        id: 's6-scientific-notation',
+                        level: 'concrete',
+                        keys: 'l62Answers.value,l62Answers.power',
+                        prompt: 'Help me review converting 5400 to scientific notation.'
+                    },
                     's6-run-keypad': {
                         id: 's6-enotation-keypad',
                         level: 'concrete',
                         keys: 'concreteMission.manualCompleted,concreteMission.demoWatched,concreteMission.calculatorDisplay,concreteMission.enteredSequence,concreteMission.error,concreteMission.demoRunning,concreteMission.exponentSignPending,notationFeedback,concreteCompleted,pictorialUnlocked',
                         prompt: 'Help me translate textbook scientific notation into calculator EE/EXP keystrokes.'
                     },
+                    's6-check-l64': {
+                        id: 's6-metric-prefixes',
+                        level: 'pictorial',
+                        keys: 'l64Answers.micro,l64Answers.milli,l64Answers.kilo',
+                        prompt: 'Help me match metric prefixes to their powers of 10 scale factors.'
+                    },
                     's6-check-track': {
                         id: 's6-train-track',
                         level: 'pictorial',
                         keys: 'factorFlipped,trackSlots.slot0,trackSlots.slot1',
                         prompt: 'Help me arrange dimensional-analysis train tracks so units cancel correctly.'
+                    },
+                    's6-check-l66': {
+                        id: 's6-multistep-train-track',
+                        level: 'pictorial',
+                        keys: 'l66Factor1Flipped,l66Factor2Flipped',
+                        prompt: 'Help me arrange a two-step train track to convert mL to moles.'
                     },
                     's6-check-compound': {
                         id: 's6-compound-units',
@@ -516,27 +744,39 @@ export function createStage6Scientific() {
                         keys: 'cubedAnswer',
                         prompt: 'Help me convert 2.0 cubic meters to cubic centimeters using cubed scaling.'
                     },
+                    's6-check-cubevol': {
+                        id: 's6-cube',
+                        level: 'applied',
+                        keys: 'cubeLengthDm,cubeVolumeAnswer',
+                        prompt: 'Help me calculate the volume in dm^3 for the 3D cube.'
+                    },
                     's6-app-right': {
                         id: 's6-density-dose',
-                        level: 'applied',
+                        level: 'pictorial',
                         keys: 'appliedChoice',
                         prompt: 'Help me compute mass from volume and density using dimensional analysis.'
                     },
+                    's6-check-densityconv': {
+                        id: 's6-density',
+                        level: 'applied',
+                        keys: 'densityConvAnswer',
+                        prompt: 'Help me convert g/cm^3 density to kg/m^3.'
+                    },
                     's6-generate-adaptive': {
                         id: 's6-adaptive-generate',
-                        level: 'applied',
+                        level: 'pictorial',
                         keys: 'adaptive.item,adaptive.loading',
                         prompt: 'Help me interpret this adaptive challenge before I answer.'
                     },
                     's6-submit-adaptive': {
                         id: 's6-adaptive-submit',
-                        level: 'applied',
+                        level: 'pictorial',
                         keys: 'adaptive.response,adaptive.item,adaptive.hintRevealCount',
                         prompt: 'Help me submit a strong response to this adaptive challenge and check my reasoning.'
                     },
                     's6-reveal-hint': {
                         id: 's6-adaptive-hints',
-                        level: 'applied',
+                        level: 'pictorial',
                         keys: 'adaptive.hintRevealCount,adaptive.item',
                         prompt: 'Help me use hints productively without giving away the final answer immediately.'
                     }
@@ -567,13 +807,38 @@ export function createStage6Scientific() {
 
             const syncConcreteMission = () => {
                 const complete = Boolean(
+                    state.l61Correct && state.l62Correct &&
                     state.concreteMission.manualCompleted && state.concreteMission.demoWatched
                 );
 
                 if (complete && !state.concreteCompleted) {
                     state.concreteCompleted = true;
                     state.pictorialUnlocked = true;
-                    state.notationFeedback = 'Concrete mission complete. You typed the sequence manually and watched the guided demo. Pictorial unlocked. Continue below.';
+                    state.notationFeedback = 'Concrete mission complete. You matched powers of 10, converted scientific notation, and completed the calculator practice. Pictorial unlocked. Continue below.';
+                }
+            };
+
+            const syncPictorialMission = () => {
+                const complete = Boolean(
+                    state.l64Correct && !state.factorFlipped && state.l66Correct
+                );
+                if (complete && !state.abstractUnlocked) {
+                    state.abstractUnlocked = true;
+                    state.trackFeedback = 'Pictorial mission complete. Metric prefixes matched, and train tracks cancellation verified. Abstract unlocked. Continue below.';
+                }
+            };
+
+            const syncAbstractMission = () => {
+                const compoundVal = Number(state.compoundAnswers.value);
+                const compoundUnit = state.compoundAnswers.unit.toLowerCase().replace(/\s+/g, '');
+                const compoundCorrect = compoundVal === 150 && (compoundUnit === 'j' || compoundUnit === 'joule' || compoundUnit === 'joules');
+
+                const cubeVal = state.cubedAnswer.trim();
+                const cubeCorrect = (cubeVal === '2000000' || cubeVal === '2,000,000' || cubeVal === '2.0e6');
+
+                if (compoundCorrect && cubeCorrect && !state.appliedUnlocked) {
+                    state.appliedUnlocked = true;
+                    state.cubedFeedback = 'Abstract mission complete. Compound units evaluated, and cubic meters scaled. Applied unlocked. Continue below.';
                 }
             };
 
@@ -657,6 +922,7 @@ export function createStage6Scientific() {
             };
 
             renderTrack();
+            renderTrackL66();
 
             // Bind Tutor
             host.querySelectorAll('.tutor-btn').forEach((btn) => {
@@ -685,9 +951,27 @@ export function createStage6Scientific() {
                 state.diagnosticDone = true;
                 if (correct) {
                     state.fastTrack = true;
+                    
+                    state.concreteCompleted = true;
+                    state.l61Correct = true;
+                    state.l62Correct = true;
+                    state.concreteMission.manualCompleted = true;
+                    state.concreteMission.demoWatched = true;
+                    
                     state.pictorialUnlocked = true;
+                    state.l64Correct = true;
+                    state.factorFlipped = false;
+                    state.l66Correct = true;
+                    
                     state.abstractUnlocked = true;
+                    state.cubedAnswer = '2000000';
+                    state.compoundAnswers = { value: '150', unit: 'J' };
+                    
                     state.appliedUnlocked = true;
+                    state.cubeVolumeAnswer = s6Cube ? String(s6Cube.answerKey) : '1000';
+                    state.densityConvAnswer = String(s6Density.answerKey);
+                    state.appliedChoice = 'right';
+                    
                     state.diagnosticFeedback = 'Fast-Track Achievement unlocked! You mastered E-notations, train tracks, and cubed volumetric conversions. All levels are now open.';
                 } else {
                     state.fastTrack = false;
@@ -702,14 +986,12 @@ export function createStage6Scientific() {
             const calcStatusEl = host.querySelector('#s6-calc-status');
             const missionStepEl = host.querySelector('#s6-mission-step');
             const notationFeedbackEl = host.querySelector('#s6-notation-feedback');
-            const manualPillEl = host.querySelector('#s6-pill-manual');
-            const demoPillEl = host.querySelector('#s6-pill-demo');
             const continuePictorialBtn = host.querySelector('#s6-continue-pictorial');
             const runKeypadBtn = host.querySelector('#s6-run-keypad');
             const resetCalcBtn = host.querySelector('#s6-reset-calc');
             const calcPaneEl = host.querySelector('#s6-calc-pane');
             const calcKeys = host.querySelectorAll('[data-calc-key]');
-            const concreteLocked = !(state.fastTrack || state.concreteUnlocked);
+            const concreteLocked = !(state.fastTrack || state.concreteUnlocked) || !isLessonUnlocked('L6.3');
 
             const updateCalculatorDisplay = () => {
                 if (calculatorDisplayEl) {
@@ -774,16 +1056,6 @@ export function createStage6Scientific() {
 
                 if (notationFeedbackEl) {
                     notationFeedbackEl.textContent = state.notationFeedback;
-                }
-
-                if (manualPillEl) {
-                    manualPillEl.classList.toggle('good', Boolean(state.concreteMission.manualCompleted));
-                    manualPillEl.classList.toggle('locked', !state.concreteMission.manualCompleted);
-                }
-
-                if (demoPillEl) {
-                    demoPillEl.classList.toggle('good', Boolean(state.concreteMission.demoWatched));
-                    demoPillEl.classList.toggle('locked', !state.concreteMission.demoWatched);
                 }
 
                 if (runKeypadBtn) {
@@ -1035,7 +1307,51 @@ export function createStage6Scientific() {
 
             refreshConcreteUi();
 
-            // Pictorial Track Flip
+            // L6.1 Powers of 10 Answer Clicks
+            host.querySelectorAll('[data-l61]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const q = btn.getAttribute('data-l61');
+                    const val = btn.getAttribute('data-value');
+                    state.l61Answers[q] = val;
+                    persist('Powers of 10 answer chosen');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelector('#s6-check-l61')?.addEventListener('click', () => {
+                const correct = state.l61Answers.q1 === '1000' &&
+                                state.l61Answers.q2 === '0.01' &&
+                                state.l61Answers.q3 === '0.001';
+                state.l61Correct = correct;
+                if (correct) {
+                    state.l61Feedback = 'Correct! 10^3 = 1000, 10^-2 = 0.01, 10^-3 = 0.001.';
+                } else {
+                    state.l61Feedback = 'Incorrect. Recall that positive exponents mean multiplying 10s, negative exponents mean dividing (decimals).';
+                }
+                syncConcreteMission();
+                persist('Powers of 10 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L6.2 Scientific Notation Answer Clicks
+            host.querySelector('#s6-check-l62')?.addEventListener('click', () => {
+                const val = host.querySelector('#s6-l62-value')?.value.trim();
+                const pow = host.querySelector('#s6-l62-power')?.value.trim();
+                state.l62Answers.value = val;
+                state.l62Answers.power = pow;
+                const correct = (val === '5.4' || val === '5.40') && pow === '3';
+                state.l62Correct = correct;
+                if (correct) {
+                    state.l62Feedback = 'Correct! 5400 is 5.4 × 10^3.';
+                } else {
+                    state.l62Feedback = 'Incorrect. Shift the decimal point to get a number between 1 and 10 (5.4), and count the steps (3).';
+                }
+                syncConcreteMission();
+                persist('Scientific notation checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // Pictorial Track Flip (L6.5)
             const flipFactorBtn = host.querySelector('#s6-flip-factor');
             flipFactorBtn?.addEventListener('click', () => {
                 state.factorFlipped = !state.factorFlipped;
@@ -1057,15 +1373,115 @@ export function createStage6Scientific() {
                 if (state.factorFlipped) {
                     state.trackFeedback = 'Not yet. Flip the factor back so mL cancels diagonally: 250 mL × (0.95 g / 100 mL).';
                 } else {
-                    state.abstractUnlocked = true;
-                    state.trackFeedback = 'Correct! mL in numerator cancels mL in denominator diagonally, leaving grams as target unit. Result: 250 × 0.95 / 100 = 2.375 g. Abstract unlocked. Continue below.';
+                    state.trackFeedback = 'Correct! mL in numerator cancels mL in denominator diagonally, leaving grams as target unit. Result: 250 × 0.95 / 100 = 2.375 g.';
                 }
+                syncPictorialMission();
                 persist('Track cancellation checked');
                 this.mount({ host, state, onStateChange });
             });
 
+            // L6.4 Metric Prefixes
+            host.querySelectorAll('[data-l64]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const q = btn.getAttribute('data-l64');
+                    const val = btn.getAttribute('data-value');
+                    state.l64Answers[q] = val;
+                    persist('Prefix answer chosen');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelector('#s6-check-l64')?.addEventListener('click', () => {
+                const correct = state.l64Answers.micro === '10^-6' &&
+                                state.l64Answers.milli === '10^-3' &&
+                                state.l64Answers.kilo === '10^3';
+                state.l64Correct = correct;
+                if (correct) {
+                    state.l64Feedback = 'Correct! micro- is 10^-6, milli- is 10^-3, kilo- is 10^3.';
+                } else {
+                    state.l64Feedback = 'Incorrect. Check your prefix definitions: micro (1 millionth), milli (1 thousandth), kilo (1 thousand).';
+                }
+                syncPictorialMission();
+                persist('Metric prefixes checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L6.6 Multi-Step Train Tracks
+            function renderTrackL66() {
+                const s1 = host.querySelector('#s6-l66-slot1');
+                const s2 = host.querySelector('#s6-l66-slot2');
+                if (!s1 || !s2) return;
+
+                if (state.l66Factor1Flipped) {
+                    s1.innerHTML = `
+                        <div class="s6-frac">
+                            <div>1000 <span class="s6-unit">mL</span></div>
+                            <div class="s6-frac-line"></div>
+                            <div>1 <span class="s6-unit">L</span></div>
+                        </div>
+                    `;
+                } else {
+                    s1.innerHTML = `
+                        <div class="s6-frac">
+                            <div>1 <span class="s6-unit kill">L</span></div>
+                            <div class="s6-frac-line"></div>
+                            <div>1000 <span class="s6-unit kill">mL</span></div>
+                        </div>
+                    `;
+                }
+
+                if (state.l66Factor2Flipped) {
+                    s2.innerHTML = `
+                        <div class="s6-frac">
+                            <div>1 <span class="s6-unit">L</span></div>
+                            <div class="s6-frac-line"></div>
+                            <div>0.1 <span class="s6-unit">mol</span></div>
+                        </div>
+                    `;
+                } else {
+                    s2.innerHTML = `
+                        <div class="s6-frac">
+                            <div>0.1 <span class="s6-unit">mol</span></div>
+                            <div class="s6-frac-line"></div>
+                            <div>1 <span class="s6-unit kill">L</span></div>
+                        </div>
+                    `;
+                }
+            }
+
+            host.querySelector('#s6-l66-flip-factor1')?.addEventListener('click', () => {
+                state.l66Factor1Flipped = !state.l66Factor1Flipped;
+                renderTrackL66();
+                persist('L6.6 factor 1 flipped');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s6-l66-flip-factor2')?.addEventListener('click', () => {
+                state.l66Factor2Flipped = !state.l66Factor2Flipped;
+                renderTrackL66();
+                persist('L6.6 factor 2 flipped');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s6-check-l66')?.addEventListener('click', () => {
+                if (state.l66Factor1Flipped || state.l66Factor2Flipped) {
+                    state.l66Feedback = 'Not yet. Both conversion factors must cancel units diagonally: mL with mL, and L with L.';
+                    state.l66Correct = false;
+                } else {
+                    state.l66Feedback = 'Correct! 250 mL × (1 L / 1000 mL) × (0.1 mol / 1 L) cancels all intermediate units, leaving moles. Result = 0.025 mol NaCl.';
+                    state.l66Correct = true;
+                }
+                syncPictorialMission();
+                persist('Multi-step track checked');
+                this.mount({ host, state, onStateChange });
+            });
+
             host.querySelector('#s6-hint-concrete')?.addEventListener('click', () => {
-                if (!state.concreteMission.manualCompleted) {
+                if (!state.l61Correct) {
+                    state.notationFeedback = 'Hint: Match all Powers of 10 correctly first.';
+                } else if (!state.l62Correct) {
+                    state.notationFeedback = 'Hint: Convert 5400 to scientific notation correctly first.';
+                } else if (!state.concreteMission.manualCompleted) {
                     state.notationFeedback = 'Hint: Type the exact key order 6 . 0 2 2 EE 2 3 manually first.';
                 } else if (!state.concreteMission.demoWatched) {
                     state.notationFeedback = 'Hint: Manual checkpoint is done. Run Guided Demo to complete the second required checkpoint.';
@@ -1080,23 +1496,23 @@ export function createStage6Scientific() {
                 if (state.fastTrack || state.pictorialUnlocked) {
                     state.notationFeedback = 'Pictorial unlocked. Continue below.';
                 } else {
-                    state.notationFeedback = 'Complete Concrete first: finish manual typing and watch the guided demo.';
+                    state.notationFeedback = 'Complete Concrete first: powers of 10, scientific notation, and calculator entry.';
                 }
                 persist('Continue to pictorial clicked');
                 this.mount({ host, state, onStateChange });
             });
 
-            // Abstract Cube
+            // Abstract Cube & Compound Checkers
             const checkCubeBtn = host.querySelector('#s6-check-cube');
             checkCubeBtn?.addEventListener('click', () => {
                 const val = host.querySelector('#s6-cube-input')?.value.trim() || '';
                 state.cubedAnswer = val;
                 if (val === '2000000' || val === '2,000,000' || val === '2.0e6') {
-                    state.cubedFeedback = 'Correct! 2.0 m^3 = 2.0 x 1,000,000 = 2,000,000 cm^3. Applied unlocked. Continue below.';
-                    state.appliedUnlocked = true;
+                    state.cubedFeedback = 'Correct! 2.0 m^3 = 2.0 x 1,000,000 = 2,000,000 cm^3.';
                 } else {
                     state.cubedFeedback = 'Incorrect. Cubing 100 gives 1,000,000, so multiply 2.0 by 1,000,000.';
                 }
+                syncAbstractMission();
                 persist('Cube checked');
                 this.mount({ host, state, onStateChange });
             });
@@ -1115,6 +1531,7 @@ export function createStage6Scientific() {
                     state.compoundFeedback = 'Not yet. Multiply numbers (25 x 2 x 3 = 150). Cancel g and C, so the remaining unit is J.';
                 }
 
+                syncAbstractMission();
                 persist('Compound units checked');
                 this.mount({ host, state, onStateChange });
             });
@@ -1251,7 +1668,7 @@ export function createStage6Scientific() {
                 });
             }
 
-            // L6.9 Multidimensional Scaling
+            // L6.9 Multidimensional Scaling (Cube Side Length)
             const handleCubeLength = (val) => {
                 const num = parseInt(val);
                 if (num >= 1 && num <= 10) {

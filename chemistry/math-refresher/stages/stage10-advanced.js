@@ -8,39 +8,72 @@ const createInitialStage10State = () => ({
     abstractUnlocked: false,
     appliedUnlocked: false,
 
-    // Concrete: pH Beaker Concentration
-    phValue: 7,
-    phFeedback: 'Concrete mission: set pH = 3 and correctly complete the Domain Limits check to unlock Pictorial.',
-    concreteCorrect: false,
-    concreteMission: { phReady: false, domainReady: false },
-    concreteCompleted: false,
+    // L10.1 The Mathematical Function
+    l101Choice: '',
+    l101Feedback: 'L10.1: In C = 2n + 1, identify the dependent variable.',
+    l101Done: false,
 
-    // Domain limits
+    // L10.2 Mathematical Domain Limits
     domainAnswers: { divide: '', log: '', sqrt: '' },
-    domainFeedback: 'L10.2 Domain Limits: avoid divide-by-zero, log of negative values, and square roots of negatives in real-number mode.',
-    domainCorrect: false,
+    domainFeedback: 'L10.2: Avoid divide-by-zero, log of negative values, and square roots of negatives in real-number mode.',
+    l102Done: false,
 
-    // Pictorial: Unit Circle Scanner
-    thetaVal: 0,
-    circleFeedback: 'Select the angle in Quadrant I where sin(theta) = 0.5 (y-coordinate is 0.5).',
-    circleCorrect: false,
+    // L10.3 Exponential Growth & Decay
+    l103Choice: '',
+    l103Feedback: 'L10.3: Classify N(t) = 500(0.80)^t as growth or decay.',
+    l103Done: false,
 
-    // Abstract: Log properties board
+    // L10.4 Logarithms Base-10
+    l104Answer: '',
+    l104Feedback: 'L10.4: Compute log10(10000).',
+    l104Done: false,
+
+    // L10.5 Logarithm Rules
     match1: '',
     match2: '',
     match3: '',
-    logFeedback: 'Match the three core logarithmic properties correctly.',
-    logCorrect: false,
+    logFeedback: 'L10.5: Match product, quotient, and power log rules.',
+    l105Done: false,
 
-    // Applied: Wave kinematics
+    // L10.6 Base e & Natural Logs
+    l106Choice: '',
+    l106Feedback: 'L10.6: Evaluate ln(e^3).',
+    l106Done: false,
+
+    // L10.7 Logarithmic Science Scales
+    phValue: 7,
+    phFeedback: 'L10.7: Set pH = 3 and observe the logarithmic concentration jump.',
+    l107Done: false,
+
+    // L10.8 Right-Triangle Trigonometry
+    l108Choice: '',
+    l108Feedback: 'L10.8: Identify the correct sine ratio.',
+    l108Done: false,
+
+    // L10.9 The Unit Circle
+    thetaVal: 0,
+    circleFeedback: 'L10.9: Select the Quadrant I angle where sin(theta) = 0.5.',
+    l109Done: false,
+
+    // L10.10 Trigonometric Wave Mechanics
+    l1010Choice: '',
+    l1010Feedback: 'L10.10: For frequency f = 5 Hz, determine the period T.',
+    l1010Done: false,
+
+    // L10.11 Wave Kinematics
     waveWavelength: '',
-    waveFeedback: 'Solve for wavelength lambda (lambda = v / f) given velocity v = 340 m/s and frequency f = 170 Hz.',
-    waveCorrect: false,
+    waveFeedback: 'L10.11: Solve lambda = v / f with v = 340 m/s and f = 170 Hz.',
+    l1011Done: false,
 
-    // L10.12 & L10.13: p-Operator and Log Sig Figs
+    // L10.12 The Mathematical p-Operator (pX)
     pKaInput: '',
-    pKaFeedback: 'L10.12 & L10.13: For pKa = 4.74 (2 decimal places), calculate Ka with correct sig figs (2 sig figs).',
-    pKaCorrect: false
+    pKaFeedback: 'L10.12: For pKa = 4.74, compute Ka = 10^(-pKa).',
+    l1012Done: false,
+
+    // L10.13 Logarithmic Significant Figures
+    sigFigChoice: '',
+    sigFigFeedback: 'L10.13: If pKa has 2 decimal places, how many significant figures should Ka have?',
+    l1013Done: false
 });
 
 export function createStage10Advanced() {
@@ -63,11 +96,30 @@ export function createStage10Advanced() {
             const getParams = (qId, defaultVal) => overrides[qId]?.parameters || overrides[qId] || defaultVal;
             const s10Antilog = getParams('s10-antilog', { ph: 4.74, answerKey: '1.8e-5' });
 
+            const syncUnlocks = () => {
+                if (state.fastTrack) {
+                    state.concreteUnlocked = true;
+                    state.pictorialUnlocked = true;
+                    state.abstractUnlocked = true;
+                    state.appliedUnlocked = true;
+                    return;
+                }
+
+                state.concreteUnlocked = true;
+                const concreteDone = state.l101Done && state.l102Done && state.l103Done;
+                const pictorialDone = state.l104Done && state.l105Done && state.l106Done && state.l107Done;
+                const abstractDone = state.l108Done && state.l109Done && state.l1010Done;
+
+                state.pictorialUnlocked = concreteDone;
+                state.abstractUnlocked = concreteDone && pictorialDone;
+                state.appliedUnlocked = concreteDone && pictorialDone && abstractDone;
+            };
+
+            syncUnlocks();
+
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's10-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
 
-            // Calculate red dots for pH beaker
-            // pH 1: 30 dots, pH 2: 15 dots, pH 3: 8 dots, pH 4: 4 dots, pH >= 5: 1 dot
             let dotsCount = 0;
             if (state.phValue === 1) dotsCount = 40;
             else if (state.phValue === 2) dotsCount = 20;
@@ -78,19 +130,16 @@ export function createStage10Advanced() {
 
             let dotsHtml = '';
             for (let i = 0; i < dotsCount; i++) {
-                // Generate random coordinates inside the beaker area (45 to 155 on x, 100 to 180 on y)
                 const rx = 45 + Math.floor(Math.sin(i * 12) * 50 + 50);
                 const ry = 100 + Math.floor(Math.cos(i * 23) * 35 + 40);
                 dotsHtml += `<circle cx="${rx}" cy="${ry}" r="4.5" fill="#ef4444" fill-opacity="0.85" />`;
             }
 
-            // Calculate Unit Circle variables
             const rad = (state.thetaVal * Math.PI) / 180;
             const cosX = Math.cos(rad);
             const sinY = Math.sin(rad);
-            // Circle center at (100, 100). radius 70.
             const px = 100 + cosX * 70;
-            const py = 100 - sinY * 70; // SVG y is inverted
+            const py = 100 - sinY * 70;
 
             host.innerHTML = `
                 <style>
@@ -115,16 +164,12 @@ export function createStage10Advanced() {
                     .s10-level.s10-locked { opacity: 0.52; position: relative; }
                     .s10-level.s10-locked::after { content: 'Locked by CPA gate'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.88); color: #cbd5e1; font-weight: 800; border-radius: 16px; z-index: 5; }
                     .s10-diagnostic { border: 2px solid #3b82f6; background: linear-gradient(180deg, rgba(30, 58, 138, 0.2), rgba(15, 23, 42, 0.4)); }
-                    
-                    /* SVG Custom structures */
                     .s10-svg-container { display: flex; justify-content: center; margin: 0.6rem 0; }
                     .s10-beaker-svg { width: 180px; height: 180px; }
                     .s10-beaker-outline { stroke: #94a3b8; stroke-width: 4; fill: none; stroke-linecap: round; }
                     .s10-beaker-water { fill: rgba(14, 165, 233, 0.15); }
-                    
                     .s10-plot-svg { width: 220px; height: 220px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; background: rgba(15, 23, 42, 0.8); }
                     .s10-axis { stroke: rgba(255, 255, 255, 0.15); stroke-width: 1.5; }
-                    
                     .s10-slider { width: 100%; cursor: pointer; accent-color: #f59e0b; }
                     .tutor-btn { margin-top: 0.5rem; }
                 </style>
@@ -132,30 +177,30 @@ export function createStage10Advanced() {
                 <section class="s10-wrap">
                     <article class="s10-card s10-diagnostic">
                         <h2>3-Question Entry Diagnostic</h2>
-                        <p>Verify your logarithms, base e natural logs, and cyclic wave dynamics.</p>
+                        <p>Verify your logarithms, natural logs, and wave basics. Perfect score unlocks Fast-Track.</p>
                         <div class="s10-grid">
                             <div class="s10-pane">
                                 <strong>1. Base-10 Logarithms</strong>
-                                <p>What is the value of log10(1000)?</p>
+                                <p>What is log10(1000)?</p>
                                 <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
-                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q1 === '3' ? 'active' : ''}" data-diag="q1" data-value="3">3 (because 10^3 = 1000)</button>
+                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q1 === '3' ? 'active' : ''}" data-diag="q1" data-value="3">3</button>
                                     <button class="s10-btn ghost ${state.diagnosticAnswers.q1 === '100' ? 'active' : ''}" data-diag="q1" data-value="100">100</button>
                                 </div>
                             </div>
                             <div class="s10-pane">
-                                <strong>2. Natural Logarithms (ln)</strong>
-                                <p>What is the value of the expression ln(e^2)?</p>
+                                <strong>2. Natural Logs</strong>
+                                <p>What is ln(e^2)?</p>
                                 <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
-                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q2 === '2' ? 'active' : ''}" data-diag="q2" data-value="2">2 (because ln and e cancel)</button>
-                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q2 === 'e' ? 'active' : ''}" data-diag="q2" data-value="e">e (≈ 2.718)</button>
+                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q2 === '2' ? 'active' : ''}" data-diag="q2" data-value="2">2</button>
+                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q2 === 'e' ? 'active' : ''}" data-diag="q2" data-value="e">e</button>
                                 </div>
                             </div>
                             <div class="s10-pane">
-                                <strong>3. Wave Mechanics</strong>
-                                <p>A light wave has frequency 2.0 x 10^14 Hz and wavelength 1.5 x 10^-6 m. What is its speed v = f * lambda?</p>
+                                <strong>3. Wave Speed</strong>
+                                <p>If f = 2.0 x 10^14 Hz and lambda = 1.5 x 10^-6 m, what is v = f * lambda?</p>
                                 <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
-                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q3 === 'c' ? 'active' : ''}" data-diag="q3" data-value="c">3.0 × 10⁸ m/s (Speed of light)</button>
-                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q3 === 'wrong' ? 'active' : ''}" data-diag="q3" data-value="wrong">3.0 × 10²⁰ m/s</button>
+                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q3 === 'c' ? 'active' : ''}" data-diag="q3" data-value="c">3.0 x 10^8 m/s</button>
+                                    <button class="s10-btn ghost ${state.diagnosticAnswers.q3 === 'wrong' ? 'active' : ''}" data-diag="q3" data-value="wrong">3.0 x 10^20 m/s</button>
                                 </div>
                             </div>
                         </div>
@@ -172,11 +217,23 @@ export function createStage10Advanced() {
                         </div>
                     </article>
 
-                    <!-- CONCRETE LEVEL -->
                     <article class="s10-card s10-level ${levelLocked(state.concreteUnlocked)}">
-                        <h2>Concrete Level: pH logarithmic Beaker</h2>
+                        <h2>Concrete Level: L10.1-L10.3 Function Foundations</h2>
+
                         <div class="s10-pane" style="margin-bottom:0.75rem;">
-                            <p><strong>[Required Unlock] L10.2 Mathematical Domain Limits:</strong> Choose the valid status for each expression in real-number arithmetic.</p>
+                            <strong>L10.1 The Mathematical Function</strong>
+                            <p>Given C = 2n + 1, which variable depends on the other?</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s10-btn ghost ${state.l101Choice === 'c_dep' ? 'active' : ''}" data-l101="c_dep" ${disabled(state.concreteUnlocked)}>C depends on n</button>
+                                <button class="s10-btn ghost ${state.l101Choice === 'n_dep' ? 'active' : ''}" data-l101="n_dep" ${disabled(state.concreteUnlocked)}>n depends on C</button>
+                            </div>
+                            <button id="s10-check-l101" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.concreteUnlocked)}>Verify L10.1</button>
+                            <div class="s10-feedback">${state.l101Feedback}</div>
+                        </div>
+
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.2 Mathematical Domain Limits</strong>
+                            <p>Choose the valid status for each expression in real-number arithmetic.</p>
                             <div class="s10-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
                                 <select id="s10-domain-divide" class="s10-input" ${disabled(state.concreteUnlocked)}>
                                     <option value="">1/(x-2) at x=2</option>
@@ -194,178 +251,186 @@ export function createStage10Advanced() {
                                     <option value="real" ${state.domainAnswers.sqrt === 'real' ? 'selected' : ''}>Real value</option>
                                 </select>
                             </div>
-                            <button id="s10-check-domain" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.concreteUnlocked)}>Check Domain Limits</button>
-                            <div class="s10-feedback" id="s10-domain-feedback">${state.domainFeedback}</div>
+                            <button id="s10-check-domain" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.concreteUnlocked)}>Verify L10.2</button>
+                            <div class="s10-feedback">${state.domainFeedback}</div>
                         </div>
-                        <p><strong>[Required Unlock] L10.7 Logarithmic Scales:</strong> The pH scale is logarithmic: pH = -log10([H3O+]). Each decrease of 1 pH unit represents a 10-fold increase in acid concentration!
-                        Adjust the slider below to set <strong>pH = 3</strong> (10^-3 M concentration) and observe the density of hydronium ions in the beaker.</p>
-                        
-                        <div class="s10-svg-container">
-                            <svg class="s10-beaker-svg" viewBox="0 0 200 200">
-                                <!-- Beaker Liquid -->
-                                <rect class="s10-beaker-water" x="40" y="80" width="120" height="110" rx="4" />
-                                <!-- Beaker ticks -->
-                                <line x1="160" y1="100" x2="150" y2="100" stroke="#94a3b8" stroke-width="2" />
-                                <line x1="160" y1="130" x2="150" y2="130" stroke="#94a3b8" stroke-width="2" />
-                                <line x1="160" y1="160" x2="150" y2="160" stroke="#94a3b8" stroke-width="2" />
-                                <!-- Beaker Outline -->
-                                <path class="s10-beaker-outline" d="M 40,40 L 40,190 Q 40,196 46,196 L 154,196 Q 160,196 160,190 L 160,40" />
-                                <!-- Hydronium dots -->
-                                ${dotsHtml}
-                            </svg>
-                        </div>
-                        
+
                         <div class="s10-pane">
-                            <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:1.1rem; color:#ef4444; gap: 0.5rem;">
-                                <span style="display: flex; align-items: center; gap: 0.4rem;">
-                                    pH:
-                                    <input type="number" id="s10-ph-input" class="s10-input" min="1" max="14" step="1" value="${state.phValue}" ${disabled(state.concreteUnlocked)} style="width: 70px;">
-                                </span>
-                                <span>[H₃O⁺] = 10<sup>-${state.phValue}</sup> M</span>
+                            <strong>L10.3 Exponential Growth & Decay</strong>
+                            <p>Classify N(t) = 500(0.80)^t.</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s10-btn ghost ${state.l103Choice === 'growth' ? 'active' : ''}" data-l103="growth" ${disabled(state.concreteUnlocked)}>Growth</button>
+                                <button class="s10-btn ghost ${state.l103Choice === 'decay' ? 'active' : ''}" data-l103="decay" ${disabled(state.concreteUnlocked)}>Decay</button>
                             </div>
-                            <input type="range" id="s10-ph-slider" class="s10-slider" min="1" max="14" step="1" value="${state.phValue}" ${disabled(state.concreteUnlocked)} style="width:100%; margin-top:0.4rem;">
-                        </div>
-                        
-                        <div class="s10-feedback" id="s10-ph-feedback">${state.phFeedback}</div>
-
-                        <div class="s10-pane" style="margin-top:0.75rem;">
-                            <h3 style="margin:0 0 0.45rem;">Concrete Mission</h3>
-                            <div class="s10-status" style="margin-top:0; margin-bottom:0.5rem;">
-                                <span class="s10-pill ${state.concreteMission.phReady ? 'good' : 'locked'}">Set pH to 3</span>
-                                <span class="s10-pill ${state.concreteMission.domainReady ? 'good' : 'locked'}">Pass Domain Limits check</span>
-                            </div>
-                            <div class="s10-grid" style="gap:4px;">
-                                <button id="s10-hint-concrete" class="s10-btn ghost" ${disabled(state.concreteUnlocked)}>Need a Hint? (Required)</button>
-                                <button id="s10-continue-pictorial" class="s10-btn" ${(state.fastTrack || state.pictorialUnlocked) ? '' : 'disabled'} ${disabled(state.concreteUnlocked)}>Continue to Pictorial (Required)</button>
-                            </div>
-                        </div>
-
-                        <div class="s10-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s10-btn ghost" title="Reinforcement" data-prompt="Explain what a logarithmic scale is and why a decrease in 1 pH unit increases acid hydronium concentration by a factor of 10." ${disabled(state.concreteUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                            <button id="s10-check-l103" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.concreteUnlocked)}>Verify L10.3</button>
+                            <div class="s10-feedback">${state.l103Feedback}</div>
                         </div>
                     </article>
 
-                    <!-- PICTORIAL LEVEL -->
                     <article class="s10-card s10-level ${levelLocked(state.pictorialUnlocked)}">
-                        <h2>Pictorial Level: The Unit Circle Trigonometric Scanner</h2>
-                        <p><strong>[Required Unlock] L10.9 Unit Circle:</strong> In chemistry crystallography and physics waveforms, we map sine and cosine to points on a unit circle (x^2 + y^2 = 1).
-                        Select the angle in Quadrant I (from 0 to 90 degrees) where sin(theta) = 0.5 (the y-coordinate reaches 0.5).</p>
-                        
-                        <div class="s10-svg-container">
-                            <svg class="s10-plot-svg" viewBox="0 0 200 200">
-                                <!-- Axes -->
-                                <line class="s10-axis" x1="100" y1="0" x2="100" y2="200" />
-                                <line class="s10-axis" x1="0" y1="100" x2="200" y2="100" />
-                                
-                                <!-- Unit Circle (Radius 70) -->
-                                <circle cx="100" cy="100" r="70" fill="none" stroke="#2563eb" stroke-width="2" />
-                                
-                                <!-- Coordinates projection guidelines -->
-                                <line x1="${px}" y1="100" x2="${px}" y2="${py}" stroke="#94a3b8" stroke-dasharray="2" />
-                                <line x1="100" y1="${py}" x2="${px}" y2="${py}" stroke="#94a3b8" stroke-dasharray="2" />
-                                
-                                <!-- Rotating vector line -->
-                                <line x1="100" y1="100" x2="${px}" y2="${py}" stroke="#e11d48" stroke-width="2.5" />
-                                <circle cx="${px}" cy="${py}" r="5" fill="#e11d48" />
-                                
-                                <!-- Coordinate labels -->
-                                <text x="10" y="20" font-size="9px" fill="#334155">
-                                    cos(θ) = ${cosX.toFixed(3)} (x)
-                                </text>
-                                <text x="10" y="32" font-size="9px" fill="#e11d48">
-                                    sin(θ) = ${sinY.toFixed(3)} (y)
-                                </text>
-                            </svg>
-                        </div>
-                        
-                        <div class="s10-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                            <button class="s10-btn s10-angle-btn ghost" data-angle="0" ${disabled(state.pictorialUnlocked)}>0°</button>
-                            <button class="s10-btn s10-angle-btn ghost" data-angle="30" ${disabled(state.pictorialUnlocked)}>30°</button>
-                            <button class="s10-btn s10-angle-btn ghost" data-angle="45" ${disabled(state.pictorialUnlocked)}>45°</button>
-                            <button class="s10-btn s10-angle-btn ghost" data-angle="60" ${disabled(state.pictorialUnlocked)}>60°</button>
-                        </div>
-                        
-                        <div class="s10-feedback" id="s10-circle-feedback" style="margin-top:0.5rem;">${state.circleFeedback}</div>
+                        <h2>Pictorial Level: L10.4-L10.7 Logarithmic Models</h2>
 
-                        <div class="s10-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s10-btn ghost" title="Reinforcement" data-prompt="Explain how the unit circle coordinates (x, y) relate to cosine and sine functions respectively, and calculate sin(30 degrees)." ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.4 Logarithms Base-10</strong>
+                            <p>Compute log10(10000).</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr auto;">
+                                <input type="number" id="s10-l104-input" class="s10-input" placeholder="e.g. 4" value="${state.l104Answer}" ${disabled(state.pictorialUnlocked)}>
+                                <button id="s10-check-l104" class="s10-btn" ${disabled(state.pictorialUnlocked)}>Verify L10.4</button>
+                            </div>
+                            <div class="s10-feedback">${state.l104Feedback}</div>
                         </div>
-                    </article>
 
-                    <!-- ABSTRACT LEVEL -->
-                    <article class="s10-card s10-level ${levelLocked(state.abstractUnlocked)}">
-                        <h2>Abstract Level: Logarithm properties Board</h2>
-                        <p><strong>[Required Unlock] L10.5 Log Rules:</strong> Match the algebraic expressions to their equivalent logarithmic expansion rule below.</p>
-                        
-                        <div class="s10-pane">
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.5 Logarithm Rules</strong>
                             <div class="s10-grid" style="grid-template-columns: 1.2fr 1fr; gap:0.6rem; align-items:center;">
-                                <span><strong>Product Rule:</strong> log_b(xy)</span>
-                                <select id="s10-log-m1" class="s10-input" ${disabled(state.abstractUnlocked)}>
+                                <span>Product: log_b(xy)</span>
+                                <select id="s10-log-m1" class="s10-input" ${disabled(state.pictorialUnlocked)}>
                                     <option value="">Select...</option>
                                     <option value="plus" ${state.match1 === 'plus' ? 'selected' : ''}>log_b(x) + log_b(y)</option>
                                     <option value="minus" ${state.match1 === 'minus' ? 'selected' : ''}>log_b(x) - log_b(y)</option>
                                     <option value="power" ${state.match1 === 'power' ? 'selected' : ''}>y * log_b(x)</option>
                                 </select>
-                                
-                                <span><strong>Quotient Rule:</strong> log_b(x/y)</span>
-                                <select id="s10-log-m2" class="s10-input" ${disabled(state.abstractUnlocked)}>
+                                <span>Quotient: log_b(x/y)</span>
+                                <select id="s10-log-m2" class="s10-input" ${disabled(state.pictorialUnlocked)}>
                                     <option value="">Select...</option>
                                     <option value="plus" ${state.match2 === 'plus' ? 'selected' : ''}>log_b(x) + log_b(y)</option>
                                     <option value="minus" ${state.match2 === 'minus' ? 'selected' : ''}>log_b(x) - log_b(y)</option>
                                     <option value="power" ${state.match2 === 'power' ? 'selected' : ''}>y * log_b(x)</option>
                                 </select>
-                                
-                                <span><strong>Power Rule:</strong> log_b(x^y)</span>
-                                <select id="s10-log-m3" class="s10-input" ${disabled(state.abstractUnlocked)}>
+                                <span>Power: log_b(x^y)</span>
+                                <select id="s10-log-m3" class="s10-input" ${disabled(state.pictorialUnlocked)}>
                                     <option value="">Select...</option>
                                     <option value="plus" ${state.match3 === 'plus' ? 'selected' : ''}>log_b(x) + log_b(y)</option>
                                     <option value="minus" ${state.match3 === 'minus' ? 'selected' : ''}>log_b(x) - log_b(y)</option>
                                     <option value="power" ${state.match3 === 'power' ? 'selected' : ''}>y * log_b(x)</option>
                                 </select>
                             </div>
-                            <button id="s10-check-logRules" class="s10-btn" style="margin-top:0.6rem; width:100%;" ${disabled(state.abstractUnlocked)}>Check properties</button>
+                            <button id="s10-check-logRules" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.pictorialUnlocked)}>Verify L10.5</button>
+                            <div class="s10-feedback">${state.logFeedback}</div>
                         </div>
-                        <div class="s10-feedback" id="s10-log-feedback">${state.logFeedback}</div>
 
-                        <div class="s10-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s10-btn ghost" title="Reinforcement" data-prompt="Walk me through the three main rules of logarithms: the product rule, the quotient rule, and the power rule, with examples." ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.6 Base e & Natural Logs</strong>
+                            <p>Evaluate ln(e^3).</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s10-btn ghost ${state.l106Choice === '3' ? 'active' : ''}" data-l106="3" ${disabled(state.pictorialUnlocked)}>3</button>
+                                <button class="s10-btn ghost ${state.l106Choice === 'e3' ? 'active' : ''}" data-l106="e3" ${disabled(state.pictorialUnlocked)}>e^3</button>
+                            </div>
+                            <button id="s10-check-l106" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.pictorialUnlocked)}>Verify L10.6</button>
+                            <div class="s10-feedback">${state.l106Feedback}</div>
+                        </div>
+
+                        <div class="s10-pane">
+                            <strong>L10.7 Logarithmic Science Scales (pH)</strong>
+                            <p>The pH scale is logarithmic: pH = -log10([H3O+]). Set pH to 3.</p>
+                            <div class="s10-svg-container">
+                                <svg class="s10-beaker-svg" viewBox="0 0 200 200">
+                                    <rect class="s10-beaker-water" x="40" y="80" width="120" height="110" rx="4" />
+                                    <line x1="160" y1="100" x2="150" y2="100" stroke="#94a3b8" stroke-width="2" />
+                                    <line x1="160" y1="130" x2="150" y2="130" stroke="#94a3b8" stroke-width="2" />
+                                    <line x1="160" y1="160" x2="150" y2="160" stroke="#94a3b8" stroke-width="2" />
+                                    <path class="s10-beaker-outline" d="M 40,40 L 40,190 Q 40,196 46,196 L 154,196 Q 160,196 160,190 L 160,40" />
+                                    ${dotsHtml}
+                                </svg>
+                            </div>
+                            <div class="s10-pane">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; font-size:1.1rem; color:#ef4444; gap: 0.5rem;">
+                                    <span style="display: flex; align-items: center; gap: 0.4rem;">
+                                        pH:
+                                        <input type="number" id="s10-ph-input" class="s10-input" min="1" max="14" step="1" value="${state.phValue}" ${disabled(state.pictorialUnlocked)} style="width: 70px;">
+                                    </span>
+                                    <span>[H3O+] = 10<sup>-${state.phValue}</sup> M</span>
+                                </div>
+                                <input type="range" id="s10-ph-slider" class="s10-slider" min="1" max="14" step="1" value="${state.phValue}" ${disabled(state.pictorialUnlocked)} style="width:100%; margin-top:0.4rem;">
+                            </div>
+                            <div class="s10-feedback">${state.phFeedback}</div>
                         </div>
                     </article>
 
-                    <!-- APPLIED LEVEL -->
-                    <article class="s10-card s10-level ${levelLocked(state.appliedUnlocked)}">
-                        <h2>Applied Level: Wave Kinematics & Logarithmic Scales</h2>
-                        <p><strong>L10.11 Wave Equation:</strong> Electromagnetic radiation and sound waves follow the cycle relation: 
-                        <span style="font-family:monospace; font-weight:bold;">v = f · λ</span> (velocity = frequency × wavelength). 
-                        If a sound wave travels at velocity v = 340 m/s in a room with frequency f = 170 Hz, what is its wavelength lambda in meters?</p>
-                        
+                    <article class="s10-card s10-level ${levelLocked(state.abstractUnlocked)}">
+                        <h2>Abstract Level: L10.8-L10.10 Trigonometry</h2>
+
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.8 Right-Triangle Trigonometry</strong>
+                            <p>Which ratio defines sin(theta)?</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s10-btn ghost ${state.l108Choice === 'opp_hyp' ? 'active' : ''}" data-l108="opp_hyp" ${disabled(state.abstractUnlocked)}>opposite / hypotenuse</button>
+                                <button class="s10-btn ghost ${state.l108Choice === 'adj_hyp' ? 'active' : ''}" data-l108="adj_hyp" ${disabled(state.abstractUnlocked)}>adjacent / hypotenuse</button>
+                            </div>
+                            <button id="s10-check-l108" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.abstractUnlocked)}>Verify L10.8</button>
+                            <div class="s10-feedback">${state.l108Feedback}</div>
+                        </div>
+
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.9 The Unit Circle</strong>
+                            <p>Select the Quadrant I angle where sin(theta) = 0.5.</p>
+                            <div class="s10-svg-container">
+                                <svg class="s10-plot-svg" viewBox="0 0 200 200">
+                                    <line class="s10-axis" x1="100" y1="0" x2="100" y2="200" />
+                                    <line class="s10-axis" x1="0" y1="100" x2="200" y2="100" />
+                                    <circle cx="100" cy="100" r="70" fill="none" stroke="#2563eb" stroke-width="2" />
+                                    <line x1="${px}" y1="100" x2="${px}" y2="${py}" stroke="#94a3b8" stroke-dasharray="2" />
+                                    <line x1="100" y1="${py}" x2="${px}" y2="${py}" stroke="#94a3b8" stroke-dasharray="2" />
+                                    <line x1="100" y1="100" x2="${px}" y2="${py}" stroke="#e11d48" stroke-width="2.5" />
+                                    <circle cx="${px}" cy="${py}" r="5" fill="#e11d48" />
+                                    <text x="10" y="20" font-size="9px" fill="#334155">cos(theta) = ${cosX.toFixed(3)}</text>
+                                    <text x="10" y="32" font-size="9px" fill="#e11d48">sin(theta) = ${sinY.toFixed(3)}</text>
+                                </svg>
+                            </div>
+                            <div class="s10-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px;">
+                                <button class="s10-btn s10-angle-btn ghost" data-angle="0" ${disabled(state.abstractUnlocked)}>0 deg</button>
+                                <button class="s10-btn s10-angle-btn ghost" data-angle="30" ${disabled(state.abstractUnlocked)}>30 deg</button>
+                                <button class="s10-btn s10-angle-btn ghost" data-angle="45" ${disabled(state.abstractUnlocked)}>45 deg</button>
+                                <button class="s10-btn s10-angle-btn ghost" data-angle="60" ${disabled(state.abstractUnlocked)}>60 deg</button>
+                            </div>
+                            <div class="s10-feedback">${state.circleFeedback}</div>
+                        </div>
+
                         <div class="s10-pane">
-                            <p>Calculate wavelength lambda:</p>
+                            <strong>L10.10 Trigonometric Wave Mechanics</strong>
+                            <p>If frequency f = 5 Hz, what is period T = 1/f?</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s10-btn ghost ${state.l1010Choice === '0.2' ? 'active' : ''}" data-l1010="0.2" ${disabled(state.abstractUnlocked)}>0.2 s</button>
+                                <button class="s10-btn ghost ${state.l1010Choice === '5' ? 'active' : ''}" data-l1010="5" ${disabled(state.abstractUnlocked)}>5 s</button>
+                            </div>
+                            <button id="s10-check-l1010" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.abstractUnlocked)}>Verify L10.10</button>
+                            <div class="s10-feedback">${state.l1010Feedback}</div>
+                        </div>
+                    </article>
+
+                    <article class="s10-card s10-level ${levelLocked(state.appliedUnlocked)}">
+                        <h2>Applied Level: L10.11-L10.13 Wave + p-Operator + Sig Figs</h2>
+
+                        <div class="s10-pane" style="margin-bottom:0.75rem;">
+                            <strong>L10.11 Wave Kinematics</strong>
+                            <p>Use v = f * lambda with v = 340 m/s and f = 170 Hz.</p>
                             <div class="s10-grid" style="grid-template-columns: 1fr auto; gap: 8px;">
                                 <input type="number" step="any" id="s10-wave-input" class="s10-input" placeholder="e.g. 2" value="${state.waveWavelength}" ${disabled(state.appliedUnlocked)}>
-                                <button id="s10-check-wave" class="s10-btn" ${disabled(state.appliedUnlocked)}>Verify Wavelength</button>
+                                <button id="s10-check-wave" class="s10-btn" ${disabled(state.appliedUnlocked)}>Verify L10.11</button>
                             </div>
+                            <div class="s10-feedback">${state.waveFeedback}</div>
                         </div>
-                        <div class="s10-feedback" id="s10-wave-feedback">${state.waveFeedback}</div>
 
-                        <!-- L10.12 & L10.13 p-Operator & Logarithmic Significant Figures -->
-                        <div class="s10-pane" style="margin-top: 0.75rem;">
-                            <strong>L10.12 &amp; L10.13 The p-Operator and Logarithmic Significant Figures</strong>
-                            <p>The mathematical p-Operator is defined as <code>pX = -log₁₀(X)</code>.
-                            <br><strong>Significant Figure Rule:</strong> In a logarithm, only the numbers <em>after</em> the decimal point (the mantissa) are significant! The digits before the decimal point (the characteristic) only indicate the power of 10.
-                            <br>Example: <code>pH = 3.45</code> (2 decimal places) means concentration <code>[H₃O⁺] = 10⁻³.⁴⁵ = 3.5 × 10⁻⁴ M</code> (2 significant figures).</p>
-                            
-                            <p>Given <code>pK_a = ${s10Antilog.ph}</code> (which has 2 decimal places), calculate the acid dissociation constant <code>K_a</code> (in M) using the correct number of significant figures.</p>
-                            
+                        <div class="s10-pane" style="margin-bottom:0.75rem; ${state.l1011Done || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L10.12 The Mathematical p-Operator (pX)</strong>
+                            <p>Given pKa = ${s10Antilog.ph}, compute Ka = 10^(-pKa).</p>
                             <div class="s10-grid" style="grid-template-columns: 1fr auto; gap: 8px;">
-                                <input type="text" id="s10-pka-input" class="s10-input" placeholder="e.g. 1.8e-5 or 1.8*10^-5" value="${state.pKaInput}" ${disabled(state.appliedUnlocked)}>
-                                <button id="s10-check-pka" class="s10-btn" ${disabled(state.appliedUnlocked)}>Verify K_a</button>
+                                <input type="text" id="s10-pka-input" class="s10-input" placeholder="e.g. 1.8e-5" value="${state.pKaInput}" ${disabled(state.l1011Done)}>
+                                <button id="s10-check-pka" class="s10-btn" ${disabled(state.l1011Done)}>Verify L10.12</button>
                             </div>
-                            <div class="s10-feedback" id="s10-pka-feedback">${state.pKaFeedback}</div>
+                            <div class="s10-feedback">${state.pKaFeedback}</div>
                         </div>
 
-                        <div class="s10-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s10-btn ghost" title="Reinforcement" data-prompt="Explain the wave velocity formula v = f * λ, and calculate wavelength λ when v = 340 m/s and f = 170 Hz." ${disabled(state.appliedUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        <div class="s10-pane" style="${state.l1012Done || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L10.13 Logarithmic Significant Figures</strong>
+                            <p>If pKa has 2 decimal places, Ka should have how many significant figures?</p>
+                            <div class="s10-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s10-btn ghost ${state.sigFigChoice === '1' ? 'active' : ''}" data-sigfig="1" ${disabled(state.l1012Done)}>1</button>
+                                <button class="s10-btn ghost ${state.sigFigChoice === '2' ? 'active' : ''}" data-sigfig="2" ${disabled(state.l1012Done)}>2</button>
+                                <button class="s10-btn ghost ${state.sigFigChoice === '3' ? 'active' : ''}" data-sigfig="3" ${disabled(state.l1012Done)}>3</button>
+                            </div>
+                            <button id="s10-check-sigfig" class="s10-btn" style="margin-top:8px; width:100%;" ${disabled(state.l1012Done)}>Verify L10.13</button>
+                            <div class="s10-feedback">${state.sigFigFeedback}</div>
                         </div>
                     </article>
                 </section>
@@ -379,61 +444,79 @@ export function createStage10Advanced() {
                         id: 's10-diagnostic',
                         level: 'diagnostic',
                         keys: 'diagnosticAnswers.q1,diagnosticAnswers.q2,diagnosticAnswers.q3',
-                        prompt: 'Help me review my Stage 10 diagnostic answers on logarithms, natural logs, and wave calculations.'
+                        prompt: 'Help me review my Stage 10 diagnostic answers.'
+                    },
+                    's10-check-l101': {
+                        id: 's10-functions',
+                        level: 'concrete',
+                        keys: 'l101Choice',
+                        prompt: 'Help me identify dependent and independent variables in a function.'
                     },
                     's10-check-domain': {
                         id: 's10-domain-limits',
                         level: 'concrete',
                         keys: 'domainAnswers.divide,domainAnswers.log,domainAnswers.sqrt',
-                        prompt: 'Help me classify domain validity for divide-by-zero, log negatives, and square roots of negatives.'
+                        prompt: 'Help me classify real-number domain restrictions.'
                     },
-                    's10-ph-slider': {
-                        id: 's10-ph-log-scale',
+                    's10-check-l103': {
+                        id: 's10-growth-decay',
                         level: 'concrete',
-                        keys: 'phValue,concreteMission.phReady,concreteMission.domainReady',
-                        prompt: 'Help me interpret the logarithmic pH scale and why pH 3 means much higher acidity.'
+                        keys: 'l103Choice',
+                        prompt: 'Help me distinguish exponential growth from decay.'
                     },
-                    's10-log-m1': {
-                        id: 's10-log-properties',
-                        level: 'abstract',
-                        keys: 'match1,match2,match3',
-                        prompt: 'Help me match product, quotient, and power logarithm properties correctly.'
-                    },
-                    's10-log-m2': {
-                        id: 's10-log-properties',
-                        level: 'abstract',
-                        keys: 'match1,match2,match3',
-                        prompt: 'Help me match product, quotient, and power logarithm properties correctly.'
-                    },
-                    's10-log-m3': {
-                        id: 's10-log-properties',
-                        level: 'abstract',
-                        keys: 'match1,match2,match3',
-                        prompt: 'Help me match product, quotient, and power logarithm properties correctly.'
+                    's10-check-l104': {
+                        id: 's10-base10',
+                        level: 'pictorial',
+                        keys: 'l104Answer',
+                        prompt: 'Help me evaluate base-10 logarithms.'
                     },
                     's10-check-logRules': {
                         id: 's10-log-properties',
-                        level: 'abstract',
+                        level: 'pictorial',
                         keys: 'match1,match2,match3',
-                        prompt: 'Help me match product, quotient, and power logarithm properties correctly.'
+                        prompt: 'Help me match product, quotient, and power log rules.'
+                    },
+                    's10-check-l106': {
+                        id: 's10-natural-log',
+                        level: 'pictorial',
+                        keys: 'l106Choice',
+                        prompt: 'Help me evaluate natural logarithm expressions.'
+                    },
+                    's10-ph-slider': {
+                        id: 's10-ph-log-scale',
+                        level: 'pictorial',
+                        keys: 'phValue,l107Done',
+                        prompt: 'Help me interpret pH as a logarithmic scale.'
+                    },
+                    's10-check-l108': {
+                        id: 's10-right-triangle-trig',
+                        level: 'abstract',
+                        keys: 'l108Choice',
+                        prompt: 'Help me choose the correct trigonometric ratio for sine.'
+                    },
+                    's10-check-l1010': {
+                        id: 's10-wave-period',
+                        level: 'abstract',
+                        keys: 'l1010Choice',
+                        prompt: 'Help me compute period from frequency.'
                     },
                     's10-check-wave': {
                         id: 's10-wave-kinematics',
                         level: 'applied',
                         keys: 'waveWavelength',
-                        prompt: 'Help me solve wavelength from v = f times lambda with v=340 and f=170.'
-                    },
-                    's10-ph-input': {
-                        id: 's10-ph-log-scale',
-                        level: 'concrete',
-                        keys: 'phValue,concreteMission.phReady,concreteMission.domainReady',
-                        prompt: 'Help me interpret the logarithmic pH scale and why pH 3 means much higher acidity.'
+                        prompt: 'Help me solve wavelength from v = f times lambda.'
                     },
                     's10-check-pka': {
-                        id: 's10-antilog',
+                        id: 's10-operator',
                         level: 'applied',
                         keys: 'pKaInput',
-                        prompt: `Help me calculate Ka from pKa = ${s10Antilog.ph} using logarithmic significant figure rules.`
+                        prompt: `Help me calculate Ka from pKa = ${s10Antilog.ph}.`
+                    },
+                    's10-check-sigfig': {
+                        id: 's10-log-sigfigs',
+                        level: 'applied',
+                        keys: 'sigFigChoice',
+                        prompt: 'Help me apply logarithmic significant figure rules.'
                     }
                 };
 
@@ -448,33 +531,14 @@ export function createStage10Advanced() {
 
                 host.querySelectorAll('.s10-angle-btn').forEach((btn) => {
                     btn.setAttribute('data-tutor-question-id', 's10-unit-circle');
-                    btn.setAttribute('data-tutor-level', 'pictorial');
-                    btn.setAttribute('data-tutor-answer-keys', 'thetaVal,circleCorrect');
+                    btn.setAttribute('data-tutor-level', 'abstract');
+                    btn.setAttribute('data-tutor-answer-keys', 'thetaVal,l109Done');
                     btn.setAttribute('data-tutor-question', 'Help me choose the angle where sin(theta) equals 0.5 on the unit circle.');
                 });
             };
 
             annotateTutorQuestions();
 
-            const syncConcreteMission = () => {
-                if (state.fastTrack) return;
-
-                if (state.concreteMission.phReady && state.concreteMission.domainReady) {
-                    state.concreteCompleted = true;
-                    state.pictorialUnlocked = true;
-                    state.phFeedback = 'Concrete mission complete. Domain limits and pH targeting are both correct. Pictorial unlocked. Continue below.';
-                } else if (!state.concreteCompleted) {
-                    if (state.concreteMission.phReady && !state.concreteMission.domainReady) {
-                        state.phFeedback = 'pH target complete. Now pass the Domain Limits check to unlock Pictorial.';
-                    } else if (!state.concreteMission.phReady && state.concreteMission.domainReady) {
-                        state.phFeedback = 'Domain limits complete. Now set the slider to pH = 3 to unlock Pictorial.';
-                    } else {
-                        state.phFeedback = 'Concrete mission in progress: set pH = 3 and pass the Domain Limits check.';
-                    }
-                }
-            };
-
-            // Bind Tutor
             host.querySelectorAll('.tutor-btn').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const prompt = btn.getAttribute('data-prompt');
@@ -482,7 +546,6 @@ export function createStage10Advanced() {
                 });
             });
 
-            // Diagnostic options selection
             host.querySelectorAll('[data-diag]').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const q = btn.getAttribute('data-diag');
@@ -493,213 +556,291 @@ export function createStage10Advanced() {
                 });
             });
 
-            // Check Diagnostic
-            host.querySelector('#s10-check-diagnostic').addEventListener('click', () => {
+            host.querySelector('#s10-check-diagnostic')?.addEventListener('click', () => {
                 const correct = state.diagnosticAnswers.q1 === '3' &&
                                 state.diagnosticAnswers.q2 === '2' &&
                                 state.diagnosticAnswers.q3 === 'c';
                 state.diagnosticDone = true;
                 if (correct) {
                     state.fastTrack = true;
-                    state.pictorialUnlocked = true;
-                    state.abstractUnlocked = true;
-                    state.appliedUnlocked = true;
-                    state.diagnosticFeedback = 'Fast-Track Achievement unlocked! You mastered log bases, natural logs, and wave dynamics. All levels are now open.';
+                    state.l101Done = true;
+                    state.l102Done = true;
+                    state.l103Done = true;
+                    state.l104Done = true;
+                    state.l105Done = true;
+                    state.l106Done = true;
+                    state.l107Done = true;
+                    state.l108Done = true;
+                    state.l109Done = true;
+                    state.l1010Done = true;
+                    state.l1011Done = true;
+                    state.l1012Done = true;
+                    state.l1013Done = true;
+                    state.diagnosticFeedback = 'Fast-Track unlocked. All Stage 10 lessons are open.';
                 } else {
                     state.fastTrack = false;
-                    state.diagnosticFeedback = 'Diagnostic complete. Standard path active. Solve the Concrete Level to progress.';
+                    state.diagnosticFeedback = 'Diagnostic complete. Standard path active through L10.1-L10.13.';
                 }
                 persist('Diagnostic checked');
                 this.mount({ host, state, onStateChange });
             });
 
-            // Concrete pH Slider & Input
-            const slider = host.querySelector('#s10-ph-slider');
-            const phInput = host.querySelector('#s10-ph-input');
-            const updatePHState = (val) => {
-                state.phValue = val;
-                if (val === 3) {
-                    state.concreteCorrect = true;
-                    state.concreteMission.phReady = true;
-                    if (!state.concreteCompleted) {
-                        state.phFeedback = 'Correct pH target: pH = 3 gives [H3O+] = 10^-3 M. Complete Domain Limits to finish Concrete.';
-                    }
-                } else {
-                    state.concreteCorrect = false;
-                    if (!state.concreteCompleted) {
-                        state.concreteMission.phReady = false;
-                        state.phFeedback = `pH is ${val} ([H3O+] = 10^-${val} M). Adjust to 3 to satisfy the pH mission step.`;
-                    }
-                }
-                syncConcreteMission();
-            };
-
-            if (slider) {
-                slider.addEventListener('input', (e) => {
-                    const val = parseInt(e.target.value);
-                    updatePHState(val);
-                    persist('pH slider shifted');
+            host.querySelectorAll('[data-l101]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l101Choice = btn.getAttribute('data-l101');
+                    persist('L10.1 option selected');
                     this.mount({ host, state, onStateChange });
                 });
-            }
-            if (phInput) {
-                phInput.addEventListener('change', (e) => {
-                    let val = parseInt(e.target.value);
-                    if (!isNaN(val)) {
-                        val = Math.max(1, Math.min(14, val));
-                        updatePHState(val);
-                        persist('pH input changed');
-                        this.mount({ host, state, onStateChange });
-                    }
-                });
-            }
+            });
 
-            host.querySelector('#s10-check-domain').addEventListener('click', () => {
-                const divide = host.querySelector('#s10-domain-divide').value;
-                const log = host.querySelector('#s10-domain-log').value;
-                const sqrt = host.querySelector('#s10-domain-sqrt').value;
+            host.querySelector('#s10-check-l101')?.addEventListener('click', () => {
+                if (state.l101Choice === 'c_dep') {
+                    state.l101Done = true;
+                    state.l101Feedback = 'Correct. C is the dependent variable and n is the independent variable.';
+                } else if (state.l101Choice) {
+                    state.l101Feedback = 'Not yet. In C = 2n + 1, C changes when n changes.';
+                } else {
+                    state.l101Feedback = 'Choose an option first.';
+                }
+                persist('L10.1 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s10-check-domain')?.addEventListener('click', () => {
+                const divide = host.querySelector('#s10-domain-divide')?.value || '';
+                const log = host.querySelector('#s10-domain-log')?.value || '';
+                const sqrt = host.querySelector('#s10-domain-sqrt')?.value || '';
                 state.domainAnswers = { divide, log, sqrt };
 
                 if (divide === 'undefined' && log === 'invalid' && sqrt === 'noreal') {
-                    state.domainCorrect = true;
-                    state.domainFeedback = 'Correct. Division by zero is undefined, log of a negative is invalid in reals, and sqrt of a negative has no real value.';
-                    state.concreteMission.domainReady = true;
+                    state.l102Done = true;
+                    state.domainFeedback = 'Correct. You identified all three real-domain restrictions.';
                 } else {
-                    state.domainCorrect = false;
-                    state.domainFeedback = 'Not yet. Mark divide-by-zero as undefined, log10 of a negative as invalid in real numbers, and sqrt of a negative as no real value.';
-                    if (!state.concreteCompleted) {
-                        state.concreteMission.domainReady = false;
-                    }
+                    state.domainFeedback = 'Not yet. Divide-by-zero is undefined, log of negative is invalid in reals, sqrt of negative has no real value.';
                 }
 
-                syncConcreteMission();
-                persist('Domain limits checked');
+                persist('L10.2 checked');
                 this.mount({ host, state, onStateChange });
             });
 
-            host.querySelector('#s10-hint-concrete')?.addEventListener('click', () => {
-                if (!state.concreteMission.phReady) {
-                    state.phFeedback = 'Hint: Move the slider until pH reads exactly 3.';
-                } else if (!state.concreteMission.domainReady) {
-                    state.phFeedback = 'Hint: In real numbers, divide-by-zero is undefined, log10 of a negative is invalid, and sqrt of a negative has no real value.';
-                } else {
-                    state.phFeedback = 'Concrete mission is complete. Pictorial unlocked. Continue below.';
-                }
-                persist('Concrete hint shown');
-                this.mount({ host, state, onStateChange });
-            });
-
-            host.querySelector('#s10-continue-pictorial')?.addEventListener('click', () => {
-                if (state.fastTrack || state.pictorialUnlocked) {
-                    state.phFeedback = 'Pictorial unlocked. Continue below.';
-                } else {
-                    state.phFeedback = 'Finish both mission steps first: set pH = 3 and pass Domain Limits.';
-                }
-                persist('Continue to pictorial clicked');
-                this.mount({ host, state, onStateChange });
-            });
-
-            // Pictorial angle button selector
-            host.querySelectorAll('.s10-angle-btn').forEach((btn) => {
-                const angle = parseInt(btn.getAttribute('data-angle'));
-                // Highlight active angle
-                if (state.thetaVal === angle) {
-                    btn.classList.remove('ghost');
-                    btn.style.borderColor = '#e11d48';
-                }
-                
+            host.querySelectorAll('[data-l103]').forEach((btn) => {
                 btn.addEventListener('click', () => {
-                    state.thetaVal = angle;
-                    if (angle === 30) {
-                        state.circleCorrect = true;
-                        state.circleFeedback = 'Correct! At 30 degrees, sin(30 degrees) = 0.5 (y-coordinate is 0.5). Abstract unlocked. Continue below.';
-                        state.abstractUnlocked = true;
-                    } else {
-                        state.circleCorrect = false;
-                        state.circleFeedback = `At ${angle} degrees, sin(${angle} degrees) = ${Math.sin(angle * Math.PI / 180).toFixed(3)}. Find the Quadrant I angle where y is 0.5.`;
-                    }
-                    persist('Unit circle angle scanned');
+                    state.l103Choice = btn.getAttribute('data-l103');
+                    persist('L10.3 option selected');
                     this.mount({ host, state, onStateChange });
                 });
             });
 
-            // Abstract Log rules checking
-            host.querySelector('#s10-check-logRules').addEventListener('click', () => {
-                const m1 = host.querySelector('#s10-log-m1').value;
-                const m2 = host.querySelector('#s10-log-m2').value;
-                const m3 = host.querySelector('#s10-log-m3').value;
-
-                state.match1 = m1;
-                state.match2 = m2;
-                state.match3 = m3;
-
-                if (m1 === 'plus' && m2 === 'minus' && m3 === 'power') {
-                    state.logCorrect = true;
-                    state.logFeedback = 'Excellent! You matched all log properties correctly: multiplication expands to addition, division to subtraction, power to multiplication. Applied unlocked. Continue below.';
-                    state.appliedUnlocked = true;
-                } else if (!m1 || !m2 || !m3) {
-                    state.logCorrect = false;
-                    state.logFeedback = 'Please select all properties.';
+            host.querySelector('#s10-check-l103')?.addEventListener('click', () => {
+                if (state.l103Choice === 'decay') {
+                    state.l103Done = true;
+                    state.l103Feedback = 'Correct. Because 0.80 < 1, the function models exponential decay.';
+                } else if (state.l103Choice) {
+                    state.l103Feedback = 'Not yet. A base less than 1 indicates exponential decay.';
                 } else {
-                    state.logCorrect = false;
-                    state.logFeedback = 'Incorrect matching. Remember: Product rule expands xy to log(x) + log(y). Quotient rule expands x/y to log(x) - log(y). Power rule expands x^y to y * log(x).';
+                    state.l103Feedback = 'Choose growth or decay first.';
                 }
-                persist('Log properties checked');
+                persist('L10.3 checked');
                 this.mount({ host, state, onStateChange });
             });
 
-            // Applied wave velocity check
-            host.querySelector('#s10-check-wave').addEventListener('click', () => {
-                const inputVal = parseFloat(host.querySelector('#s10-wave-input').value);
-                state.waveWavelength = host.querySelector('#s10-wave-input').value;
+            host.querySelector('#s10-check-l104')?.addEventListener('click', () => {
+                const val = Number(host.querySelector('#s10-l104-input')?.value);
+                state.l104Answer = host.querySelector('#s10-l104-input')?.value || '';
+                if (val === 4) {
+                    state.l104Done = true;
+                    state.l104Feedback = 'Correct. 10^4 = 10000, so log10(10000) = 4.';
+                } else if (!Number.isNaN(val)) {
+                    state.l104Feedback = 'Incorrect. Raise 10 to your answer and compare to 10000.';
+                } else {
+                    state.l104Feedback = 'Enter a numeric answer first.';
+                }
+                persist('L10.4 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s10-check-logRules')?.addEventListener('click', () => {
+                state.match1 = host.querySelector('#s10-log-m1')?.value || '';
+                state.match2 = host.querySelector('#s10-log-m2')?.value || '';
+                state.match3 = host.querySelector('#s10-log-m3')?.value || '';
+
+                if (state.match1 === 'plus' && state.match2 === 'minus' && state.match3 === 'power') {
+                    state.l105Done = true;
+                    state.logFeedback = 'Excellent. Product -> plus, Quotient -> minus, Power -> multiplier.';
+                } else if (!state.match1 || !state.match2 || !state.match3) {
+                    state.logFeedback = 'Select all three rules before checking.';
+                } else {
+                    state.logFeedback = 'Not yet. Re-check product, quotient, and power mappings.';
+                }
+                persist('L10.5 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelectorAll('[data-l106]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l106Choice = btn.getAttribute('data-l106');
+                    persist('L10.6 option selected');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelector('#s10-check-l106')?.addEventListener('click', () => {
+                if (state.l106Choice === '3') {
+                    state.l106Done = true;
+                    state.l106Feedback = 'Correct. ln(e^3) = 3.';
+                } else if (state.l106Choice) {
+                    state.l106Feedback = 'Not yet. ln and e are inverse operations.';
+                } else {
+                    state.l106Feedback = 'Choose an option first.';
+                }
+                persist('L10.6 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            const applyPh = (val) => {
+                state.phValue = val;
+                if (val === 3) {
+                    state.l107Done = true;
+                    state.phFeedback = 'Correct. pH 3 corresponds to [H3O+] = 10^-3 M.';
+                } else {
+                    state.l107Done = false;
+                    state.phFeedback = `pH is ${val}. Move to pH 3 to complete L10.7.`;
+                }
+            };
+
+            host.querySelector('#s10-ph-slider')?.addEventListener('input', (e) => {
+                applyPh(parseInt(e.target.value, 10));
+                persist('L10.7 slider changed');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s10-ph-input')?.addEventListener('change', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (Number.isNaN(val)) return;
+                val = Math.max(1, Math.min(14, val));
+                applyPh(val);
+                persist('L10.7 input changed');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelectorAll('[data-l108]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l108Choice = btn.getAttribute('data-l108');
+                    persist('L10.8 option selected');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelector('#s10-check-l108')?.addEventListener('click', () => {
+                if (state.l108Choice === 'opp_hyp') {
+                    state.l108Done = true;
+                    state.l108Feedback = 'Correct. sin(theta) = opposite / hypotenuse.';
+                } else if (state.l108Choice) {
+                    state.l108Feedback = 'Not yet. That ratio is cosine.';
+                } else {
+                    state.l108Feedback = 'Choose an option first.';
+                }
+                persist('L10.8 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelectorAll('.s10-angle-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const angle = parseInt(btn.getAttribute('data-angle'), 10);
+                    state.thetaVal = angle;
+                    if (angle === 30) {
+                        state.l109Done = true;
+                        state.circleFeedback = 'Correct. sin(30 deg) = 0.5.';
+                    } else {
+                        state.circleFeedback = `At ${angle} deg, sin(theta) = ${Math.sin(angle * Math.PI / 180).toFixed(3)}.`;
+                    }
+                    persist('L10.9 checked');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelectorAll('[data-l1010]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l1010Choice = btn.getAttribute('data-l1010');
+                    persist('L10.10 option selected');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+
+            host.querySelector('#s10-check-l1010')?.addEventListener('click', () => {
+                if (state.l1010Choice === '0.2') {
+                    state.l1010Done = true;
+                    state.l1010Feedback = 'Correct. T = 1/f = 1/5 = 0.2 s.';
+                } else if (state.l1010Choice) {
+                    state.l1010Feedback = 'Not yet. Period is reciprocal of frequency.';
+                } else {
+                    state.l1010Feedback = 'Choose an option first.';
+                }
+                persist('L10.10 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s10-check-wave')?.addEventListener('click', () => {
+                const inputVal = parseFloat(host.querySelector('#s10-wave-input')?.value || '');
+                state.waveWavelength = host.querySelector('#s10-wave-input')?.value || '';
 
                 if (inputVal === 2) {
-                    state.waveCorrect = true;
-                    state.waveFeedback = 'Correct! The wavelength lambda = 340 m/s / 170 Hz = 2 meters.';
+                    state.l1011Done = true;
+                    state.waveFeedback = 'Correct. lambda = 340 / 170 = 2 m.';
                 } else {
-                    state.waveCorrect = false;
-                    state.waveFeedback = 'Incorrect. Rearrange v = f * lambda to find lambda: lambda = v / f = 340 / 170 = 2.';
+                    state.waveFeedback = 'Incorrect. Use lambda = v / f = 340 / 170 = 2.';
                 }
-                persist('Wave kinematics checked');
+                persist('L10.11 checked');
                 this.mount({ host, state, onStateChange });
             });
 
-            // Input sync listeners to preserve values across re-renders
-            const domainDivide = host.querySelector('#s10-domain-divide');
-            if (domainDivide) {
-                domainDivide.addEventListener('change', (e) => {
-                    state.domainAnswers.divide = e.target.value;
-                });
-            }
-            const domainLog = host.querySelector('#s10-domain-log');
-            if (domainLog) {
-                domainLog.addEventListener('change', (e) => {
-                    state.domainAnswers.log = e.target.value;
-                });
-            }
-            const domainSqrt = host.querySelector('#s10-domain-sqrt');
-            if (domainSqrt) {
-                domainSqrt.addEventListener('change', (e) => {
-                    state.domainAnswers.sqrt = e.target.value;
-                });
-            }
+            host.querySelector('#s10-check-pka')?.addEventListener('click', () => {
+                const rawInput = (host.querySelector('#s10-pka-input')?.value || '').trim();
+                state.pKaInput = rawInput;
+                const normalized = rawInput.toLowerCase().replace(/\s+/g, '').replace(/[\*x×]10\^/g, 'e');
+                const expected = s10Antilog.answerKey.toLowerCase().replace(/\s+/g, '').replace(/[\*x×]10\^/g, 'e');
 
-            const logM1 = host.querySelector('#s10-log-m1');
-            if (logM1) {
-                logM1.addEventListener('change', (e) => {
-                    state.match1 = e.target.value;
+                if (normalized === expected) {
+                    state.l1012Done = true;
+                    state.pKaFeedback = `Correct. Ka = ${s10Antilog.answerKey}.`;
+                } else {
+                    const userNum = parseFloat(normalized);
+                    const expectedNum = parseFloat(expected);
+                    if (!Number.isNaN(userNum) && !Number.isNaN(expectedNum) && Math.abs(userNum - expectedNum) / expectedNum < 0.05) {
+                        state.pKaFeedback = `Close value, but use the expected scientific notation: ${s10Antilog.answerKey}.`;
+                    } else {
+                        state.pKaFeedback = `Incorrect. Compute Ka = 10^(-${s10Antilog.ph}) and express as ${s10Antilog.answerKey}.`;
+                    }
+                }
+                persist('L10.12 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelectorAll('[data-sigfig]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.sigFigChoice = btn.getAttribute('data-sigfig');
+                    persist('L10.13 option selected');
+                    this.mount({ host, state, onStateChange });
                 });
-            }
-            const logM2 = host.querySelector('#s10-log-m2');
-            if (logM2) {
-                logM2.addEventListener('change', (e) => {
-                    state.match2 = e.target.value;
-                });
-            }
-            const logM3 = host.querySelector('#s10-log-m3');
-            if (logM3) {
-                logM3.addEventListener('change', (e) => {
-                    state.match3 = e.target.value;
+            });
+
+            host.querySelector('#s10-check-sigfig')?.addEventListener('click', () => {
+                if (state.sigFigChoice === '2') {
+                    state.l1013Done = true;
+                    state.sigFigFeedback = 'Correct. 2 decimal places in pKa means 2 significant figures in Ka.';
+                } else if (state.sigFigChoice) {
+                    state.sigFigFeedback = 'Not yet. Match decimal places in p-values to significant figures in concentration values.';
+                } else {
+                    state.sigFigFeedback = 'Choose an option first.';
+                }
+                persist('L10.13 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            const l104Input = host.querySelector('#s10-l104-input');
+            if (l104Input) {
+                l104Input.addEventListener('input', (e) => {
+                    state.l104Answer = e.target.value;
                 });
             }
 
@@ -709,31 +850,6 @@ export function createStage10Advanced() {
                     state.waveWavelength = e.target.value;
                 });
             }
-
-            // L10.12 & L10.13: Applied pKa / log sig figs check
-            host.querySelector('#s10-check-pka')?.addEventListener('click', () => {
-                const rawInput = host.querySelector('#s10-pka-input').value.trim();
-                state.pKaInput = rawInput;
-                const normalized = rawInput.toLowerCase().replace(/\s+/g, '').replace(/[\*x×]10\^/g, 'e');
-                const expected = s10Antilog.answerKey.toLowerCase().replace(/\s+/g, '').replace(/[\*x×]10\^/g, 'e');
-                
-                if (normalized === expected) {
-                    state.pKaCorrect = true;
-                    state.pKaFeedback = `Correct! Ka = ${s10Antilog.answerKey}. Since pKa has 2 decimal places, Ka must be reported to exactly 2 significant figures.`;
-                } else {
-                    const userNum = parseFloat(normalized);
-                    const expectedNum = parseFloat(expected);
-                    if (!isNaN(userNum) && !isNaN(expectedNum) && Math.abs(userNum - expectedNum) / expectedNum < 0.05) {
-                        state.pKaCorrect = false;
-                        state.pKaFeedback = `Incorrect. You calculated Ka correctly, but failed to apply logarithmic significant figure rules. For 2 decimal places in pKa, Ka must have exactly 2 significant figures (round to ${s10Antilog.answerKey}).`;
-                    } else {
-                        state.pKaCorrect = false;
-                        state.pKaFeedback = `Incorrect. Calculate Ka = 10^-${s10Antilog.ph}. Express it in scientific notation with 2 significant figures (e.g. ${s10Antilog.answerKey}).`;
-                    }
-                }
-                persist('pKa units checked');
-                this.mount({ host, state, onStateChange });
-            });
 
             const pKaInputEl = host.querySelector('#s10-pka-input');
             if (pKaInputEl) {

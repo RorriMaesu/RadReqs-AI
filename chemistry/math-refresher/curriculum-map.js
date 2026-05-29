@@ -49,7 +49,8 @@ export const CURRICULUM_MAP = [
             'L3.7 Primes & Composites',
             'L3.8 Introduction to Descriptive Statistics',
             'L3.9 Thermal Gradients & Signed Differences',
-            'L3.10 Ionic Charge Balance & Enthalpy Signs'
+            'L3.10 Enthalpy Sign Check',
+            'L3.11 Compound Net Charge Balance'
         ]
     },
     {

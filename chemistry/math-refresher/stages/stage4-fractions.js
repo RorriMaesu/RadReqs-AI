@@ -73,7 +73,7 @@ const createInitialStage4State = () => ({
     heCount: 6,
     moleFractionAnswerNum: '',
     moleFractionAnswerDen: '',
-    moleFractionFeedback: 'L4.11 Mole Fraction: Drag slider to adjust He particles and compute X_He.',
+    moleFractionFeedback: 'L4.11 Mole Fraction: Drag slider to adjust He particles and compute X<sub style="vertical-align: sub; font-size: 70%;">He</sub>.',
 });
 
 export function createStage4Fractions() {
@@ -85,6 +85,7 @@ export function createStage4Fractions() {
             return createInitialStage4State();
         },
         mount({ host, state, onStateChange }) {
+            const formatChem = (formula) => formula.replace(/([A-Z][a-z]?)([\d]+)/g, '$1<sub style="vertical-align: sub; font-size: 70%;">$2</sub>');
             const defaults = createInitialStage4State();
             Object.keys(defaults).forEach((key) => {
                 if (state[key] === undefined) {
@@ -230,28 +231,55 @@ export function createStage4Fractions() {
 
                     <!-- CONCRETE LEVEL -->
                     <article class="s4-card s4-level ${levelLocked(state.concreteUnlocked)}">
-                        <h2>Concrete Level: Fractions & Common Denominators</h2>
+                        <h2>Concrete Level: Fractions, Reduction & Common Denominators</h2>
                         
                         <!-- L4.1 Parts of a Whole -->
                         <div class="s4-pane">
                             <strong>L4.1 Parts of a Whole</strong>
                             <p>A 100 mL flask contains 40 mL of solvent. What fraction of the total flask volume is filled with solvent? Reduce to lowest terms.</p>
-                            <div class="s4-grid" style="grid-template-columns: 1fr 1fr auto; gap: 6px;">
-                                <input id="s4-partwhole-num" class="s4-input" placeholder="Numerator" value="${state.partWholeNum}" ${disabled(state.concreteUnlocked)} />
-                                <input id="s4-partwhole-den" class="s4-input" placeholder="Denominator" value="${state.partWholeDen}" ${disabled(state.concreteUnlocked)} />
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.6rem;">
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; width: 80px;">
+                                    <input id="s4-partwhole-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num" value="${state.partWholeNum}" ${disabled(state.concreteUnlocked)} />
+                                    <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                    <input id="s4-partwhole-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den" value="${state.partWholeDen}" ${disabled(state.concreteUnlocked)} />
+                                </div>
                                 <button id="s4-check-partwhole" class="s4-btn" ${disabled(state.concreteUnlocked)}>Check</button>
                             </div>
                             <div class="s4-feedback" id="s4-partwhole-feedback">${state.partWholeFeedback}</div>
+                        </div>
+
+                        <!-- L4.2 Reduction & GCF -->
+                        <div class="s4-pane">
+                            <strong>L4.2 Reduction</strong>
+                            <p>Reduce 18/24 using the Greatest Common Factor. GCF is the largest integer that divides both numbers evenly. Enter the GCF and the resulting simplified fraction.</p>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.6rem;">
+                                <div style="width: 80px;">
+                                    <input id="s4-gcf-input" class="s4-input" style="text-align: center;" placeholder="GCF" value="${state.gcfInput}" ${disabled(state.concreteUnlocked)} />
+                                </div>
+                                <div style="font-size: 1.2rem; font-weight: bold; color: rgba(255,255,255,0.4);">&rarr;</div>
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; width: 80px;">
+                                    <input id="s4-gcf-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num" value="${state.gcfNum}" ${disabled(state.concreteUnlocked)} />
+                                    <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                    <input id="s4-gcf-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den" value="${state.gcfDen}" ${disabled(state.concreteUnlocked)} />
+                                </div>
+                                <button id="s4-check-gcf" class="s4-btn" ${disabled(state.concreteUnlocked)}>Divide & Reduce</button>
+                            </div>
+                            <div class="s4-feedback" id="s4-gcf-feedback">${state.gcfFeedback}</div>
                         </div>
 
                         <!-- L4.3 Improper Fractions & Mixed Numbers -->
                         <div class="s4-pane">
                             <strong>L4.3 Improper Fractions & Mixed Numbers</strong>
                             <p>Convert the improper fraction 11/4 to a mixed number (A B/C format):</p>
-                            <div class="s4-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 6px;">
-                                <input id="s4-mixed-whole" class="s4-input" placeholder="Whole (A)" value="${state.mixedWhole}" ${disabled(state.concreteUnlocked)} />
-                                <input id="s4-mixed-num" class="s4-input" placeholder="Numerator (B)" value="${state.mixedNum}" ${disabled(state.concreteUnlocked)} />
-                                <input id="s4-mixed-den" class="s4-input" placeholder="Denominator (C)" value="${state.mixedDen}" ${disabled(state.concreteUnlocked)} />
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.6rem;">
+                                <div style="width: 70px;">
+                                    <input id="s4-mixed-whole" class="s4-input" style="text-align: center;" placeholder="Whole A" value="${state.mixedWhole}" ${disabled(state.concreteUnlocked)} />
+                                </div>
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; width: 70px;">
+                                    <input id="s4-mixed-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num B" value="${state.mixedNum}" ${disabled(state.concreteUnlocked)} />
+                                    <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                    <input id="s4-mixed-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den C" value="${state.mixedDen}" ${disabled(state.concreteUnlocked)} />
+                                </div>
                                 <button id="s4-check-mixed" class="s4-btn" ${disabled(state.concreteUnlocked)}>Check</button>
                             </div>
                             <div class="s4-feedback" id="s4-mixed-feedback">${state.mixedFeedback}</div>
@@ -279,24 +307,26 @@ export function createStage4Fractions() {
                         </div>
 
                         <!-- L4.5 Fraction Addition -->
-                        ${state.lcmUnlocked ? `
                         <div class="s4-pane">
                             <strong>L4.5 Fraction Addition</strong>
                             <p>Now perform the addition: 1/3 + 1/4 = 4/12 + 3/12 = [numerator] / [denominator]</p>
-                            <div class="s4-grid" style="grid-template-columns: 1fr 1fr auto; gap: 6px;">
-                                <input id="s4-add-num" class="s4-input" placeholder="Numerator" value="${state.addNum}" ${disabled(state.concreteUnlocked)} />
-                                <input id="s4-add-den" class="s4-input" placeholder="Denominator" value="${state.addDen}" ${disabled(state.concreteUnlocked)} />
-                                <button id="s4-check-add" class="s4-btn" ${disabled(state.concreteUnlocked)}>Check Sum</button>
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.6rem;">
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; width: 80px;">
+                                    <input id="s4-add-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num" value="${state.addNum}" ${disabled(state.concreteUnlocked && state.lcmUnlocked)} />
+                                    <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                    <input id="s4-add-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den" value="${state.addDen}" ${disabled(state.concreteUnlocked && state.lcmUnlocked)} />
+                                </div>
+                                <button id="s4-check-add" class="s4-btn" ${disabled(state.concreteUnlocked && state.lcmUnlocked)}>Check Sum</button>
                             </div>
                             <div class="s4-feedback" id="s4-add-feedback">${state.addFeedback}</div>
                         </div>
-                        ` : ''}
 
                         <!-- Concrete Mission Panel -->
                         <div class="s4-pane" style="margin-top:0.75rem;">
                             <h3 style="margin:0 0 0.45rem;">Concrete Mission</h3>
                             <div class="s4-status" style="margin-top:0; margin-bottom:0.5rem;">
                                 <span class="s4-pill ${state.partWholeCorrect ? 'good' : 'locked'}">Parts of Whole</span>
+                                <span class="s4-pill ${state.gcfCorrect ? 'good' : 'locked'}">GCF Reduction</span>
                                 <span class="s4-pill ${state.mixedCorrect ? 'good' : 'locked'}">Mixed Numbers</span>
                                 <span class="s4-pill ${state.lcmUnlocked ? 'good' : 'locked'}">LCM Denominators</span>
                                 <span class="s4-pill ${state.addCorrect ? 'good' : 'locked'}">Fraction Addition</span>
@@ -346,9 +376,12 @@ export function createStage4Fractions() {
                         <div class="s4-pane">
                             <strong>Step A: Verify reciprocal conversion</strong>
                             <p>The divisor is 4/5. Enter its reciprocal below before solving the product.</p>
-                            <div class="s4-grid" style="grid-template-columns: 1fr 1fr auto; gap: 6px;">
-                                <input id="s4-div-recip-num" class="s4-input" placeholder="Reciprocal numerator" value="${state.divReciprocalNum}" ${disabled(state.pictorialUnlocked)} />
-                                <input id="s4-div-recip-den" class="s4-input" placeholder="Reciprocal denominator" value="${state.divReciprocalDen}" ${disabled(state.pictorialUnlocked)} />
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.6rem;">
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; width: 80px;">
+                                    <input id="s4-div-recip-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num" value="${state.divReciprocalNum}" ${disabled(state.pictorialUnlocked)} />
+                                    <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                    <input id="s4-div-recip-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den" value="${state.divReciprocalDen}" ${disabled(state.pictorialUnlocked)} />
+                                </div>
                                 <button id="s4-check-reciprocal" class="s4-btn" ${disabled(state.pictorialUnlocked)}>Verify Reciprocal</button>
                             </div>
                         </div>
@@ -358,40 +391,18 @@ export function createStage4Fractions() {
                         <div class="s4-pane">
                             <strong>Step B: Evaluate reciprocal multiplication product</strong>
                             <p>Solve: 2/3 &times; 5/4 = [numerator] / [denominator]</p>
-                            <div class="s4-grid" style="grid-template-columns: 1fr 1fr auto; gap: 6px;">
-                                <input id="s4-div-num" class="s4-input" placeholder="Numerator" value="${state.divNum}" ${disabled(state.pictorialUnlocked)} />
-                                <input id="s4-div-den" class="s4-input" placeholder="Denominator" value="${state.divDen}" ${disabled(state.pictorialUnlocked)} />
+                            <div style="display: flex; align-items: center; gap: 12px; margin-top: 0.6rem;">
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; width: 80px;">
+                                    <input id="s4-div-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num" value="${state.divNum}" ${disabled(state.pictorialUnlocked)} />
+                                    <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                    <input id="s4-div-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den" value="${state.divDen}" ${disabled(state.pictorialUnlocked)} />
+                                </div>
                                 <button id="s4-check-div-mult" class="s4-btn" ${disabled(state.pictorialUnlocked)}>Check Product</button>
                             </div>
                         </div>
                         ` : ''}
 
                         <div class="s4-feedback" id="s4-div-feedback">${state.divFeedback}</div>
-
-                        <div class="s4-pane" style="margin-top:0.75rem;">
-                            <strong>L4.11 Mole Fractions in Mixtures</strong>
-                            <p>Mole fraction ($X_{He}$) is the ratio of Helium moles to total moles: $X_{He} = \frac{n_{He}}{n_{He} + n_{Ne}}$. Adjust the Helium moles with the slider/number box, then enter the simplified mole fraction of Helium.</p>
-                            <div class="s4-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
-                                <div style="background:#0f172a; height:120px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); position:relative; overflow:hidden; display:flex; flex-wrap:wrap; padding:8px;">
-                                    ${Array.from({ length: s4Mixture ? s4Mixture.molesHe : state.heCount }, () => '<div style="width:16px; height:16px; background:#38bdf8; border-radius:50%; margin:4px; box-shadow:0 0 6px #38bdf8;" title="Helium"></div>').join('')}
-                                    ${Array.from({ length: s4Mixture ? s4Mixture.molesNe : 10 - state.heCount }, () => '<div style="width:16px; height:16px; background:#f87171; border-radius:50%; margin:4px; box-shadow:0 0 6px #f87171;" title="Neon"></div>').join('')}
-                                </div>
-                                <div>
-                                    <label class="s4-label">Helium Particles (n_He): ${s4Mixture ? s4Mixture.molesHe : state.heCount} moles</label>
-                                    <label class="s4-label">Neon Particles (n_Ne): ${s4Mixture ? s4Mixture.molesNe : 10 - state.heCount} moles</label>
-                                    <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
-                                        <input type="range" id="s4-he-slider" min="1" max="9" value="${state.heCount}" style="flex:1;" ${disabled(state.pictorialUnlocked) || (s4Mixture ? 'disabled' : '')} />
-                                        <input type="number" id="s4-he-num" min="1" max="9" value="${state.heCount}" class="s4-input" style="width:60px; padding:0.25rem;" ${disabled(state.pictorialUnlocked) || (s4Mixture ? 'disabled' : '')} />
-                                    </div>
-                                    <div class="s4-grid" style="grid-template-columns: 1fr 1fr auto; gap:6px;">
-                                        <input id="s4-xhe-num" class="s4-input" placeholder="X_He Num" value="${state.moleFractionAnswerNum || ''}" data-tutor-question-id="s4-mixture" ${disabled(state.pictorialUnlocked)} />
-                                        <input id="s4-xhe-den" class="s4-input" placeholder="X_He Den" value="${state.moleFractionAnswerDen || ''}" data-tutor-question-id="s4-mixture" ${disabled(state.pictorialUnlocked)} />
-                                        <button id="s4-check-xhe" class="s4-btn" data-tutor-question-id="s4-mixture" ${disabled(state.pictorialUnlocked)}>Verify X_He</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="s4-feedback" id="s4-xhe-feedback">${state.moleFractionFeedback}</div>
-                        </div>
 
                         <div class="s4-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s4-btn ghost" title="Reinforcement" data-prompt="Explain why we multiply by the reciprocal when dividing fractions. What is the physical concept?" ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -400,34 +411,15 @@ export function createStage4Fractions() {
 
                     <!-- ABSTRACT LEVEL -->
                     <article class="s4-card s4-level ${levelLocked(state.abstractUnlocked)}">
-                        <h2>Abstract Level: GCF Fraction Simplifier</h2>
-                        <p><strong>L4.2 Reduction:</strong> Reduce 18/24 using the Greatest Common Factor. GCF is the largest integer that divides both numbers evenly. Enter the GCF and the resulting simplified fraction.</p>
-                        <div class="s4-pane">
-                            <div class="s4-grid" style="grid-template-columns: 1.5fr 1fr 1fr auto; gap: 6px;">
-                                <input id="s4-gcf-input" class="s4-input" placeholder="GCF" value="${state.gcfInput}" ${disabled(state.abstractUnlocked)} />
-                                <input id="s4-gcf-num" class="s4-input" placeholder="Reduced Num" value="${state.gcfNum}" ${disabled(state.abstractUnlocked)} />
-                                <input id="s4-gcf-den" class="s4-input" placeholder="Reduced Den" value="${state.gcfDen}" ${disabled(state.abstractUnlocked)} />
-                                <button id="s4-check-gcf" class="s4-btn" ${disabled(state.abstractUnlocked)}>Divide & Reduce</button>
-                            </div>
-                        </div>
-                        <div class="s4-feedback" id="s4-gcf-feedback">${state.gcfFeedback}</div>
-
-                        <div class="s4-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s4-btn ghost" title="Reinforcement" data-prompt="How do we find the Greatest Common Factor (GCF) and use it to simplify large fractions?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
-                        </div>
-                    </article>
-
-                    <!-- APPLIED LEVEL -->
-                    <article class="s4-card s4-level ${levelLocked(state.appliedUnlocked)}">
-                        <h2>Applied Level: Molar Ratios & Proportions</h2>
+                        <h2>Abstract Level: Ratios, Proportions & Variation</h2>
                         
                         <!-- L4.7 Applied Ratios -->
                         <div class="s4-pane">
                             <strong>L4.7 Applied Ratios</strong>
                             <p>In a balanced equation <code>2Na + Cl2 &rarr; 2NaCl</code>, the reaction requires 2 sodium atoms for every 1 chlorine molecule. This is a 2:1 ratio. If you have 6 moles of Na, how many moles of Cl2 are needed to react completely?</p>
                             <div class="s4-grid">
-                                <button id="s4-app-wrong" class="s4-btn ${state.appliedChoice === 'wrong' ? 'active' : 'ghost'}" ${disabled(state.appliedUnlocked)}>6 moles of Cl2 because ratios are 1:1</button>
-                                <button id="s4-app-right" class="s4-btn ${state.appliedChoice === 'right' ? 'active' : 'ghost'}" ${disabled(state.appliedUnlocked)}>3 moles of Cl2 because Na to Cl2 scale is 2 to 1 (6 / 2 = 3)</button>
+                                <button id="s4-app-wrong" class="s4-btn ${state.appliedChoice === 'wrong' ? 'active' : 'ghost'}" ${disabled(state.abstractUnlocked)}>6 moles of Cl2 because ratios are 1:1</button>
+                                <button id="s4-app-right" class="s4-btn ${state.appliedChoice === 'right' ? 'active' : 'ghost'}" ${disabled(state.abstractUnlocked)}>3 moles of Cl2 because Na to Cl2 scale is 2 to 1 (6 / 2 = 3)</button>
                             </div>
                             <div class="s4-feedback" id="s4-applied-feedback">${state.appliedFeedback}</div>
                         </div>
@@ -438,8 +430,8 @@ export function createStage4Fractions() {
                             <p>Solve the proportion: 
                             <br/>Solve for <code>x</code>: <code>${s4Fractions.num} / ${s4Fractions.denom} = x / ${s4Fractions.targetDenom}</code></p>
                             <div class="s4-grid" style="grid-template-columns: 1fr auto; gap: 6px;">
-                                <input id="s4-prop-val" class="s4-input" placeholder="Value of x" value="${state.propVal}" data-tutor-question-id="s4-fractions" ${disabled(state.appliedUnlocked)} />
-                                <button id="s4-check-prop" class="s4-btn" data-tutor-question-id="s4-fractions" ${disabled(state.appliedUnlocked)}>Check Proportion</button>
+                                <input id="s4-prop-val" class="s4-input" placeholder="Value of x" value="${state.propVal}" data-tutor-question-id="s4-fractions" ${disabled(state.abstractUnlocked)} />
+                                <button id="s4-check-prop" class="s4-btn" data-tutor-question-id="s4-fractions" ${disabled(state.abstractUnlocked)}>Check Proportion</button>
                             </div>
                             <div class="s4-feedback" id="s4-prop-feedback">${state.propFeedback}</div>
                         </div>
@@ -451,18 +443,41 @@ export function createStage4Fractions() {
                             Inverse case: <code>y = k/x</code> with <code>k = 24</code> and <code>x = 6</code>. <br/>
                             Joint case: <code>y = kxz</code> with <code>k = 2</code>, <code>x = 3</code>, <code>z = 4</code>.</p>
                             <div class="s4-grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
-                                <input id="s4-var-direct" class="s4-input" placeholder="Direct y" value="${state.variationAnswers.direct}" ${disabled(state.appliedUnlocked)} />
-                                <input id="s4-var-inverse" class="s4-input" placeholder="Inverse y" value="${state.variationAnswers.inverse}" ${disabled(state.appliedUnlocked)} />
-                                <input id="s4-var-joint" class="s4-input" placeholder="Joint y" value="${state.variationAnswers.joint}" ${disabled(state.appliedUnlocked)} />
+                                <input id="s4-var-direct" class="s4-input" placeholder="Direct y" value="${state.variationAnswers.direct}" ${disabled(state.abstractUnlocked)} />
+                                <input id="s4-var-inverse" class="s4-input" placeholder="Inverse y" value="${state.variationAnswers.inverse}" ${disabled(state.abstractUnlocked)} />
+                                <input id="s4-var-joint" class="s4-input" placeholder="Joint y" value="${state.variationAnswers.joint}" ${disabled(state.abstractUnlocked)} />
                             </div>
-                            <button id="s4-check-variation" class="s4-btn" style="margin-top:8px; width:100%;" ${disabled(state.appliedUnlocked)}>Check Variation</button>
+                            <button id="s4-check-variation" class="s4-btn" style="margin-top:8px; width:100%;" ${disabled(state.abstractUnlocked)}>Check Variation</button>
                             <div class="s4-feedback" id="s4-variation-feedback">${state.variationFeedback}</div>
                         </div>
 
-                        <!-- L4.10 Mass Ratios vs. Atomic Composition -->
+                        <!-- Abstract Mission Panel -->
                         <div class="s4-pane" style="margin-top:0.75rem;">
+                            <h3 style="margin:0 0 0.45rem;">Abstract Mission</h3>
+                            <div class="s4-status" style="margin-top:0; margin-bottom:0.5rem;">
+                                <span class="s4-pill ${state.appliedChoice === 'right' ? 'good' : 'locked'}">Molar Ratios</span>
+                                <span class="s4-pill ${state.propCorrect ? 'good' : 'locked'}">Proportions</span>
+                                <span class="s4-pill ${(Number(state.variationAnswers.direct) === 12 && Number(state.variationAnswers.inverse) === 4 && Number(state.variationAnswers.joint) === 24) ? 'good' : 'locked'}">Variation</span>
+                            </div>
+                            <div class="s4-grid" style="gap:4px;">
+                                <button id="s4-continue-applied" class="s4-btn" ${(state.fastTrack || state.appliedUnlocked) ? '' : 'disabled'} ${disabled(state.abstractUnlocked)}>Continue to Applied</button>
+                            </div>
+                            <div class="s4-feedback" id="s4-abstract-feedback">${(state.fastTrack || state.appliedUnlocked) ? 'Abstract mission complete. Applied unlocked. Continue below.' : 'Complete all parts of the Abstract mission (Ratios, Proportions, and Variation).'}</div>
+                        </div>
+
+                        <div class="s4-grid" style="margin-top: 0.6rem;">
+                            <button class="tutor-btn s4-btn ghost" title="Reinforcement" data-prompt="Explain how chemical stoichiometric molar ratios represent scaling proportions." ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        </div>
+                    </article>
+
+                    <!-- APPLIED LEVEL -->
+                    <article class="s4-card s4-level ${levelLocked(state.appliedUnlocked)}">
+                        <h2>Applied Level: Chemical Ratios & Mixtures</h2>
+                        
+                        <!-- L4.10 Mass Ratios vs. Atomic Composition -->
+                        <div class="s4-pane">
                             <strong>L4.10 Mass Ratios vs. Atomic Composition</strong>
-                            <p>${s4StoichRatio.molecule} has an atomic composition ratio of <strong>${s4StoichRatio.atomRatioKey}</strong>. Given the atomic masses of element 1 (${s4StoichRatio.atomMass1} g/mol) and element 2 (${s4StoichRatio.atomMass2} g/mol), calculate the simplified mass ratio of element 1 to element 2 in ${s4StoichRatio.molecule}.</p>
+                            <p>${formatChem(s4StoichRatio.molecule)} has an atomic composition ratio of <strong>${s4StoichRatio.atomRatioKey}</strong>. Given the atomic masses of element 1 (${s4StoichRatio.atomMass1} g/mol) and element 2 (${s4StoichRatio.atomMass2} g/mol), calculate the simplified mass ratio of element 1 to element 2 in ${formatChem(s4StoichRatio.molecule)}.</p>
                             <div class="s4-grid" style="grid-template-columns: 1fr 1fr; gap:6px;">
                                 <button class="s4-btn ghost ${state.massRatioChoice === optAtom ? 'active' : ''} s4-ratio-btn" data-value="${optAtom}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optAtom} (same as atom ratio)</button>
                                 <button class="s4-btn ghost ${state.massRatioChoice === optCorrect ? 'active' : ''} s4-ratio-btn" data-value="${optCorrect}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optCorrect} (by mass)</button>
@@ -470,6 +485,52 @@ export function createStage4Fractions() {
                                 <button class="s4-btn ghost ${state.massRatioChoice === optSwapAtom ? 'active' : ''} s4-ratio-btn" data-value="${optSwapAtom}" data-tutor-question-id="s4-stoich-ratio" ${disabled(state.appliedUnlocked)}>${optSwapAtom} (inverse atom ratio)</button>
                             </div>
                             <div class="s4-feedback" id="s4-mass-ratio-feedback">${state.massRatioFeedback}</div>
+                        </div>
+
+                        <!-- L4.11 Mole Fractions in Mixtures -->
+                        <div class="s4-pane" style="margin-top:0.75rem;">
+                            <strong>L4.11 Mole Fractions in Mixtures</strong>
+                            <p>Mole fraction (X<sub style="vertical-align: sub; font-size: 70%;">He</sub>) is the ratio of Helium moles to total moles:</p>
+                            <div style="display: inline-flex; align-items: center; gap: 8px; margin: 0.6rem 0; font-size: 1.15rem; font-weight: 700; color: #38bdf8;">
+                                <span>X<sub style="vertical-align: sub; font-size: 70%;">He</sub> =</span>
+                                <div style="display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle;">
+                                    <span style="border-bottom: 1.5px solid rgba(255, 255, 255, 0.45); padding: 0 6px; padding-bottom: 2px;">n<sub style="vertical-align: sub; font-size: 70%;">He</sub></span>
+                                    <span style="padding: 0 6px; padding-top: 2px;">n<sub style="vertical-align: sub; font-size: 70%;">He</sub> + n<sub style="vertical-align: sub; font-size: 70%;">Ne</sub></span>
+                                </div>
+                            </div>
+                            <p>Adjust the Helium moles with the slider/number box, then enter the simplified mole fraction of Helium.</p>
+                            <div class="s4-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
+                                <div style="background:#0f172a; height:120px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); position:relative; overflow:hidden; display:flex; flex-wrap:wrap; padding:8px;">
+                                    ${Array.from({ length: s4Mixture ? s4Mixture.molesHe : state.heCount }, () => '<div style="width:16px; height:16px; background:#38bdf8; border-radius:50%; margin:4px; box-shadow:0 0 6px #38bdf8;" title="Helium"></div>').join('')}
+                                    ${Array.from({ length: s4Mixture ? s4Mixture.molesNe : 10 - state.heCount }, () => '<div style="width:16px; height:16px; background:#f87171; border-radius:50%; margin:4px; box-shadow:0 0 6px #f87171;" title="Neon"></div>').join('')}
+                                </div>
+                                <div>
+                                    <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 8px;">
+                                        <span class="s4-pill" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; font-size: 0.9rem; padding: 0.3rem 0.8rem; font-weight: 500;">
+                                            n<sub style="vertical-align: sub; font-size: 70%;">He</sub> = <strong style="font-weight: 800;">${s4Mixture ? s4Mixture.molesHe : state.heCount} mol</strong>
+                                        </span>
+                                        <span class="s4-pill" style="background: rgba(248, 113, 113, 0.15); border-color: rgba(248, 113, 113, 0.3); color: #f87171; font-size: 0.9rem; padding: 0.3rem 0.8rem; font-weight: 500;">
+                                            n<sub style="vertical-align: sub; font-size: 70%;">Ne</sub> = <strong style="font-weight: 800;">${s4Mixture ? s4Mixture.molesNe : 10 - state.heCount} mol</strong>
+                                        </span>
+                                    </div>
+                                    <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+                                        <input type="range" id="s4-he-slider" min="1" max="9" value="${state.heCount}" style="flex:1;" ${disabled(state.appliedUnlocked) || (s4Mixture ? 'disabled' : '')} />
+                                        <input type="number" id="s4-he-num" min="1" max="9" value="${state.heCount}" class="s4-input" style="width:60px; padding:0.25rem;" ${disabled(state.appliedUnlocked) || (s4Mixture ? 'disabled' : '')} />
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px; justify-content: center;">
+                                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                            <span style="font-weight: 700; color: #38bdf8;">X<sub style="vertical-align: sub; font-size: 70%;">He</sub> =</span>
+                                            <div style="display: inline-flex; flex-direction: column; align-items: center; width: 70px;">
+                                                <input id="s4-xhe-num" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Num" value="${state.moleFractionAnswerNum || ''}" data-tutor-question-id="s4-mixture" ${disabled(state.appliedUnlocked)} />
+                                                <div style="width: 100%; border-top: 1.5px solid rgba(255, 255, 255, 0.45); margin: 4px 0;"></div>
+                                                <input id="s4-xhe-den" class="s4-input" style="text-align: center; padding: 4px;" placeholder="Den" value="${state.moleFractionAnswerDen || ''}" data-tutor-question-id="s4-mixture" ${disabled(state.appliedUnlocked)} />
+                                            </div>
+                                        </div>
+                                        <button id="s4-check-xhe" class="s4-btn" data-tutor-question-id="s4-mixture" ${disabled(state.appliedUnlocked)}>Verify Fraction</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="s4-feedback" id="s4-xhe-feedback">${state.moleFractionFeedback}</div>
                         </div>
 
                         <div class="s4-grid" style="margin-top: 0.6rem;">
@@ -494,6 +555,12 @@ export function createStage4Fractions() {
                         level: 'concrete',
                         keys: 'partWholeNum,partWholeDen',
                         prompt: 'Help me reduce 40/100 into lowest terms for the filled-flask fraction.'
+                    },
+                    's4-check-gcf': {
+                        id: 's4-gcf-reduction',
+                        level: 'concrete',
+                        keys: 'gcfInput,gcfNum,gcfDen',
+                        prompt: 'Help me use the greatest common factor to reduce 18/24 correctly.'
                     },
                     's4-check-mixed': {
                         id: 's4-mixed-number',
@@ -531,29 +598,29 @@ export function createStage4Fractions() {
                         keys: 'divFlipped,divReciprocalVerified,divNum,divDen',
                         prompt: 'Help me evaluate 2/3 divided by 4/5 after flipping to reciprocal multiplication.'
                     },
-                    's4-check-gcf': {
-                        id: 's4-gcf-reduction',
-                        level: 'abstract',
-                        keys: 'gcfInput,gcfNum,gcfDen',
-                        prompt: 'Help me use the greatest common factor to reduce 18/24 correctly.'
-                    },
                     's4-app-right': {
                         id: 's4-applied-ratio',
-                        level: 'applied',
+                        level: 'abstract',
                         keys: 'appliedChoice',
                         prompt: 'Help me reason through the Na to Cl2 stoichiometric ratio in the applied scenario.'
                     },
                     's4-check-prop': {
                         id: 's4-proportion',
-                        level: 'applied',
+                        level: 'abstract',
                         keys: 'propVal',
                         prompt: 'Help me solve the dilution proportion 2.5/10 = x/40.'
                     },
                     's4-check-variation': {
                         id: 's4-variation',
-                        level: 'applied',
+                        level: 'abstract',
                         keys: 'variationAnswers.direct,variationAnswers.inverse,variationAnswers.joint',
                         prompt: 'Help me solve the direct, inverse, and joint variation mini-set.'
+                    },
+                    's4-check-xhe': {
+                        id: 's4-mixture',
+                        level: 'applied',
+                        keys: 'moleFractionAnswerNum,moleFractionAnswerDen',
+                        prompt: 'Help me calculate the mole fraction of Helium in the mixture.'
                     }
                 };
 
@@ -571,12 +638,24 @@ export function createStage4Fractions() {
 
             const syncConcreteMission = () => {
                 if (state.fastTrack) return;
-                if (state.partWholeCorrect && state.mixedCorrect && state.lcmUnlocked && state.addCorrect) {
+                if (state.partWholeCorrect && state.gcfCorrect && state.mixedCorrect && state.lcmUnlocked && state.addCorrect) {
                     state.concreteCompleted = true;
                     state.pictorialUnlocked = true;
                 } else {
                     state.concreteCompleted = false;
                     state.pictorialUnlocked = false;
+                }
+            };
+
+            const syncAbstractMission = () => {
+                if (state.fastTrack) return;
+                const variationCorrect = (Number(state.variationAnswers.direct) === 12 &&
+                                         Number(state.variationAnswers.inverse) === 4 &&
+                                         Number(state.variationAnswers.joint) === 24);
+                if (state.appliedChoice === 'right' && state.propCorrect && variationCorrect) {
+                    state.appliedUnlocked = true;
+                } else {
+                    state.appliedUnlocked = false;
                 }
             };
 
@@ -648,6 +727,7 @@ export function createStage4Fractions() {
                 if (num === '2' && den === '5') {
                     state.partWholeCorrect = true;
                     const missing = [];
+                    if (!state.gcfCorrect) missing.push('GCF Reduction');
                     if (!state.mixedCorrect) missing.push('Mixed Numbers');
                     if (!state.lcmUnlocked) missing.push('LCM');
                     if (!state.addCorrect) missing.push('Fraction Addition');
@@ -659,6 +739,37 @@ export function createStage4Fractions() {
                 }
                 syncConcreteMission();
                 persist('Parts of whole checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L4.2 Concrete GCF
+            host.querySelector('#s4-check-gcf').addEventListener('click', () => {
+                const val = host.querySelector('#s4-gcf-input').value.trim();
+                const num = host.querySelector('#s4-gcf-num').value.trim();
+                const den = host.querySelector('#s4-gcf-den').value.trim();
+                state.gcfInput = val;
+                state.gcfNum = num;
+                state.gcfDen = den;
+                
+                if (val === '6' && num === '3' && den === '4') {
+                    state.gcfCorrect = true;
+                    const missing = [];
+                    if (!state.partWholeCorrect) missing.push('Parts of Whole');
+                    if (!state.mixedCorrect) missing.push('Mixed Numbers');
+                    if (!state.lcmUnlocked) missing.push('LCM');
+                    if (!state.addCorrect) missing.push('Fraction Addition');
+                    state.gcfFeedback = 'Correct! GCF is 6. Dividing numerator and denominator by 6 gives: (18 / 6) / (24 / 6) = 3/4.' +
+                        (missing.length > 0 ? ` (Remaining concrete tasks: ${missing.join(', ')})` : ' All Concrete tasks complete! Pictorial unlocked.');
+                } else {
+                    state.gcfCorrect = false;
+                    if (val !== '6') {
+                        state.gcfFeedback = 'Incorrect GCF. The greatest factor shared by 18 and 24 is 6.';
+                    } else {
+                        state.gcfFeedback = 'Incorrect reduction. Dividing 18 and 24 by GCF (6) should yield the simplified fraction.';
+                    }
+                }
+                syncConcreteMission();
+                persist('GCF checked');
                 this.mount({ host, state, onStateChange });
             });
 
@@ -674,6 +785,7 @@ export function createStage4Fractions() {
                     state.mixedCorrect = true;
                     const missing = [];
                     if (!state.partWholeCorrect) missing.push('Parts of Whole');
+                    if (!state.gcfCorrect) missing.push('GCF Reduction');
                     if (!state.lcmUnlocked) missing.push('LCM');
                     if (!state.addCorrect) missing.push('Fraction Addition');
                     state.mixedFeedback = 'Correct! 11/4 represents 2 3/4.' + 
@@ -696,6 +808,7 @@ export function createStage4Fractions() {
                     state.concreteMission.lcmReady = true;
                     const missing = [];
                     if (!state.partWholeCorrect) missing.push('Parts of Whole');
+                    if (!state.gcfCorrect) missing.push('GCF Reduction');
                     if (!state.mixedCorrect) missing.push('Mixed Numbers');
                     if (!state.addCorrect) missing.push('Fraction Addition');
                     state.sumFeedback = 'Correct! The LCM is 12. Both bars are sliced into twelfths. Perform addition below.' + 
@@ -725,6 +838,7 @@ export function createStage4Fractions() {
                         state.addCorrect = true;
                         const missing = [];
                         if (!state.partWholeCorrect) missing.push('Parts of Whole');
+                        if (!state.gcfCorrect) missing.push('GCF Reduction');
                         if (!state.mixedCorrect) missing.push('Mixed Numbers');
                         if (!state.lcmUnlocked) missing.push('LCM');
                         state.addFeedback = 'Correct! 4/12 + 3/12 = 7/12.' + 
@@ -742,6 +856,7 @@ export function createStage4Fractions() {
             host.querySelector('#s4-hint-concrete')?.addEventListener('click', () => {
                 let hints = [];
                 if (!state.partWholeCorrect) hints.push('Parts of Whole: Divide 40 and 100 by 20 to get 2/5.');
+                if (!state.gcfCorrect) hints.push('GCF Reduction: GCF of 18 and 24 is 6, giving 3/4.');
                 if (!state.mixedCorrect) hints.push('Mixed Numbers: 11 / 4 = 2 with a remainder of 3, so 2 3/4.');
                 if (!state.lcmUnlocked) hints.push('LCM: The least common multiple of 3 and 4 is 12.');
                 if (state.lcmUnlocked && !state.addCorrect) hints.push('Addition: Add the numerators of 4/12 and 3/12 to get 7/12.');
@@ -762,7 +877,7 @@ export function createStage4Fractions() {
                     this.mount({ host, state, onStateChange });
                     host.querySelectorAll('.s4-level')[1]?.scrollIntoView({ behavior: 'smooth' });
                 } else {
-                    state.concreteFeedback = 'Complete all parts of the Concrete mission first (Parts of Whole, Mixed Numbers, LCM, and Addition).';
+                    state.concreteFeedback = 'Complete all parts of the Concrete mission first (Parts of Whole, GCF Reduction, Mixed Numbers, LCM, and Addition).';
                     persist('Continue to pictorial clicked');
                     this.mount({ host, state, onStateChange });
                 }
@@ -849,39 +964,11 @@ export function createStage4Fractions() {
                 });
             }
 
-            // Abstract GCF (L4.2)
-            host.querySelector('#s4-check-gcf').addEventListener('click', () => {
-                const val = host.querySelector('#s4-gcf-input').value.trim();
-                const num = host.querySelector('#s4-gcf-num').value.trim();
-                const den = host.querySelector('#s4-gcf-den').value.trim();
-                state.gcfInput = val;
-                state.gcfNum = num;
-                state.gcfDen = den;
-                
-                if (val === '6' && num === '3' && den === '4') {
-                    state.gcfCorrect = true;
-                    state.gcfFeedback = 'Correct! GCF is 6. Dividing numerator and denominator by 6 gives: (18 / 6) / (24 / 6) = 3/4. Applied unlocked. Continue below.';
-                    state.appliedUnlocked = true;
-                } else {
-                    state.gcfCorrect = false;
-                    state.appliedUnlocked = false;
-                    if (val !== '6') {
-                        state.gcfFeedback = 'Incorrect GCF. The greatest factor shared by 18 and 24 is 6.';
-                    } else {
-                        state.gcfFeedback = 'Incorrect reduction. Dividing 18 and 24 by GCF (6) should yield the simplified fraction.';
-                    }
-                }
-                persist('GCF checked');
-                this.mount({ host, state, onStateChange });
-                if (state.gcfCorrect) {
-                    host.querySelectorAll('.s4-level')[3]?.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-
             // Applied Molar Ratio (L4.7)
             host.querySelector('#s4-app-wrong').addEventListener('click', () => {
                 state.appliedChoice = 'wrong';
                 state.appliedFeedback = 'Incorrect. Since Na to Cl2 reacts in a 2 to 1 proportion, you need half as much Cl2 as you have Na (6 / 2 = 3).';
+                syncAbstractMission();
                 persist('Applied choice incorrect');
                 this.mount({ host, state, onStateChange });
             });
@@ -889,8 +976,55 @@ export function createStage4Fractions() {
             host.querySelector('#s4-app-right').addEventListener('click', () => {
                 state.appliedChoice = 'right';
                 state.appliedFeedback = 'Correct! Since Na:Cl2 is 2:1, 6 moles of Na react with 3 moles of Cl2.';
+                syncAbstractMission();
                 persist('Applied choice correct');
                 this.mount({ host, state, onStateChange });
+            });
+
+            // L4.8 Proportions
+            host.querySelector('#s4-check-prop').addEventListener('click', () => {
+                const val = host.querySelector('#s4-prop-val').value.trim();
+                state.propVal = val;
+                const expected = String(s4Fractions.answerKey);
+                if (val === expected) {
+                    state.propCorrect = true;
+                    state.propFeedback = `Correct! Solve: x = (${s4Fractions.num} &times; ${s4Fractions.targetDenom}) / ${s4Fractions.denom} = ${expected}.`;
+                } else {
+                    state.propCorrect = false;
+                    state.propFeedback = `Incorrect. Cross-multiply and solve: ${s4Fractions.denom} &times; x = ${s4Fractions.num} &times; ${s4Fractions.targetDenom}.`;
+                }
+                syncAbstractMission();
+                persist('Proportions checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L4.9 Direct, Inverse, Joint Variation
+            host.querySelector('#s4-check-variation').addEventListener('click', () => {
+                const direct = host.querySelector('#s4-var-direct').value.trim();
+                const inverse = host.querySelector('#s4-var-inverse').value.trim();
+                const joint = host.querySelector('#s4-var-joint').value.trim();
+                state.variationAnswers = { direct, inverse, joint };
+
+                const directVal = Number(direct);
+                const inverseVal = Number(inverse);
+                const jointVal = Number(joint);
+                if (directVal === 12 && inverseVal === 4 && jointVal === 24) {
+                    state.variationFeedback = 'Correct. Direct: y = 4 &times; 3 = 12. Inverse: y = 24 / 6 = 4. Joint: y = 2 &times; 3 &times; 4 = 24.';
+                } else {
+                    state.variationFeedback = 'Not yet. Direct: 4 &times; 3 = 12. Inverse: 24 / 6 = 4. Joint: 2 &times; 3 &times; 4 = 24.';
+                }
+
+                syncAbstractMission();
+                persist('Variation checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            host.querySelector('#s4-continue-applied')?.addEventListener('click', () => {
+                if (state.fastTrack || state.appliedUnlocked) {
+                    persist('Continue to applied clicked');
+                    this.mount({ host, state, onStateChange });
+                    host.querySelectorAll('.s4-level')[3]?.scrollIntoView({ behavior: 'smooth' });
+                }
             });
 
             // L4.10 Mass Ratios
@@ -899,7 +1033,7 @@ export function createStage4Fractions() {
                     const val = btn.getAttribute('data-value');
                     state.massRatioChoice = val;
                     if (val === optCorrect) {
-                        state.massRatioFeedback = `Correct! The simplified mass ratio in ${s4StoichRatio.molecule} is ${optCorrect}, which is very different from the atom ratio of ${optAtom}.`;
+                        state.massRatioFeedback = `Correct! The simplified mass ratio in ${formatChem(s4StoichRatio.molecule)} is ${optCorrect}, which is very different from the atom ratio of ${optAtom}.`;
                     } else if (val === optAtom) {
                         state.massRatioFeedback = `Incorrect. This is the atom composition ratio (${optAtom}). Since atoms have different masses, the mass ratio is different.`;
                     } else {
@@ -915,7 +1049,7 @@ export function createStage4Fractions() {
                 const num = parseInt(val);
                 if (num >= 1 && num <= 9) {
                     state.heCount = num;
-                    state.moleFractionFeedback = `Mixture updated: ${num} moles of He, ${10 - num} moles of Ne. Total is 10 moles. Calculate X_He as a simplified fraction.`;
+                    state.moleFractionFeedback = `Mixture updated: ${num} moles of He, ${10 - num} moles of Ne. Total is 10 moles. Calculate X<sub style="vertical-align: sub; font-size: 70%;">He</sub> as a simplified fraction.`;
                     persist('Helium count changed');
                     this.mount({ host, state, onStateChange });
                 }
@@ -938,47 +1072,11 @@ export function createStage4Fractions() {
                 const expDen = total / d;
                 
                 if (numVal === expNum && denVal === expDen) {
-                    state.moleFractionFeedback = `Correct! X_He = n_He / n_total = ${heVal} / ${total} = ${expNum}/${expDen}.`;
+                    state.moleFractionFeedback = `Correct! X<sub style="vertical-align: sub; font-size: 70%;">He</sub> = n<sub style="vertical-align: sub; font-size: 70%;">He</sub> / n<sub style="vertical-align: sub; font-size: 70%;">total</sub> = ${heVal} / ${total} = ${expNum}/${expDen}.`;
                 } else {
-                    state.moleFractionFeedback = `Incorrect. Total moles = ${total}. n_He = ${heVal}. Divide ${heVal} by ${total} and reduce to lowest terms.`;
+                    state.moleFractionFeedback = `Incorrect. Total moles = ${total}. n<sub style="vertical-align: sub; font-size: 70%;">He</sub> = ${heVal}. Divide ${heVal} by ${total} and reduce to lowest terms.`;
                 }
                 persist('Mole fraction checked');
-                this.mount({ host, state, onStateChange });
-            });
-
-            // L4.8 Proportions
-            host.querySelector('#s4-check-prop').addEventListener('click', () => {
-                const val = host.querySelector('#s4-prop-val').value.trim();
-                state.propVal = val;
-                const expected = String(s4Fractions.answerKey);
-                if (val === expected) {
-                    state.propCorrect = true;
-                    state.propFeedback = `Correct! Solve: x = (${s4Fractions.num} &times; ${s4Fractions.targetDenom}) / ${s4Fractions.denom} = ${expected}.`;
-                } else {
-                    state.propCorrect = false;
-                    state.propFeedback = `Incorrect. Cross-multiply and solve: ${s4Fractions.denom} &times; x = ${s4Fractions.num} &times; ${s4Fractions.targetDenom}.`;
-                }
-                persist('Proportions checked');
-                this.mount({ host, state, onStateChange });
-            });
-
-            // L4.9 Direct, Inverse, Joint Variation
-            host.querySelector('#s4-check-variation').addEventListener('click', () => {
-                const direct = host.querySelector('#s4-var-direct').value.trim();
-                const inverse = host.querySelector('#s4-var-inverse').value.trim();
-                const joint = host.querySelector('#s4-var-joint').value.trim();
-                state.variationAnswers = { direct, inverse, joint };
-
-                const directVal = Number(direct);
-                const inverseVal = Number(inverse);
-                const jointVal = Number(joint);
-                if (directVal === 12 && inverseVal === 4 && jointVal === 24) {
-                    state.variationFeedback = 'Correct. Direct: y = 4 &times; 3 = 12. Inverse: y = 24 / 6 = 4. Joint: y = 2 &times; 3 &times; 4 = 24.';
-                } else {
-                    state.variationFeedback = 'Not yet. Direct: 4 &times; 3 = 12. Inverse: 24 / 6 = 4. Joint: 2 &times; 3 &times; 4 = 24.';
-                }
-
-                persist('Variation checked');
                 this.mount({ host, state, onStateChange });
             });
 
@@ -998,6 +1096,9 @@ export function createStage4Fractions() {
 
             bindInputSync('#s4-partwhole-num', 'partWholeNum');
             bindInputSync('#s4-partwhole-den', 'partWholeDen');
+            bindInputSync('#s4-gcf-input', 'gcfInput');
+            bindInputSync('#s4-gcf-num', 'gcfNum');
+            bindInputSync('#s4-gcf-den', 'gcfDen');
             bindInputSync('#s4-mixed-whole', 'mixedWhole');
             bindInputSync('#s4-mixed-num', 'mixedNum');
             bindInputSync('#s4-mixed-den', 'mixedDen');
@@ -1006,9 +1107,6 @@ export function createStage4Fractions() {
             bindInputSync('#s4-add-den', 'addDen');
             bindInputSync('#s4-div-num', 'divNum');
             bindInputSync('#s4-div-den', 'divDen');
-            bindInputSync('#s4-gcf-input', 'gcfInput');
-            bindInputSync('#s4-gcf-num', 'gcfNum');
-            bindInputSync('#s4-gcf-den', 'gcfDen');
             bindInputSync('#s4-prop-val', 'propVal');
             bindInputSync('#s4-var-direct', 'variationAnswers', 'direct');
             bindInputSync('#s4-var-inverse', 'variationAnswers', 'inverse');

@@ -97,7 +97,6 @@ export function createStage3Integers() {
 
             const levelLocked = (unlocked) => (state.fastTrack || unlocked) ? '' : 's3-locked';
             const disabled = (unlocked) => (state.fastTrack || unlocked) ? '' : 'disabled';
-
             host.innerHTML = `
                 <style>
                     .s3-wrap { display: grid; gap: 1.2rem; }
@@ -137,30 +136,30 @@ export function createStage3Integers() {
                                 <strong>1. Signed Subtraction</strong>
                                 <p>Evaluate: -5 - (-8) = ?</p>
                                 <div class="s3-grid" style="grid-template-columns: repeat(3, 1fr); gap: 4px;">
-                                    <button class="s3-btn ${state.diagnosticAnswers.q1 === '3' ? 'active' : 'ghost'}" data-diag="q1" data-value="3">3</button>
-                                    <button class="s3-btn ${state.diagnosticAnswers.q1 === '-13' ? 'active' : 'ghost'}" data-diag="q1" data-value="-13">-13</button>
-                                    <button class="s3-btn ${state.diagnosticAnswers.q1 === '-3' ? 'active' : 'ghost'}" data-diag="q1" data-value="-3">-3</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q1 === '3' ? 'active' : 'ghost'}" data-diag="q1" data-value="3" ${state.diagnosticDone ? 'disabled' : ''}>3</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q1 === '-13' ? 'active' : 'ghost'}" data-diag="q1" data-value="-13" ${state.diagnosticDone ? 'disabled' : ''}>-13</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q1 === '-3' ? 'active' : 'ghost'}" data-diag="q1" data-value="-3" ${state.diagnosticDone ? 'disabled' : ''}>-3</button>
                                 </div>
                             </div>
                             <div class="s3-pane">
                                 <strong>2. PEMDAS Equal Priority</strong>
                                 <p>Evaluate: 18 / 6 x 3 = ?</p>
                                 <div class="s3-grid" style="grid-template-columns: repeat(2, 1fr); gap: 4px;">
-                                    <button class="s3-btn ${state.diagnosticAnswers.q2 === '9' ? 'active' : 'ghost'}" data-diag="q2" data-value="9">9</button>
-                                    <button class="s3-btn ${state.diagnosticAnswers.q2 === '1' ? 'active' : 'ghost'}" data-diag="q2" data-value="1">1 (multiplying first)</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q2 === '9' ? 'active' : 'ghost'}" data-diag="q2" data-value="9" ${state.diagnosticDone ? 'disabled' : ''}>9</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q2 === '1' ? 'active' : 'ghost'}" data-diag="q2" data-value="1" ${state.diagnosticDone ? 'disabled' : ''}>1 (multiplying first)</button>
                                 </div>
                             </div>
                             <div class="s3-pane">
                                 <strong>3. Prime Atoms</strong>
                                 <p>What is the prime decomposition of 18?</p>
                                 <div class="s3-grid" style="grid-template-columns: 1fr; gap: 4px;">
-                                    <button class="s3-btn ${state.diagnosticAnswers.q3 === 'correct' ? 'active' : 'ghost'}" data-diag="q3" data-value="correct">2 x 3 x 3</button>
-                                    <button class="s3-btn ${state.diagnosticAnswers.q3 === 'incorrect' ? 'active' : 'ghost'}" data-diag="q3" data-value="incorrect">2 x 9 (9 is composite)</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q3 === 'correct' ? 'active' : 'ghost'}" data-diag="q3" data-value="correct" ${state.diagnosticDone ? 'disabled' : ''}>2 x 3 x 3</button>
+                                    <button class="s3-btn ${state.diagnosticAnswers.q3 === 'incorrect' ? 'active' : 'ghost'}" data-diag="q3" data-value="incorrect" ${state.diagnosticDone ? 'disabled' : ''}>2 x 9 (9 is composite)</button>
                                 </div>
                             </div>
                         </div>
                         <div class="s3-grid" style="margin-top:0.75rem;">
-                            <button id="s3-check-diagnostic" class="s3-btn" data-tutor-question-id="s3-diagnostic" data-tutor-level="diagnostic" data-tutor-answer-keys="diagnosticAnswers.q1,diagnosticAnswers.q2,diagnosticAnswers.q3" data-tutor-question="Help me review my Stage 3 diagnostic answers for signed subtraction, PEMDAS order, and prime decomposition.">Check Diagnostic</button>
+                            <button id="s3-check-diagnostic" class="s3-btn" data-tutor-question-id="s3-diagnostic" data-tutor-level="diagnostic" data-tutor-answer-keys="diagnosticAnswers.q1,diagnosticAnswers.q2,diagnosticAnswers.q3" data-tutor-question="Help me review my Stage 3 diagnostic answers for signed subtraction, PEMDAS order, and prime decomposition." ${(state.diagnosticDone || !state.diagnosticAnswers.q1 || !state.diagnosticAnswers.q2 || !state.diagnosticAnswers.q3) ? 'disabled' : ''}>Check Diagnostic</button>
                         </div>
                         <div id="s3-diagnostic-feedback" class="s3-feedback">${state.diagnosticFeedback}</div>
                         <div class="s3-status">
@@ -174,7 +173,19 @@ export function createStage3Integers() {
 
                     <!-- CONCRETE LEVEL -->
                     <article class="s3-card s3-level ${levelLocked(state.concreteUnlocked)}">
-                        <h2>Concrete Level: Signed Vectors & Absolute Value</h2>
+                        <h2>Concrete Level: Quotient Zeros &amp; Signed Vectors</h2>
+                        <p><strong>L3.1 Quotient Zeros &amp; Remainders:</strong> In long division, if the divisor does not go into the current brought-down value, write a <code>0</code> in the quotient before bringing down the next digit.
+                        <br>Solve: <strong>412 ÷ 4</strong>. Enter the quotient.</p>
+                        <div class="s3-pane" style="margin-bottom:0.75rem;">
+                            <div class="s3-grid" style="grid-template-columns: 1fr auto; gap: 4px;">
+                                <input type="number" id="s3-quotient-input" class="s3-input" placeholder="Quotient" value="${state.quotientAnswer}" data-tutor-question-id="s3-quotient-zero" data-tutor-level="concrete" data-tutor-answer-keys="quotientAnswer" data-tutor-question="Help me solve 412 divided by 4 and explain where the zero appears in the quotient." ${disabled(state.concreteUnlocked)} />
+                                <button id="s3-check-quotient" class="s3-btn" data-tutor-question-id="s3-quotient-zero" data-tutor-level="concrete" data-tutor-answer-keys="quotientAnswer" data-tutor-question="Help me solve 412 divided by 4 and explain where the zero appears in the quotient." ${disabled(state.concreteUnlocked)}>Check Division</button>
+                            </div>
+                            <div class="s3-feedback" id="s3-quotient-feedback">${state.quotientFeedback}</div>
+                        </div>
+
+                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
+
                         <p><strong>L3.2 Signed Directions:</strong> Protons add +1 (right), electrons add -1 (left). Subtracting a negative removes leftward vectors, shifting the net charge right.</p>
                         <div class="s3-pane" style="margin-bottom:0.75rem;">
                             <h3 style="margin-bottom:0.4rem;">Concrete Mission</h3>
@@ -198,8 +209,112 @@ export function createStage3Integers() {
                                 <button id="s3-reset-signed" class="s3-btn ghost" ${disabled(state.concreteUnlocked)}>Reset</button>
                             </div>
                         </div>
+                        <div class="s3-feedback">${state.signedFeedback}</div>
 
-                        <div class="s3-pane" style="margin-top:0.75rem;">
+                        <div class="s3-grid" style="margin-top: 0.6rem;">
+                            <button class="tutor-btn s3-btn ghost" title="Reinforcement" data-prompt="Why does subtracting a negative number shift us to the right on a number line? Explain conceptually." ${disabled(state.concreteUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        </div>
+                    </article>
+
+                    <!-- PICTORIAL LEVEL -->
+                    <article class="s3-card s3-level ${levelLocked(state.pictorialUnlocked)}">
+                        <h2>Pictorial Level: Carbon Net Charge, Absolute Value &amp; PEMDAS Stack</h2>
+                        <p><strong>L3.3 Applied:</strong> In chemistry, a carbon ion has 6 protons (+1 charge each) and 8 electrons (-1 charge each). What is the total net charge?</p>
+                        <div class="s3-grid" style="margin-bottom:0.75rem;">
+                            <button id="s3-app-wrong" class="s3-btn ${state.appliedChoice === 'wrong' ? 'active' : 'ghost'}" data-tutor-question-id="s3-carbon-charge" data-tutor-level="pictorial" data-tutor-answer-keys="appliedChoice" data-tutor-question="Help me determine the net charge when carbon has 6 protons and 8 electrons." ${disabled(state.pictorialUnlocked)}>+2 because 8 - 6 = 2</button>
+                            <button id="s3-app-right" class="s3-btn ${state.appliedChoice === 'right' ? 'active' : 'ghost'}" data-tutor-question-id="s3-carbon-charge" data-tutor-level="pictorial" data-tutor-answer-keys="appliedChoice" data-tutor-question="Help me determine the net charge when carbon has 6 protons and 8 electrons." ${disabled(state.pictorialUnlocked)}>-2 because 6 protons (+6) + 8 electrons (-8) = -2 net charge</button>
+                        </div>
+                        <div class="s3-feedback" style="margin-bottom:0.75rem;">${state.appliedFeedback}</div>
+
+                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
+
+                        <p><strong>L3.4 Absolute Value (s3-absolute):</strong> Absolute value represents the positive magnitude or distance from zero. Compare the absolute values:
+                        <br>Compare: <strong>|${s3Absolute.a}| ___ |${s3Absolute.b}|</strong></p>
+                        <div class="s3-pane" style="margin-bottom:0.75rem;">
+                            <div class="s3-grid" style="grid-template-columns: 1fr auto; gap: 4px;">
+                                <select id="s3-abs-select" class="s3-input" data-tutor-question-id="s3-absolute" ${disabled(state.pictorialUnlocked)}>
+                                    <option value="">Choose...</option>
+                                    <option value="lt" ${state.absAnswer === 'lt' ? 'selected' : ''}>&lt;</option>
+                                    <option value="gt" ${state.absAnswer === 'gt' ? 'selected' : ''}>&gt;</option>
+                                    <option value="eq" ${state.absAnswer === 'eq' ? 'selected' : ''}>=</option>
+                                </select>
+                                <button id="s3-check-abs" class="s3-btn" data-tutor-question-id="s3-absolute" ${disabled(state.pictorialUnlocked)}>Verify Absolute</button>
+                            </div>
+                            <div class="s3-feedback" id="s3-abs-feedback">${state.absFeedback}</div>
+                        </div>
+
+                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
+
+                        <p><strong>L3.5 The Stack:</strong> Division and multiplication have the same priority. Solve left-to-right. Evaluate: 12 / 3 x 2 - 4.</p>
+                        <div class="s3-pane">
+                            <div class="s3-gems-expr" id="s3-gems-display">
+                                ${state.pemdasStep === 0 ? '12 &divide; 3 &times; 2 - 4' : ''}
+                                ${state.pemdasStep === 1 ? '4 &times; 2 - 4' : ''}
+                                ${state.pemdasStep === 2 ? '8 - 4' : ''}
+                                ${state.pemdasStep === 3 ? '4' : ''}
+                            </div>
+                            <div class="s3-grid" style="gap:4px;">
+                                <button class="s3-btn ${state.pemdasStep === 0 ? 'active' : 'ghost'} s3-op-btn" data-op="div" data-tutor-question-id="s3-pemdas-order" data-tutor-level="pictorial" data-tutor-answer-keys="pemdasStep" data-tutor-question="Help me apply left-to-right priority between division and multiplication in 12 / 3 x 2 - 4." ${state.pemdasStep === 0 ? '' : 'disabled'} ${disabled(state.pictorialUnlocked)}>Execute 12 / 3</button>
+                                <button class="s3-btn ${state.pemdasStep === 1 ? 'active' : 'ghost'} s3-op-btn" data-op="mul" data-tutor-question-id="s3-pemdas-order" data-tutor-level="pictorial" data-tutor-answer-keys="pemdasStep" data-tutor-question="Help me apply left-to-right priority between division and multiplication in 12 / 3 x 2 - 4." ${state.pemdasStep === 1 ? '' : 'disabled'} ${disabled(state.pictorialUnlocked)}>Execute 4 x 2</button>
+                                <button class="s3-btn ${state.pemdasStep === 2 ? 'active' : 'ghost'} s3-op-btn" data-op="sub" data-tutor-question-id="s3-pemdas-order" data-tutor-level="pictorial" data-tutor-answer-keys="pemdasStep" data-tutor-question="Help me apply left-to-right priority between division and multiplication in 12 / 3 x 2 - 4." ${state.pemdasStep === 2 ? '' : 'disabled'} ${disabled(state.pictorialUnlocked)}>Execute 8 - 4</button>
+                                <button id="s3-reset-pemdas" class="s3-btn ghost" ${disabled(state.pictorialUnlocked)}>Reset Stack</button>
+                            </div>
+                            <div class="s3-feedback">${state.pemdasFeedback}</div>
+                        </div>
+
+                        <div class="s3-grid" style="margin-top: 0.6rem;">
+                            <button class="tutor-btn s3-btn ghost" title="Reinforcement" data-prompt="Why do multiplication and division have equal priority in PEMDAS/GEMS? Explain left-to-right evaluation." ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        </div>
+                    </article>
+
+                    <!-- ABSTRACT LEVEL -->
+                    <article class="s3-card s3-level ${levelLocked(state.abstractUnlocked)}">
+                        <h2>Abstract Level: Factors, Multiples &amp; Prime Trees</h2>
+                        <p><strong>L3.6 Factors &amp; Multiples:</strong> Factors divide a number evenly. Multiples are results of multiplying by integers.
+                        <br>Find the **Least Common Multiple (LCM)** of <strong>4 and 6</strong>.</p>
+                        <div class="s3-pane" style="margin-bottom:0.75rem;">
+                            <div class="s3-grid" style="grid-template-columns: 1fr auto;">
+                                <input type="number" id="s3-lcm-input-s3" class="s3-input" placeholder="LCM" value="${state.lcmAnswer}" data-tutor-question-id="s3-lcm" data-tutor-level="abstract" data-tutor-answer-keys="lcmAnswer" data-tutor-question="Help me find the least common multiple of 4 and 6 using factor or multiple lists." ${disabled(state.abstractUnlocked)} />
+                                <button id="s3-check-lcm" class="s3-btn" data-tutor-question-id="s3-lcm" data-tutor-level="abstract" data-tutor-answer-keys="lcmAnswer" data-tutor-question="Help me find the least common multiple of 4 and 6 using factor or multiple lists." ${disabled(state.abstractUnlocked)}>Check LCM</button>
+                            </div>
+                            <div class="s3-feedback" id="s3-lcm-feedback">${state.lcmFeedback}</div>
+                        </div>
+
+                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
+
+                        <p><strong>L3.7 Primes:</strong> Break 18 down into prime factor elements. One path is 18 = 2 x 9, then 9 = 3 x 3.</p>
+                        <div class="s3-pane">
+                            <p>Enter the three prime factors of 18 (order does not matter):</p>
+                            <div class="s3-grid" style="grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                <input id="s3-factor-1" class="s3-input" style="text-align:center;" placeholder="Factor" value="${state.primeAnswers.f1}" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)} />
+                                <input id="s3-factor-2" class="s3-input" style="text-align:center;" placeholder="Factor" value="${state.primeAnswers.f2}" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)} />
+                                <input id="s3-factor-3" class="s3-input" style="text-align:center;" placeholder="Factor" value="${state.primeAnswers.f3}" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)} />
+                            </div>
+                            <button id="s3-check-primes" class="s3-btn" style="margin-top:8px; width:100%;" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)}>Verify Prime Factors</button>
+                            <div class="s3-feedback">${state.primeFeedback}</div>
+                        </div>
+
+                        <div class="s3-grid" style="margin-top: 0.6rem;">
+                            <button class="tutor-btn s3-btn ghost" title="Reinforcement" data-prompt="What is the difference between a factor and a multiple? How do we find the Least Common Multiple (LCM) of 4 and 6?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                        </div>
+                    </article>
+
+                    <!-- APPLIED LEVEL -->
+                    <article class="s3-card s3-level ${levelLocked(state.appliedUnlocked)}">
+                        <h2>Applied Level: Lab Statistics, Calorimeter &amp; Enthalpy</h2>
+                        <p><strong>L3.8 Descriptive Statistics:</strong> A mini lab reports trial values <code>[8, 10, 10, 12, 15]</code>. Enter mean, median, mode, and range.</p>
+                        <div class="s3-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;">
+                            <input id="s3-stats-mean" class="s3-input" placeholder="Mean" value="${state.statsAnswers.mean}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
+                            <input id="s3-stats-median" class="s3-input" placeholder="Median" value="${state.statsAnswers.median}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
+                            <input id="s3-stats-mode" class="s3-input" placeholder="Mode" value="${state.statsAnswers.mode}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
+                            <input id="s3-stats-range" class="s3-input" placeholder="Range" value="${state.statsAnswers.range}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
+                        </div>
+                        <button id="s3-check-stats" class="s3-btn" style="margin-top:8px; width:100%;" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)}>Check Statistics</button>
+                        <div class="s3-feedback" id="s3-stats-feedback">${state.statsFeedback}</div>
+
+                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
+
+                        <div class="s3-pane" style="margin-bottom:0.75rem;">
                             <h3>L3.9 Calorimeter: Temperature Differences</h3>
                             <p>Reaction calorimetry measures temperature changes. Set initial ($T_i$) and final ($T_f$) temperatures, then calculate the temperature gradient (difference): $\Delta T = T_f - T_i$.</p>
                             <div class="s3-grid" style="grid-template-columns: 1fr 2fr; gap:12px; align-items:center;">
@@ -224,131 +339,31 @@ export function createStage3Integers() {
                                         <div>
                                             <label class="s3-label">Initial Temp (T_i) [-30 to 50°C]:</label>
                                             <div style="display:flex; gap:6px; align-items:center;">
-                                                <input type="range" id="s3-temp-i-slider" min="-30" max="50" value="${state.tempInitial}" style="flex:1;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
-                                                <input type="number" id="s3-temp-i-num" min="-30" max="50" value="${state.tempInitial}" class="s3-input" style="width:65px; padding:0.25rem;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                                <input type="range" id="s3-temp-i-slider" min="-30" max="50" value="${state.tempInitial}" style="flex:1;" ${disabled(state.appliedUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                                <input type="number" id="s3-temp-i-num" min="-30" max="50" value="${state.tempInitial}" class="s3-input" style="width:65px; padding:0.25rem;" ${disabled(state.appliedUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
                                             </div>
                                         </div>
                                         <div>
                                             <label class="s3-label">Final Temp (T_f) [-30 to 50°C]:</label>
                                             <div style="display:flex; gap:6px; align-items:center;">
-                                                <input type="range" id="s3-temp-f-slider" min="-30" max="50" value="${state.tempFinal}" style="flex:1;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
-                                                <input type="number" id="s3-temp-f-num" min="-30" max="50" value="${state.tempFinal}" class="s3-input" style="width:65px; padding:0.25rem;" ${disabled(state.concreteUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                                <input type="range" id="s3-temp-f-slider" min="-30" max="50" value="${state.tempFinal}" style="flex:1;" ${disabled(state.appliedUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
+                                                <input type="number" id="s3-temp-f-num" min="-30" max="50" value="${state.tempFinal}" class="s3-input" style="width:65px; padding:0.25rem;" ${disabled(state.appliedUnlocked) || (s3Calorimeter ? 'disabled' : '')} />
                                             </div>
                                         </div>
                                     </div>
                                     <p style="margin:6px 0 3px; font-size:0.85rem;">Calculate: <strong>ΔT = T_f - T_i</strong></p>
                                     <div style="display:flex; gap:6px;">
-                                        <input type="number" id="s3-dtemp-input" class="s3-input" placeholder="ΔT in °C" value="${state.deltaTempAnswer}" data-tutor-question-id="s3-calorimeter" ${disabled(state.concreteUnlocked)} />
-                                        <button id="s3-check-dtemp" class="s3-btn" data-tutor-question-id="s3-calorimeter" ${disabled(state.concreteUnlocked)}>Verify ΔT</button>
+                                        <input type="number" id="s3-dtemp-input" class="s3-input" placeholder="ΔT in °C" value="${state.deltaTempAnswer}" data-tutor-question-id="s3-calorimeter" ${disabled(state.appliedUnlocked)} />
+                                        <button id="s3-check-dtemp" class="s3-btn" data-tutor-question-id="s3-calorimeter" ${disabled(state.appliedUnlocked)}>Verify ΔT</button>
                                     </div>
                                 </div>
                             </div>
                             <div class="s3-feedback" id="s3-dtemp-feedback">${state.deltaTempFeedback}</div>
                         </div>
-                        <div class="s3-feedback">${state.signedFeedback}</div>
-
-                        <div class="s3-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s3-btn ghost" title="Reinforcement" data-prompt="Why does subtracting a negative number shift us to the right on a number line? Explain conceptually." ${disabled(state.concreteUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
-                        </div>
-                    </article>
-
-                    <!-- PICTORIAL LEVEL -->
-                    <article class="s3-card s3-level ${levelLocked(state.pictorialUnlocked)}">
-                        <h2>Pictorial Level: PEMDAS left-to-right Priority Stack</h2>
-                        <p><strong>L3.5 The Stack:</strong> Division and multiplication have the same priority. Solve left-to-right. Evaluate: 12 / 3 x 2 - 4.</p>
-                        <div class="s3-pane">
-                            <div class="s3-gems-expr" id="s3-gems-display">
-                                ${state.pemdasStep === 0 ? '12 &divide; 3 &times; 2 - 4' : ''}
-                                ${state.pemdasStep === 1 ? '4 &times; 2 - 4' : ''}
-                                ${state.pemdasStep === 2 ? '8 - 4' : ''}
-                                ${state.pemdasStep === 3 ? '4' : ''}
-                            </div>
-                            <div class="s3-grid" style="gap:4px;">
-                                <button class="s3-btn ${state.pemdasStep === 0 ? 'active' : 'ghost'} s3-op-btn" data-op="div" data-tutor-question-id="s3-pemdas-order" data-tutor-level="pictorial" data-tutor-answer-keys="pemdasStep" data-tutor-question="Help me apply left-to-right priority between division and multiplication in 12 / 3 x 2 - 4." ${state.pemdasStep === 0 ? '' : 'disabled'} ${disabled(state.pictorialUnlocked)}>Execute 12 / 3</button>
-                                <button class="s3-btn ${state.pemdasStep === 1 ? 'active' : 'ghost'} s3-op-btn" data-op="mul" data-tutor-question-id="s3-pemdas-order" data-tutor-level="pictorial" data-tutor-answer-keys="pemdasStep" data-tutor-question="Help me apply left-to-right priority between division and multiplication in 12 / 3 x 2 - 4." ${state.pemdasStep === 1 ? '' : 'disabled'} ${disabled(state.pictorialUnlocked)}>Execute 4 x 2</button>
-                                <button class="s3-btn ${state.pemdasStep === 2 ? 'active' : 'ghost'} s3-op-btn" data-op="sub" data-tutor-question-id="s3-pemdas-order" data-tutor-level="pictorial" data-tutor-answer-keys="pemdasStep" data-tutor-question="Help me apply left-to-right priority between division and multiplication in 12 / 3 x 2 - 4." ${state.pemdasStep === 2 ? '' : 'disabled'} ${disabled(state.pictorialUnlocked)}>Execute 8 - 4</button>
-                                <button id="s3-reset-pemdas" class="s3-btn ghost" ${disabled(state.pictorialUnlocked)}>Reset Stack</button>
-                            </div>
-                        </div>
-                        <div class="s3-feedback">${state.pemdasFeedback}</div>
 
                         <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
 
-                        <p><strong>L3.4 Absolute Value (s3-absolute):</strong> Absolute value represents the positive magnitude or distance from zero. Compare the absolute values:
-                        <br>Compare: <strong>|${s3Absolute.a}| ___ |${s3Absolute.b}|</strong></p>
                         <div class="s3-pane" style="margin-bottom:0.75rem;">
-                            <div class="s3-grid" style="grid-template-columns: 1fr auto; gap: 4px;">
-                                <select id="s3-abs-select" class="s3-input" data-tutor-question-id="s3-absolute" ${disabled(state.pictorialUnlocked)}>
-                                    <option value="">Choose...</option>
-                                    <option value="lt" ${state.absAnswer === 'lt' ? 'selected' : ''}>&lt;</option>
-                                    <option value="gt" ${state.absAnswer === 'gt' ? 'selected' : ''}>&gt;</option>
-                                    <option value="eq" ${state.absAnswer === 'eq' ? 'selected' : ''}>=</option>
-                                </select>
-                                <button id="s3-check-abs" class="s3-btn" data-tutor-question-id="s3-absolute" ${disabled(state.pictorialUnlocked)}>Verify Absolute</button>
-                            </div>
-                            <div class="s3-feedback" id="s3-abs-feedback">${state.absFeedback}</div>
-                        </div>
-
-                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
-
-                        <p><strong>L3.1 Quotient Zeros &amp; Remainders:</strong> In long division, if the divisor does not go into the current brought-down value, write a <code>0</code> in the quotient before bringing down the next digit.
-                        <br>Solve: <strong>412 ÷ 4</strong>. Enter the quotient.</p>
-                        <div class="s3-pane">
-                            <div class="s3-grid" style="grid-template-columns: 1fr auto;">
-                                <input type="number" id="s3-quotient-input" class="s3-input" placeholder="Quotient" value="${state.quotientAnswer}" data-tutor-question-id="s3-quotient-zero" data-tutor-level="pictorial" data-tutor-answer-keys="quotientAnswer" data-tutor-question="Help me solve 412 divided by 4 and explain where the zero appears in the quotient." ${disabled(state.pictorialUnlocked)} />
-                                <button id="s3-check-quotient" class="s3-btn" data-tutor-question-id="s3-quotient-zero" data-tutor-level="pictorial" data-tutor-answer-keys="quotientAnswer" data-tutor-question="Help me solve 412 divided by 4 and explain where the zero appears in the quotient." ${disabled(state.pictorialUnlocked)}>Check Division</button>
-                            </div>
-                        </div>
-                        <div class="s3-feedback" id="s3-quotient-feedback">${state.quotientFeedback}</div>
-
-                        <div class="s3-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s3-btn ghost" title="Reinforcement" data-prompt="Show me step-by-step how to divide 412 by 4. Why do we need a zero in the tens place of the quotient?" ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
-                        </div>
-                    </article>
-
-                    <!-- ABSTRACT LEVEL -->
-                    <article class="s3-card s3-level ${levelLocked(state.abstractUnlocked)}">
-                        <h2>Abstract Level: Primes & Decomposition Trees</h2>
-                        <p><strong>L3.7 Primes:</strong> Break 18 down into prime factor elements. One path is 18 = 2 x 9, then 9 = 3 x 3.</p>
-                        <div class="s3-pane">
-                            <p>Enter the three prime factors of 18 (order does not matter):</p>
-                            <div class="s3-grid" style="grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                                <input id="s3-factor-1" class="s3-input" style="text-align:center;" placeholder="Factor" value="${state.primeAnswers.f1}" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)} />
-                                <input id="s3-factor-2" class="s3-input" style="text-align:center;" placeholder="Factor" value="${state.primeAnswers.f2}" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)} />
-                                <input id="s3-factor-3" class="s3-input" style="text-align:center;" placeholder="Factor" value="${state.primeAnswers.f3}" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)} />
-                            </div>
-                            <button id="s3-check-primes" class="s3-btn" style="margin-top:8px; width:100%;" data-tutor-question-id="s3-prime-factors" data-tutor-level="abstract" data-tutor-answer-keys="primeAnswers.f1,primeAnswers.f2,primeAnswers.f3" data-tutor-question="Help me decompose 18 into prime factors and check whether each factor is prime." ${disabled(state.abstractUnlocked)}>Verify Prime Factors</button>
-                        </div>
-                        <div class="s3-feedback">${state.primeFeedback}</div>
-
-                        <hr style="margin: 1.2rem 0; border: none; border-top: 1px solid rgba(255, 255, 255, 0.1);" />
-
-                        <p><strong>L3.6 Factors &amp; Multiples:</strong> Factors divide a number evenly. Multiples are results of multiplying by integers.
-                        <br>Find the **Least Common Multiple (LCM)** of <strong>4 and 6</strong>.</p>
-                        <div class="s3-pane">
-                            <div class="s3-grid" style="grid-template-columns: 1fr auto;">
-                                <input type="number" id="s3-lcm-input-s3" class="s3-input" placeholder="LCM" value="${state.lcmAnswer}" data-tutor-question-id="s3-lcm" data-tutor-level="abstract" data-tutor-answer-keys="lcmAnswer" data-tutor-question="Help me find the least common multiple of 4 and 6 using factor or multiple lists." ${disabled(state.abstractUnlocked)} />
-                                <button id="s3-check-lcm" class="s3-btn" data-tutor-question-id="s3-lcm" data-tutor-level="abstract" data-tutor-answer-keys="lcmAnswer" data-tutor-question="Help me find the least common multiple of 4 and 6 using factor or multiple lists." ${disabled(state.abstractUnlocked)}>Check LCM</button>
-                            </div>
-                        </div>
-                        <div class="s3-feedback" id="s3-lcm-feedback">${state.lcmFeedback}</div>
-
-                        <div class="s3-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s3-btn ghost" title="Reinforcement" data-prompt="What is the difference between a factor and a multiple? How do we find the Least Common Multiple (LCM) of 4 and 6?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
-                        </div>
-                    </article>
-
-                    <!-- APPLIED LEVEL -->
-                    <article class="s3-card s3-level ${levelLocked(state.appliedUnlocked)}">
-                        <h2>Applied Level: Carbon Net Charge & Lab Statistics</h2>
-                        <p><strong>[Required Unlock] L3.3 Applied:</strong> In chemistry, a carbon ion has 6 protons (+1 charge each) and 8 electrons (-1 charge each). What is the total net charge?</p>
-                        <div class="s3-grid">
-                            <button id="s3-app-wrong" class="s3-btn ${state.appliedChoice === 'wrong' ? 'active' : 'ghost'}" data-tutor-question-id="s3-carbon-charge" data-tutor-level="applied" data-tutor-answer-keys="appliedChoice" data-tutor-question="Help me determine the net charge when carbon has 6 protons and 8 electrons." ${disabled(state.appliedUnlocked)}>+2 because 8 - 6 = 2</button>
-                            <button id="s3-app-right" class="s3-btn ${state.appliedChoice === 'right' ? 'active' : 'ghost'}" data-tutor-question-id="s3-carbon-charge" data-tutor-level="applied" data-tutor-answer-keys="appliedChoice" data-tutor-question="Help me determine the net charge when carbon has 6 protons and 8 electrons." ${disabled(state.appliedUnlocked)}>-2 because 6 protons (+6) + 8 electrons (-8) = -2 net charge</button>
-                        </div>
-                        <div class="s3-feedback">${state.appliedFeedback}</div>
-
-                        <div class="s3-pane" style="margin-top:0.75rem;">
                             <p><strong>L3.10 Enthalpy Sign Check:</strong> Classify the sign of enthalpy for this statement:
                             <br><em>"The reaction releases 85 kJ of heat to the surroundings."</em></p>
                             <div class="s3-grid" style="grid-template-columns: 1fr 1fr; gap:6px;">
@@ -358,20 +373,8 @@ export function createStage3Integers() {
                             <div class="s3-feedback" id="s3-enthalpy-feedback">${state.enthalpyFeedback}</div>
                         </div>
 
-                        <div class="s3-pane" style="margin-top:0.75rem;">
-                            <p><strong>[Reinforcement] L3.8 Descriptive Statistics:</strong> A mini lab reports trial values <code>[8, 10, 10, 12, 15]</code>. Enter mean, median, mode, and range.</p>
-                            <div class="s3-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px;">
-                                <input id="s3-stats-mean" class="s3-input" placeholder="Mean" value="${state.statsAnswers.mean}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
-                                <input id="s3-stats-median" class="s3-input" placeholder="Median" value="${state.statsAnswers.median}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
-                                <input id="s3-stats-mode" class="s3-input" placeholder="Mode" value="${state.statsAnswers.mode}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
-                                <input id="s3-stats-range" class="s3-input" placeholder="Range" value="${state.statsAnswers.range}" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)} />
-                            </div>
-                            <button id="s3-check-stats" class="s3-btn" style="margin-top:8px; width:100%;" data-tutor-question-id="s3-stats-summary" data-tutor-level="applied" data-tutor-answer-keys="statsAnswers.mean,statsAnswers.median,statsAnswers.mode,statsAnswers.range" data-tutor-question="Help me compute mean, median, mode, and range for the lab data [8, 10, 10, 12, 15]." ${disabled(state.appliedUnlocked)}>Check Statistics</button>
-                            <div class="s3-feedback" id="s3-stats-feedback">${state.statsFeedback}</div>
-                        </div>
-
-                        <div class="s3-pane" style="margin-top:0.75rem;">
-                            <p><strong>L3.10 Compound Net Charge Balance (s3-signdiffs):</strong> In general chemistry, we must sum ionic charges to determine the overall net charge of a complex or compound.
+                        <div class="s3-pane">
+                            <p><strong>L3.11 Compound Net Charge Balance (s3-signdiffs):</strong> In general chemistry, we must sum ionic charges to determine the overall net charge of a complex or compound.
                             <br>Calculate the net charge for a mixture of:
                             <br>• <strong>${s3SignDiffs.cationCount} ${s3SignDiffs.cation}<sup>${s3SignDiffs.cationCharge >= 0 ? '+' : ''}${s3SignDiffs.cationCharge}</sup></strong> ions
                             <br>• <strong>${s3SignDiffs.anionCount} ${s3SignDiffs.anion}<sup>${s3SignDiffs.anionCharge >= 0 ? '+' : ''}${s3SignDiffs.anionCharge}</sup></strong> ions</p>
@@ -510,6 +513,7 @@ export function createStage3Integers() {
             // Diagnostic Logic
             host.querySelectorAll('[data-diag]').forEach((btn) => {
                 btn.addEventListener('click', () => {
+                    if (state.diagnosticDone) return;
                     const q = btn.getAttribute('data-diag');
                     const val = btn.getAttribute('data-value');
                     state.diagnosticAnswers[q] = val;

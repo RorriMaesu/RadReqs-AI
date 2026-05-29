@@ -38,11 +38,37 @@ const createInitialStage8State = () => ({
     probabilityFeedback: 'L8.8 Probability: For 3 red and 2 blue chips, P(red then blue without replacement) = 3/10.',
     probabilityCorrect: false,
 
-    // L8.9 & L8.10 Boundaries
-    axisChoice: '',
-    limitChoice: '',
-    boundaryFeedback: 'L8.9 & L8.10: Identify the axes designation and the physical boundaries of the Charles\'s Law linear model.',
-    showIdealLine: false
+    // L8.9 Variable Designation
+    l89Answer: '',
+    l89Completed: false,
+    l89Feedback: 'L8.9 Variable Designation: When graphing temperature vs. gas volume (Charles\'s Law), which axis should temperature (the independent variable) be on?',
+
+    // L8.10 Physical Limits & Model Domains
+    l810Answer: '',
+    l810Completed: false,
+    l810Feedback: 'L8.10 Physical Limits: Toggle the ideal gas extrapolation line and identify where it projects zero gas volume.',
+    showIdealLine: false,
+
+    // L8.2 Variables in Science
+    l82Completed: false,
+    l82Answer: '',
+    l82Feedback: 'L8.2 Variables in Science: Which variable is the independent variable (x-axis) when testing how temperature affects reaction rate?',
+
+    // L8.5 Intercepts & Roots
+    l85Unlocked: false,
+    l85Completed: false,
+    l85XIntercept: '',
+    l85YIntercept: '',
+    l85Feedback: 'L8.5 Intercepts & Roots: For the line y = 2x + 4, find the x-intercept (set y = 0) and the y-intercept (set x = 0).',
+
+    // L8.6 Linear Inequalities
+    l86Unlocked: false,
+    l86Completed: false,
+    l86Answer: '',
+    l86Feedback: 'L8.6 Linear Inequalities: Solve 2C + 4 ≥ 10. Choose the correct solution.',
+
+    // L8.8 gate
+    l88Unlocked: false
 });
 
 export function createStage8Graphing() {
@@ -54,6 +80,121 @@ export function createStage8Graphing() {
             return createInitialStage8State();
         },
         mount({ host, state, onStateChange }) {
+                        // L8.2 Variables in Science MCQ
+                        host.querySelectorAll('[data-l82]').forEach((btn) => {
+                            btn.addEventListener('click', () => {
+                                state.l82Answer = btn.getAttribute('data-l82');
+                                persist('L8.2 option chosen');
+                                this.mount({ host, state, onStateChange });
+                            });
+                        });
+                        host.querySelector('#s8-check-l82')?.addEventListener('click', () => {
+                            if (state.l82Answer === 'temp') {
+                                state.l82Completed = true;
+                                state.l82Feedback = 'Correct! Temperature is the independent variable (x-axis). Continue to Slope.';
+                            } else if (state.l82Answer === 'rate') {
+                                state.l82Completed = false;
+                                state.l82Feedback = 'Incorrect. Reaction rate is the dependent variable (y-axis). Try again.';
+                            } else {
+                                state.l82Feedback = 'Choose an answer above.';
+                            }
+                            persist('L8.2 checked');
+                            this.mount({ host, state, onStateChange });
+                        });
+
+                        // L8.5 Intercepts & Roots
+                        host.querySelector('#s8-check-l85')?.addEventListener('click', () => {
+                            const xVal = parseFloat(host.querySelector('#s8-l85-x').value);
+                            const yVal = parseFloat(host.querySelector('#s8-l85-y').value);
+                            state.l85XIntercept = host.querySelector('#s8-l85-x').value;
+                            state.l85YIntercept = host.querySelector('#s8-l85-y').value;
+                            if (xVal === -2 && yVal === 4) {
+                                state.l85Completed = true;
+                                state.l85Unlocked = true;
+                                state.l85Feedback = 'Correct! x-intercept is -2, y-intercept is 4. Continue to Linear Inequalities.';
+                                state.l86Unlocked = true;
+                            } else {
+                                state.l85Completed = false;
+                                state.l85Feedback = 'Incorrect. x-intercept: set y=0, 0=2x+4 → x=-2. y-intercept: set x=0, y=2*0+4=4.';
+                            }
+                            persist('L8.5 checked');
+                            this.mount({ host, state, onStateChange });
+                        });
+
+                        // L8.6 Linear Inequalities
+                        host.querySelectorAll('[data-l86]').forEach((btn) => {
+                            btn.addEventListener('click', () => {
+                                state.l86Answer = btn.getAttribute('data-l86');
+                                persist('L8.6 option chosen');
+                                this.mount({ host, state, onStateChange });
+                            });
+                        });
+                        host.querySelector('#s8-check-l86')?.addEventListener('click', () => {
+                            if (state.l86Answer === 'ge3') {
+                                state.l86Completed = true;
+                                state.l86Feedback = 'Correct! C ≥ 3 is the solution. Applied unlocked.';
+                                state.appliedUnlocked = true;
+                            } else if (state.l86Answer === 'le3' || state.l86Answer === 'eq3') {
+                                state.l86Completed = false;
+                                state.l86Feedback = 'Incorrect. Subtract 4, divide by 2: 2C+4≥10 → 2C≥6 → C≥3.';
+                            } else {
+                                state.l86Feedback = 'Choose an answer above.';
+                            }
+                            persist('L8.6 checked');
+                            this.mount({ host, state, onStateChange });
+                        });
+
+                        // L8.8 unlock gate
+                        // Applied check (L8.7)
+                        const appliedBtn = host.querySelector('#s8-check-applied');
+                        if (appliedBtn) {
+                            appliedBtn.addEventListener('click', () => {
+                                const interpol = parseFloat(host.querySelector('#s8-app-interpol').value);
+                                const extrapol = parseFloat(host.querySelector('#s8-app-extrapol').value);
+                                state.interpolVal = host.querySelector('#s8-app-interpol').value;
+                                state.extrapolVal = host.querySelector('#s8-app-extrapol').value;
+                                if (interpol === 25 && extrapol === 60) {
+                                    state.appliedCorrect = true;
+                                    state.appliedFeedback = 'Excellent work! 25°C is correct for interpolation, and 60°C is correct for linear extrapolation.';
+                                    state.l88Unlocked = true;
+                                } else {
+                                    state.appliedCorrect = false;
+                                    state.appliedFeedback = 'Incorrect. Hint: The temperature increases at a rate of 10°C/min. 2.5 min = 2.5 × 10 = 25°C. 6.0 min = 6 × 10 = 60°C.';
+                                }
+                                persist('Applied boundary checked');
+                                this.mount({ host, state, onStateChange });
+                            });
+                        }
+                        // Fast-track unlocks all lessons
+                        const diagBtn = host.querySelector('#s8-check-diagnostic');
+                        if (diagBtn) {
+                            diagBtn.addEventListener('click', () => {
+                                const correct = state.diagnosticAnswers.q1 === 'temp' &&
+                                                state.diagnosticAnswers.q2 === '2' &&
+                                                state.diagnosticAnswers.q3 === 'ge';
+                                state.diagnosticDone = true;
+                                if (correct) {
+                                    state.fastTrack = true;
+                                    state.pictorialUnlocked = true;
+                                    state.abstractUnlocked = true;
+                                    state.appliedUnlocked = true;
+                                    state.l82Completed = true;
+                                    state.l85Unlocked = true;
+                                    state.l85Completed = true;
+                                    state.l86Unlocked = true;
+                                    state.l86Completed = true;
+                                    state.l88Unlocked = true;
+                                    state.l89Completed = true;
+                                    state.l810Completed = true;
+                                    state.diagnosticFeedback = 'Fast-Track Achievement unlocked! You mastered variables, density rates of change, and inequalities. All levels are now open.';
+                                } else {
+                                    state.fastTrack = false;
+                                    state.diagnosticFeedback = 'Diagnostic complete. Standard path active. Solve the Concrete Level to progress.';
+                                }
+                                persist('Diagnostic checked');
+                                this.mount({ host, state, onStateChange });
+                            });
+                        }
             const defaults = createInitialStage8State();
             Object.keys(defaults).forEach((key) => {
                 if (state[key] === undefined) {
@@ -212,7 +353,20 @@ export function createStage8Graphing() {
 
                     <!-- PICTORIAL LEVEL -->
                     <article class="s8-card s8-level ${levelLocked(state.pictorialUnlocked)}">
-                        <h2>Pictorial Level: Slope as a Rate of Change</h2>
+                        <h2>Pictorial Level: Variables in Science &amp; Slope</h2>
+
+                        <!-- L8.2 Variables in Science -->
+                        <div class="s8-pane" style="margin-bottom:0.75rem;">
+                            <strong>L8.2 Variables in Science</strong>
+                            <p>An experiment tests how temperature affects a chemical reaction rate. Which variable is the independent variable that belongs on the x-axis?</p>
+                            <div class="s8-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s8-btn ghost ${state.l82Answer === 'temp' ? 'active' : ''}" data-l82="temp" ${disabled(state.pictorialUnlocked)}>Temperature — the variable the experimenter controls (independent)</button>
+                                <button class="s8-btn ghost ${state.l82Answer === 'rate' ? 'active' : ''}" data-l82="rate" ${disabled(state.pictorialUnlocked)}>Reaction Rate — the outcome being measured (dependent)</button>
+                            </div>
+                            <button id="s8-check-l82" class="s8-btn" style="margin-top:0.5rem; width:100%;" ${disabled(state.pictorialUnlocked)}>Verify L8.2</button>
+                            <div class="s8-feedback" id="s8-l82-feedback">${state.l82Feedback}</div>
+                        </div>
+
                         <p><strong>[Required Unlock] L8.3 Slope (delta y / delta x):</strong> Look at the line passing through <strong>Point A (2, 4)</strong> and <strong>Point B (5, 10)</strong> on the mass-volume density graph below. Calculate the slope (Density in g/mL).</p>
                         
                         <div class="s8-svg-container">
@@ -253,67 +407,6 @@ export function createStage8Graphing() {
                         </div>
                         
                         <div class="s8-feedback" id="s8-slope-feedback">${state.slopeFeedback}</div>
-
-                        <!-- L8.9 & L8.10 Boundaries Panel -->
-                        <div class="s8-pane" style="margin-top:0.75rem;">
-                            <strong>L8.9 &amp; L8.10 Ideal Gas extrapolation vs. Real Gas physical limits</strong>
-                            <p>Real gases liquefy at cold temperatures, deviating from linear behavior. The ideal gas model can be extrapolated to zero volume to define Absolute Zero ($0\text{ K} = ${s8Extrapolate.answerKey}^\circ\text{C}$).</p>
-                            
-                            <div class="s8-svg-container">
-                                <svg class="s8-plot-svg" style="width:240px; height:200px; background:#0f172a; border: 1px solid rgba(255,255,255,0.08);" viewBox="0 0 240 200">
-                                    <!-- Grid lines -->
-                                    <line class="s8-grid-line" x1="${xPos}" y1="0" x2="${xPos}" y2="200" style="stroke-dasharray:2; stroke:rgba(251,191,36,0.3);" />
-                                    <text class="s8-axis-text" x="${xPos + 2}" y="195" style="fill:#fbbf24;">${parseFloat(s8Extrapolate.answerKey).toFixed(0)}°C</text>
-                                    <line class="s8-grid-line" x1="120" y1="0" x2="120" y2="200" />
-                                    <text class="s8-axis-text" x="110" y="195">-100°C</text>
-                                    <line class="s8-grid-line" x1="170" y1="0" x2="170" y2="200" />
-                                    <text class="s8-axis-text" x="165" y="195">0°C</text>
-                                    
-                                    <!-- Axes -->
-                                    <line class="s8-axis" x1="10" y1="180" x2="230" y2="180" /> <!-- X axis -->
-                                    <line class="s8-axis" x1="170" y1="10" x2="170" y2="190" /> <!-- Y axis -->
-                                    
-                                    <!-- Real Gas Curve (Red) -->
-                                    <path d="M 220 32 L 170 72 L 120 112 Q 95 132 80 160 Q 60 176 20 176" fill="none" stroke="#ef4444" stroke-width="2.5" />
-                                    <text class="s8-axis-text" x="75" y="150" style="fill:#ef4444; font-size:8px;">Real Gas</text>
-
-                                    <!-- Ideal Gas Extrapolation (Yellow dashed) -->
-                                    ${state.showIdealLine ? `
-                                    <line x1="220" y1="32" x2="${xPos}" y2="180" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3" />
-                                    <circle cx="${xPos}" cy="180" r="4" fill="#fbbf24" />
-                                    <text class="s8-axis-text" x="${xPos + 6}" y="170" style="fill:#fbbf24; font-size:8px;">Ideal Gas Extrapolation</text>
-                                    ` : ''}
-                                </svg>
-                            </div>
-                            
-                            <div style="margin-bottom:8px; display:flex; justify-content:center;">
-                                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
-                                    <input type="checkbox" id="s8-toggle-ideal" ${state.showIdealLine ? 'checked' : ''} />
-                                    Show Ideal Gas Extrapolation Line
-                                </label>
-                            </div>
-
-                            <div class="s8-grid" style="grid-template-columns: 1fr 1fr; gap:8px;">
-                                <div>
-                                    <label class="s8-label">1. Temperature axis (independent variable):</label>
-                                    <select id="s8-axis-select" class="s8-input" ${disabled(state.pictorialUnlocked)}>
-                                        <option value="">Choose...</option>
-                                        <option value="x" ${state.axisChoice === 'x' ? 'selected' : ''}>X-Axis (Horizontal)</option>
-                                        <option value="y" ${state.axisChoice === 'y' ? 'selected' : ''}>Y-Axis (Vertical)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="s8-label">2. Projected limit of zero volume (Absolute Zero):</label>
-                                    <select id="s8-limit-select" class="s8-input" ${disabled(state.pictorialUnlocked)}>
-                                        <option value="">Choose...</option>
-                                        <option value="zero" ${state.limitChoice === 'zero' ? 'selected' : ''}>${s8Extrapolate.answerKey}°C (0 K)</option>
-                                        <option value="liquefy" ${state.limitChoice === 'liquefy' ? 'selected' : ''}>-150°C (Liquefaction)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button id="s8-check-boundaries" class="s8-btn" style="margin-top:8px; width:100%;" ${disabled(state.pictorialUnlocked)}>Verify Answers</button>
-                            <div class="s8-feedback" id="s8-boundaries-feedback">${state.boundaryFeedback}</div>
-                        </div>
 
                         <div class="s8-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s8-btn ghost" title="Reinforcement" data-prompt="Walk me through calculating slope (rate of change) from two points on a graph: Point A (2, 4) and Point B (5, 10)." ${disabled(state.pictorialUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -387,8 +480,43 @@ export function createStage8Graphing() {
                         
                         <div class="s8-feedback" id="s8-abstract-feedback">${state.abstractFeedback}</div>
 
+                        <!-- L8.5 Intercepts & Roots -->
+                        <div class="s8-pane" style="margin-top:0.75rem;">
+                            <strong>L8.5 Intercepts &amp; Roots</strong>
+                            <p>For the line <strong>y = 2x + 4</strong>, find both intercepts:</p>
+                            <ul style="color:#cbd5e1; font-size:0.88rem; margin:0.3rem 0 0.6rem 1rem;">
+                                <li><strong>x-intercept:</strong> set y = 0 and solve for x.</li>
+                                <li><strong>y-intercept:</strong> set x = 0 and solve for y.</li>
+                            </ul>
+                            <div class="s8-grid" style="grid-template-columns: 1fr 1fr; gap:8px;">
+                                <div>
+                                    <label style="font-size:0.82rem; font-weight:700;">x-intercept:</label>
+                                    <input type="number" step="any" id="s8-l85-x" class="s8-input" placeholder="e.g. -2" ${disabled(state.abstractUnlocked)} value="${state.l85XIntercept}">
+                                </div>
+                                <div>
+                                    <label style="font-size:0.82rem; font-weight:700;">y-intercept:</label>
+                                    <input type="number" step="any" id="s8-l85-y" class="s8-input" placeholder="e.g. 4" ${disabled(state.abstractUnlocked)} value="${state.l85YIntercept}">
+                                </div>
+                            </div>
+                            <button id="s8-check-l85" class="s8-btn" style="margin-top:0.5rem; width:100%;" ${disabled(state.abstractUnlocked)}>Verify L8.5</button>
+                            <div class="s8-feedback" id="s8-l85-feedback">${state.l85Feedback}</div>
+                        </div>
+
+                        <!-- L8.6 Linear Inequalities -->
+                        <div class="s8-pane" style="margin-top:0.75rem; ${state.l86Unlocked || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L8.6 Linear Inequalities</strong>
+                            <p>Solve <strong>2C + 4 ≥ 10</strong>. Subtract 4 from both sides, then divide by 2. Which solution is correct?</p>
+                            <div class="s8-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s8-btn ghost ${state.l86Answer === 'ge3' ? 'active' : ''}" data-l86="ge3" ${disabled(state.l86Unlocked)}>C ≥ 3 (correct direction)</button>
+                                <button class="s8-btn ghost ${state.l86Answer === 'le3' ? 'active' : ''}" data-l86="le3" ${disabled(state.l86Unlocked)}>C ≤ 3 (wrong direction)</button>
+                                <button class="s8-btn ghost ${state.l86Answer === 'eq3' ? 'active' : ''}" data-l86="eq3" ${disabled(state.l86Unlocked)}>C = 3 (equality only)</button>
+                            </div>
+                            <button id="s8-check-l86" class="s8-btn" style="margin-top:0.5rem; width:100%;" ${disabled(state.l86Unlocked)}>Verify L8.6</button>
+                            <div class="s8-feedback" id="s8-l86-feedback">${state.l86Feedback}</div>
+                        </div>
+
                         <div class="s8-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s8-btn ghost" title="Reinforcement" data-prompt="Explain the equation y = mx + b. What does m represent? What does b represent?" ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                            <button class="tutor-btn s8-btn ghost" title="Reinforcement" data-prompt="Explain the equation y = mx + b. What does m represent? What does b represent? Also explain x-intercepts, y-intercepts, and how to solve linear inequalities like 2C + 4 >= 10." ${disabled(state.abstractUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
                         </div>
                     </article>
 
@@ -414,17 +542,86 @@ export function createStage8Graphing() {
                         
                         <div class="s8-feedback" id="s8-applied-feedback">${state.appliedFeedback}</div>
 
-                        <div class="s8-pane" style="margin-top:0.75rem;">
-                            <p><strong>[Reinforcement] L8.8 Basic Probability & Counting:</strong> A bag has 3 red and 2 blue chips. Two draws are made <strong>without replacement</strong>. Enter <code>P(red then blue)</code> as a fraction or decimal.</p>
+                        <!-- L8.8 Basic Probability & Counting -->
+                        <div class="s8-pane" style="margin-top:0.75rem; ${state.l88Unlocked || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L8.8 Basic Probability &amp; Counting</strong>
+                            <p>A bag has 3 red and 2 blue chips. Two draws are made <strong>without replacement</strong>. Enter <code>P(red then blue)</code> as a fraction or decimal.</p>
                             <div class="s8-grid" style="grid-template-columns: 1fr auto;">
-                                <input id="s8-prob-input" class="s8-input" placeholder="e.g. 3/10 or 0.3" value="${state.probabilityAnswer}" ${disabled(state.appliedUnlocked)} />
-                                <button id="s8-check-prob" class="s8-btn" ${disabled(state.appliedUnlocked)}>Check Probability</button>
+                                <input id="s8-prob-input" class="s8-input" placeholder="e.g. 3/10 or 0.3" value="${state.probabilityAnswer}" ${disabled(state.l88Unlocked)} />
+                                <button id="s8-check-prob" class="s8-btn" ${disabled(state.l88Unlocked)}>Check Probability</button>
                             </div>
                             <div class="s8-feedback" id="s8-prob-feedback">${state.probabilityFeedback}</div>
                         </div>
 
+                        <!-- L8.9 Variable Designation (X vs. Y Axis) -->
+                        <div class="s8-pane" style="margin-top:0.75rem; ${state.probabilityCorrect || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L8.9 Variable Designation (X vs. Y Axis)</strong>
+                            <p>In a Charles's Law experiment, the researcher controls Temperature and observes how gas Volume responds. Which axis should Temperature (the independent variable) be plotted on?</p>
+                            <div style="margin-top:0.5rem;">
+                                <label style="font-size:0.85rem; font-weight:700;">Temperature axis:</label>
+                                <select id="s8-l89-axis-select" class="s8-input" style="margin-top:4px;" ${disabled(state.probabilityCorrect)}>
+                                    <option value="">Choose...</option>
+                                    <option value="x" ${state.l89Answer === 'x' ? 'selected' : ''}>X-Axis (Horizontal — independent)</option>
+                                    <option value="y" ${state.l89Answer === 'y' ? 'selected' : ''}>Y-Axis (Vertical — dependent)</option>
+                                </select>
+                            </div>
+                            <button id="s8-check-l89" class="s8-btn" style="margin-top:8px; width:100%;" ${disabled(state.probabilityCorrect)}>Verify L8.9</button>
+                            <div class="s8-feedback" id="s8-l89-feedback">${state.l89Feedback}</div>
+                        </div>
+
+                        <!-- L8.10 Physical Limits & Model Domains -->
+                        <div class="s8-pane" style="margin-top:0.75rem; ${state.l89Completed || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L8.10 Physical Limits &amp; Model Domains</strong>
+                            <p>Real gases liquefy at cold temperatures, deviating from the ideal model. The ideal gas model can be extrapolated linearly to zero volume, revealing Absolute Zero ($0\\text{ K} = ${s8Extrapolate.answerKey}^\\circ\\text{C}$). Toggle the ideal line below to see where it intersects the x-axis.</p>
+
+                            <div class="s8-svg-container">
+                                <svg class="s8-plot-svg" style="width:240px; height:200px; background:#0f172a; border: 1px solid rgba(255,255,255,0.08);" viewBox="0 0 240 200">
+                                    <!-- Grid lines -->
+                                    <line class="s8-grid-line" x1="${xPos}" y1="0" x2="${xPos}" y2="200" style="stroke-dasharray:2; stroke:rgba(251,191,36,0.3);" />
+                                    <text class="s8-axis-text" x="${xPos + 2}" y="195" style="fill:#fbbf24;">${parseFloat(s8Extrapolate.answerKey).toFixed(0)}°C</text>
+                                    <line class="s8-grid-line" x1="120" y1="0" x2="120" y2="200" />
+                                    <text class="s8-axis-text" x="110" y="195">-100°C</text>
+                                    <line class="s8-grid-line" x1="170" y1="0" x2="170" y2="200" />
+                                    <text class="s8-axis-text" x="165" y="195">0°C</text>
+
+                                    <!-- Axes -->
+                                    <line class="s8-axis" x1="10" y1="180" x2="230" y2="180" /> <!-- X axis -->
+                                    <line class="s8-axis" x1="170" y1="10" x2="170" y2="190" /> <!-- Y axis -->
+
+                                    <!-- Real Gas Curve (Red) -->
+                                    <path d="M 220 32 L 170 72 L 120 112 Q 95 132 80 160 Q 60 176 20 176" fill="none" stroke="#ef4444" stroke-width="2.5" />
+                                    <text class="s8-axis-text" x="75" y="150" style="fill:#ef4444; font-size:8px;">Real Gas</text>
+
+                                    <!-- Ideal Gas Extrapolation (Yellow dashed) -->
+                                    ${state.showIdealLine ? `
+                                    <line x1="220" y1="32" x2="${xPos}" y2="180" stroke="#fbbf24" stroke-width="2" stroke-dasharray="3" />
+                                    <circle cx="${xPos}" cy="180" r="4" fill="#fbbf24" />
+                                    <text class="s8-axis-text" x="${xPos + 6}" y="170" style="fill:#fbbf24; font-size:8px;">Ideal Gas Extrapolation</text>
+                                    ` : ''}
+                                </svg>
+                            </div>
+
+                            <div style="margin-bottom:8px; display:flex; justify-content:center;">
+                                <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; cursor:pointer;">
+                                    <input type="checkbox" id="s8-toggle-ideal" ${state.showIdealLine ? 'checked' : ''} />
+                                    Show Ideal Gas Extrapolation Line
+                                </label>
+                            </div>
+
+                            <div style="margin-top:0.5rem;">
+                                <label style="font-size:0.85rem; font-weight:700;">Where does the ideal gas model project zero volume?</label>
+                                <select id="s8-l810-limit-select" class="s8-input" style="margin-top:4px;" ${disabled(state.l89Completed)}>
+                                    <option value="">Choose...</option>
+                                    <option value="zero" ${state.l810Answer === 'zero' ? 'selected' : ''}>${s8Extrapolate.answerKey}°C (Absolute Zero, 0 K)</option>
+                                    <option value="liquefy" ${state.l810Answer === 'liquefy' ? 'selected' : ''}>-150°C (Liquefaction point)</option>
+                                </select>
+                            </div>
+                            <button id="s8-check-l810" class="s8-btn" style="margin-top:8px; width:100%;" ${disabled(state.l89Completed)}>Verify L8.10</button>
+                            <div class="s8-feedback" id="s8-l810-feedback">${state.l810Feedback}</div>
+                        </div>
+
                         <div class="s8-grid" style="margin-top: 0.6rem;">
-                            <button class="tutor-btn s8-btn ghost" title="Reinforcement" data-prompt="What is the difference between interpolation and extrapolation in scientific data plotting? Why is extrapolation risky?" ${disabled(state.appliedUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
+                            <button class="tutor-btn s8-btn ghost" title="Reinforcement" data-prompt="What is the difference between interpolation and extrapolation in scientific data plotting? Why is extrapolation risky? Also explain probability without replacement." ${disabled(state.appliedUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
                         </div>
                     </article>
                 </section>
@@ -464,11 +661,17 @@ export function createStage8Graphing() {
                         keys: 'slopeM,interceptB',
                         prompt: 'Help me tune m and b to match the target line y = 2x - 1.'
                     },
-                    's8-check-boundaries': {
-                        id: 's8-extrapolate',
-                        level: 'pictorial',
-                        keys: 'axisChoice,limitChoice',
-                        prompt: 'Help me identify the axis and absolute zero extrapolation limit under Charles\'s Law.'
+                    's8-check-l89': {
+                        id: 's8-variable-designation',
+                        level: 'applied',
+                        keys: 'l89Answer',
+                        prompt: 'Help me identify which axis the independent variable (Temperature) belongs on in a Charles\'s Law experiment.'
+                    },
+                    's8-check-l810': {
+                        id: 's8-physical-limits',
+                        level: 'applied',
+                        keys: 'l810Answer',
+                        prompt: 'Help me understand where the ideal gas model extrapolates to zero volume — absolute zero vs. real gas liquefaction.'
                     },
                     's8-check-applied': {
                         id: 's8-interpolation-extrapolation',
@@ -535,6 +738,8 @@ export function createStage8Graphing() {
                     state.pictorialUnlocked = true;
                     state.abstractUnlocked = true;
                     state.appliedUnlocked = true;
+                    state.l89Completed = true;
+                    state.l810Completed = true;
                     state.diagnosticFeedback = 'Fast-Track Achievement unlocked! You mastered variables, density rates of change, and inequalities. All levels are now open.';
                 } else {
                     state.fastTrack = false;
@@ -598,8 +803,14 @@ export function createStage8Graphing() {
                 this.mount({ host, state, onStateChange });
             });
 
-            // Pictorial Check Slope
+            // Pictorial Check Slope (L8.3)
             host.querySelector('#s8-check-slope').addEventListener('click', () => {
+                if (!state.l82Completed && !state.fastTrack) {
+                    state.slopeFeedback = 'Complete L8.2 Variables in Science first.';
+                    persist('Slope blocked by L8.2');
+                    this.mount({ host, state, onStateChange });
+                    return;
+                }
                 const inputVal = parseFloat(host.querySelector('#s8-slope-input').value);
                 state.slopeVal = host.querySelector('#s8-slope-input').value;
                 if (inputVal === 2) {
@@ -614,27 +825,33 @@ export function createStage8Graphing() {
                 this.mount({ host, state, onStateChange });
             });
 
-            // L8.9 & L8.10 boundaries click & toggle handlers
-            host.querySelector('#s8-toggle-ideal')?.addEventListener('change', (e) => {
-                state.showIdealLine = e.target.checked;
-                persist('Ideal line toggled');
+            host.querySelector('#s8-check-l89')?.addEventListener('click', () => {
+                const axis = host.querySelector('#s8-l89-axis-select').value;
+                state.l89Answer = axis;
+                if (axis === 'x') {
+                    state.l89Completed = true;
+                    state.l89Feedback = 'Correct! Temperature is the independent variable — it belongs on the x-axis (horizontal).';
+                } else if (axis === 'y') {
+                    state.l89Feedback = 'Incorrect. The independent variable (the one controlled by the experimenter) always goes on the x-axis. Temperature drives the change in this experiment.';
+                } else {
+                    state.l89Feedback = 'Please select an axis option before verifying.';
+                }
+                persist('L8.9 axis verified');
                 this.mount({ host, state, onStateChange });
             });
 
-            host.querySelector('#s8-check-boundaries')?.addEventListener('click', () => {
-                const axis = host.querySelector('#s8-axis-select').value;
-                const limit = host.querySelector('#s8-limit-select').value;
-                state.axisChoice = axis;
-                state.limitChoice = limit;
-
-                if (axis === 'x' && limit === 'zero') {
-                    state.boundaryFeedback = `Correct! The independent variable (Temperature) belongs on the x-axis, and the theoretical limit where gas volume extrapolates to zero is ${s8Extrapolate.answerKey}°C (Absolute Zero). Note that the real gas curve deviates due to liquefaction!`;
-                } else if (axis !== 'x') {
-                    state.boundaryFeedback = 'Incorrect. In scientific experiments, the variable controlled by the experimenter (Temperature) is the independent variable and belongs on the x-axis.';
+            host.querySelector('#s8-check-l810')?.addEventListener('click', () => {
+                const limit = host.querySelector('#s8-l810-limit-select').value;
+                state.l810Answer = limit;
+                if (limit === 'zero') {
+                    state.l810Completed = true;
+                    state.l810Feedback = `Correct! The ideal gas model extrapolates to zero volume at ${s8Extrapolate.answerKey}°C (Absolute Zero, 0 K). Real gases liquefy before reaching this point, but the ideal linear model projects all the way there.`;
+                } else if (limit === 'liquefy') {
+                    state.l810Feedback = `Incorrect. Liquefaction is where the real gas curve bends away from linear. The ideal model continues past that point, reaching zero volume at ${s8Extrapolate.answerKey}°C (Absolute Zero).`;
                 } else {
-                    state.boundaryFeedback = `Incorrect. Although Temperature is on the x-axis, the ideal gas model extrapolates to zero volume at ${s8Extrapolate.answerKey}°C (Absolute Zero), not at liquefaction point.`;
+                    state.l810Feedback = 'Please select a temperature limit before verifying.';
                 }
-                persist('Boundaries verified');
+                persist('L8.10 limit verified');
                 this.mount({ host, state, onStateChange });
             });
 
@@ -711,6 +928,12 @@ export function createStage8Graphing() {
             });
 
             host.querySelector('#s8-check-prob').addEventListener('click', () => {
+                if (!state.l88Unlocked && !state.fastTrack) {
+                    state.probabilityFeedback = 'Complete the interpolation/extrapolation panel first.';
+                    persist('Probability blocked by L8.7');
+                    this.mount({ host, state, onStateChange });
+                    return;
+                }
                 const raw = host.querySelector('#s8-prob-input').value.trim();
                 state.probabilityAnswer = raw;
                 const normalized = raw.replace(/\s+/g, '').toLowerCase();
@@ -748,22 +971,42 @@ export function createStage8Graphing() {
                     state.extrapolVal = e.target.value;
                 });
             }
+            const l85x = host.querySelector('#s8-l85-x');
+            if (l85x) {
+                l85x.addEventListener('input', (e) => {
+                    state.l85XIntercept = e.target.value;
+                });
+            }
+            const l85y = host.querySelector('#s8-l85-y');
+            if (l85y) {
+                l85y.addEventListener('input', (e) => {
+                    state.l85YIntercept = e.target.value;
+                });
+            }
             const probInput = host.querySelector('#s8-prob-input');
             if (probInput) {
                 probInput.addEventListener('input', (e) => {
                     state.probabilityAnswer = e.target.value;
                 });
             }
-            const axisSelect = host.querySelector('#s8-axis-select');
-            if (axisSelect) {
-                axisSelect.addEventListener('change', (e) => {
-                    state.axisChoice = e.target.value;
+            const toggleIdeal = host.querySelector('#s8-toggle-ideal');
+            if (toggleIdeal) {
+                toggleIdeal.addEventListener('change', (e) => {
+                    state.showIdealLine = e.target.checked;
+                    persist('Ideal line toggled');
+                    this.mount({ host, state, onStateChange });
                 });
             }
-            const limitSelect = host.querySelector('#s8-limit-select');
+            const axisSelect = host.querySelector('#s8-l89-axis-select');
+            if (axisSelect) {
+                axisSelect.addEventListener('change', (e) => {
+                    state.l89Answer = e.target.value;
+                });
+            }
+            const limitSelect = host.querySelector('#s8-l810-limit-select');
             if (limitSelect) {
                 limitSelect.addEventListener('change', (e) => {
-                    state.limitChoice = e.target.value;
+                    state.l810Answer = e.target.value;
                 });
             }
         },

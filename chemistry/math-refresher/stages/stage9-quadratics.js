@@ -48,7 +48,32 @@ const createInitialStage9State = () => ({
     // L9.11: Exponents in Unit Systems
     kcExponent: '',
     kcFeedback: 'L9.11: Find the exponent n for the units of Kc (M^n) for N2 + 3 H2 ⇌ 2 NH3.',
-    kcCorrect: false
+    kcCorrect: false,
+
+    // L9.2 Geometric Spatial Formulas (Pictorial)
+    l92Answer: '',
+    l92Completed: false,
+    l92Feedback: 'L9.2 Geometric Spatial Formulas: A rectangular box has dimensions 3 cm × 4 cm × 5 cm. Calculate its volume using V = l × w × h.',
+
+    // L9.5 Exponent Laws Masterclass (Abstract)
+    l95Answer: '',
+    l95Completed: false,
+    l95Feedback: 'L9.5 Exponent Laws: Simplify (x⁵ · x⁻²) / x² using the product and quotient rules.',
+
+    // L9.6 Negative & Fractional Exponents (Abstract)
+    l96Answer: '',
+    l96Completed: false,
+    l96Feedback: 'L9.6 Negative & Fractional Exponents: Evaluate 4^(−½). Use a^(−n) = 1/aⁿ and a^(½) = √a.',
+
+    // L9.7 Polynomial Operations — FOIL (Abstract)
+    l97Answer: '',
+    l97Completed: false,
+    l97Feedback: 'L9.7 Polynomial Operations: Expand (x + 5)(x − 3) using FOIL. What is the coefficient of the x-term?',
+
+    // Applied sub-lesson gates
+    l910Unlocked: false,
+    l910Completed: false,
+    l911Unlocked: false
 });
 
 export function createStage9Quadratics() {
@@ -238,41 +263,9 @@ export function createStage9Quadratics() {
                         </div>
 
                         <div class="s9-pane" style="margin-top:0.75rem;">
-                            <strong>L9.10 Balancing Equations via Linear Systems</strong>
-                            <p>Balance the combustion reaction: <code>a ${subHcFormula} + b O₂ → c CO₂ + d H₂O</code>.</p>
-                            <p style="font-size:0.85rem; color:#cbd5e1; line-height: 1.5;">By element conservation, we write a system of equations:
-                            <br>• Carbon: ${carbonCount}a = c
-                            <br>• Hydrogen: ${hydrogenCount}a = 2d  (giving d = ${(hydrogenCount/2).toFixed(1).replace(/\.0$/, '')}a)
-                            <br>• Oxygen: 2b = 2c + d
-                            <br>If we set <strong>a = ${s9Bal.a}</strong> to avoid fractional coefficients, solve for the remaining integers.</p>
-                            
-                            <div class="s9-grid" style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 0.5rem;">
-                                <div>
-                                    <label style="font-size:0.8rem; font-weight:700;">a (${subHcFormula}):</label>
-                                    <input type="number" id="s9-bal-a" class="s9-input" value="${state.balA}" placeholder="a" ${disabled(state.concreteUnlocked)}>
-                                </div>
-                                <div>
-                                    <label style="font-size:0.8rem; font-weight:700;">b (O₂):</label>
-                                    <input type="number" id="s9-bal-b" class="s9-input" value="${state.balB}" placeholder="b" ${disabled(state.concreteUnlocked)}>
-                                </div>
-                                <div>
-                                    <label style="font-size:0.8rem; font-weight:700;">c (CO₂):</label>
-                                    <input type="number" id="s9-bal-c" class="s9-input" value="${state.balC}" placeholder="c" ${disabled(state.concreteUnlocked)}>
-                                </div>
-                                <div>
-                                    <label style="font-size:0.8rem; font-weight:700;">d (H₂O):</label>
-                                    <input type="number" id="s9-bal-d" class="s9-input" value="${state.balD}" placeholder="d" ${disabled(state.concreteUnlocked)}>
-                                </div>
-                            </div>
-                            <button id="s9-check-bal" class="s9-btn" style="margin-top: 8px; width: 100%;" ${disabled(state.concreteUnlocked)}>Verify Balancing Coefficients</button>
-                            <div id="s9-bal-feedback" class="s9-feedback">${state.balFeedback}</div>
-                        </div>
-
-                        <div class="s9-pane" style="margin-top:0.75rem;">
                             <h3 style="margin:0 0 0.45rem;">Concrete Mission</h3>
                             <div class="s9-status" style="margin-top:0; margin-bottom:0.5rem;">
                                 <span class="s9-pill ${state.concreteMission.intersectionFound ? 'good' : 'locked'}">Click the intersection at (2, 3)</span>
-                                <span class="s9-pill ${state.balCorrect ? 'good' : 'locked'}">Balance ${subHcFormula} Combustion</span>
                             </div>
                             <div class="s9-grid" style="gap:4px;">
                                 <button id="s9-hint-concrete" class="s9-btn ghost" ${disabled(state.concreteUnlocked)}>Need a Hint? (Required)</button>
@@ -287,7 +280,19 @@ export function createStage9Quadratics() {
 
                     <!-- PICTORIAL LEVEL -->
                     <article class="s9-card s9-level ${levelLocked(state.pictorialUnlocked)}">
-                        <h2>Pictorial Level: Pythagorean Geometry Solver</h2>
+                        <h2>Pictorial Level: Geometric Formulas, Angles &amp; Triangles</h2>
+
+                        <!-- L9.2 Geometric Spatial Formulas -->
+                        <div class="s9-pane" style="margin-bottom:0.75rem;">
+                            <strong>L9.2 Geometric Spatial Formulas</strong>
+                            <p>Geometric formulas map physical dimensions to measurable quantities. A rectangular reaction vessel has dimensions <strong>3 cm × 4 cm × 5 cm</strong>. Calculate its volume using <code>V = l × w × h</code>.</p>
+                            <div class="s9-grid" style="grid-template-columns: 1fr auto;">
+                                <input type="number" id="s9-l92-input" class="s9-input" placeholder="Volume in cm³" value="${state.l92Answer}" ${disabled(state.pictorialUnlocked)}>
+                                <button id="s9-check-l92" class="s9-btn" ${disabled(state.pictorialUnlocked)}>Verify L9.2</button>
+                            </div>
+                            <div class="s9-feedback" id="s9-l92-feedback">${state.l92Feedback}</div>
+                        </div>
+
                         <div class="s9-pane" style="margin-bottom:0.75rem;">
                             <p><strong>[Reinforcement] L9.3 Transversal Lines & Geometric Angles:</strong> Two parallel lines are cut by a transversal. If one interior angle is <code>65°</code>, what is the matching alternate interior angle?</p>
                             <div class="s9-grid" style="grid-template-columns: 1fr auto;">
@@ -333,7 +338,50 @@ export function createStage9Quadratics() {
 
                     <!-- ABSTRACT LEVEL -->
                     <article class="s9-card s9-level ${levelLocked(state.abstractUnlocked)}">
-                        <h2>Abstract Level: Polynomial Factoring Blocks</h2>
+                        <h2>Abstract Level: Exponent Laws, Polynomials &amp; Factoring</h2>
+
+                        <!-- L9.5 Exponent Laws Masterclass -->
+                        <div class="s9-pane" style="margin-bottom:0.75rem;">
+                            <strong>L9.5 Exponent Laws Masterclass</strong>
+                            <p>Three core rules: <strong>Product</strong> (xᵃ · xᵇ = xᵃ⁺ᵇ), <strong>Quotient</strong> (xᵃ / xᵇ = xᵃ⁻ᵇ), <strong>Power</strong> ((xᵃ)ᵇ = xᵃᵇ). Simplify: <code>(x⁵ · x⁻²) / x²</code></p>
+                            <div class="s9-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s9-btn ghost ${state.l95Answer === 'x1' ? 'active' : ''}" data-l95="x1" ${disabled(state.abstractUnlocked)}>x (= x¹)</button>
+                                <button class="s9-btn ghost ${state.l95Answer === 'x3' ? 'active' : ''}" data-l95="x3" ${disabled(state.abstractUnlocked)}>x³</button>
+                                <button class="s9-btn ghost ${state.l95Answer === 'xneg1' ? 'active' : ''}" data-l95="xneg1" ${disabled(state.abstractUnlocked)}>x⁻¹</button>
+                                <button class="s9-btn ghost ${state.l95Answer === 'x9' ? 'active' : ''}" data-l95="x9" ${disabled(state.abstractUnlocked)}>x⁹</button>
+                            </div>
+                            <button id="s9-check-l95" class="s9-btn" style="margin-top:0.5rem; width:100%;" ${disabled(state.abstractUnlocked)}>Verify L9.5</button>
+                            <div class="s9-feedback" id="s9-l95-feedback">${state.l95Feedback}</div>
+                        </div>
+
+                        <!-- L9.6 Negative & Fractional Exponents -->
+                        <div class="s9-pane" style="margin-bottom:0.75rem; ${state.l95Completed || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L9.6 Negative &amp; Fractional Exponents</strong>
+                            <p>Negative exponent = reciprocal: x⁻ⁿ = 1/xⁿ. Fractional exponent = root: x^(1/n) = ⁿ√x. Evaluate <code>4^(−½)</code>:</p>
+                            <div class="s9-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s9-btn ghost ${state.l96Answer === 'half' ? 'active' : ''}" data-l96="half" ${disabled(state.l95Completed)}>1/2 (= 0.5)</button>
+                                <button class="s9-btn ghost ${state.l96Answer === 'two' ? 'active' : ''}" data-l96="two" ${disabled(state.l95Completed)}>2</button>
+                                <button class="s9-btn ghost ${state.l96Answer === 'neg2' ? 'active' : ''}" data-l96="neg2" ${disabled(state.l95Completed)}>−2</button>
+                                <button class="s9-btn ghost ${state.l96Answer === 'quarter' ? 'active' : ''}" data-l96="quarter" ${disabled(state.l95Completed)}>1/4</button>
+                            </div>
+                            <button id="s9-check-l96" class="s9-btn" style="margin-top:0.5rem; width:100%;" ${disabled(state.l95Completed)}>Verify L9.6</button>
+                            <div class="s9-feedback" id="s9-l96-feedback">${state.l96Feedback}</div>
+                        </div>
+
+                        <!-- L9.7 Polynomial Operations (FOIL) -->
+                        <div class="s9-pane" style="margin-bottom:0.75rem; ${state.l96Completed || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L9.7 Polynomial Operations</strong>
+                            <p>Multiply binomials with <strong>FOIL</strong> (First, Outer, Inner, Last). Expand <code>(x + 5)(x − 3)</code>. What is the coefficient of the x-term in the result?</p>
+                            <div class="s9-grid" style="grid-template-columns: 1fr; gap: 4px;">
+                                <button class="s9-btn ghost ${state.l97Answer === '2' ? 'active' : ''}" data-l97="2" ${disabled(state.l96Completed)}>+2 (→ x² + 2x − 15)</button>
+                                <button class="s9-btn ghost ${state.l97Answer === '8' ? 'active' : ''}" data-l97="8" ${disabled(state.l96Completed)}>+8</button>
+                                <button class="s9-btn ghost ${state.l97Answer === '-2' ? 'active' : ''}" data-l97="-2" ${disabled(state.l96Completed)}>−2</button>
+                                <button class="s9-btn ghost ${state.l97Answer === '-8' ? 'active' : ''}" data-l97="-8" ${disabled(state.l96Completed)}>−8</button>
+                            </div>
+                            <button id="s9-check-l97" class="s9-btn" style="margin-top:0.5rem; width:100%;" ${disabled(state.l96Completed)}>Verify L9.7</button>
+                            <div class="s9-feedback" id="s9-l97-feedback">${state.l97Feedback}</div>
+                        </div>
+
                         <p><strong>[Required Unlock] L9.8 Factoring Quadratics:</strong> Factor the quadratic trinomial <strong>${quadExpr}</strong> into binomial blocks <strong>(x + p)(x + q)</strong>. Pick p and q from the dropdowns so their sum is ${s9Factoring.b} and product is ${s9Factoring.c}.</p>
                         
                         <div class="s9-pane">
@@ -374,16 +422,47 @@ export function createStage9Quadratics() {
                         </div>
                         <div class="s9-feedback" id="s9-applied-feedback">${state.appliedFeedback}</div>
 
+                        <!-- L9.10 Balancing Equations via Systems of Equations -->
+                        <div class="s9-pane" style="margin-top:0.75rem; ${state.l910Unlocked || state.fastTrack ? '' : 'opacity:0.5;'}">
+                            <strong>L9.10 Balancing Equations via Systems of Equations</strong>
+                            <p>Balance the combustion reaction: <code>a ${subHcFormula} + b O₂ → c CO₂ + d H₂O</code>.</p>
+                            <p style="font-size:0.85rem; color:#cbd5e1; line-height: 1.5;">By element conservation, write a system of equations:
+                            <br>• Carbon: ${carbonCount}a = c
+                            <br>• Hydrogen: ${hydrogenCount}a = 2d  (giving d = ${(hydrogenCount/2).toFixed(1).replace(/\.0$/, '')}a)
+                            <br>• Oxygen: 2b = 2c + d
+                            <br>Set <strong>a = ${s9Bal.a}</strong> to avoid fractional coefficients, then solve for the remaining integers.</p>
+                            <div class="s9-grid" style="grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 0.5rem;">
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">a (${subHcFormula}):</label>
+                                    <input type="number" id="s9-bal-a" class="s9-input" value="${state.balA}" placeholder="a" ${disabled(state.l910Unlocked)}>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">b (O₂):</label>
+                                    <input type="number" id="s9-bal-b" class="s9-input" value="${state.balB}" placeholder="b" ${disabled(state.l910Unlocked)}>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">c (CO₂):</label>
+                                    <input type="number" id="s9-bal-c" class="s9-input" value="${state.balC}" placeholder="c" ${disabled(state.l910Unlocked)}>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.8rem; font-weight:700;">d (H₂O):</label>
+                                    <input type="number" id="s9-bal-d" class="s9-input" value="${state.balD}" placeholder="d" ${disabled(state.l910Unlocked)}>
+                                </div>
+                            </div>
+                            <button id="s9-check-bal" class="s9-btn" style="margin-top: 8px; width: 100%;" ${disabled(state.l910Unlocked)}>Verify Balancing Coefficients</button>
+                            <div id="s9-bal-feedback" class="s9-feedback">${state.balFeedback}</div>
+                        </div>
+
                         <!-- L9.11 Exponents in Unit Systems -->
-                        <div class="s9-pane" style="margin-top:0.75rem;">
+                        <div class="s9-pane" style="margin-top:0.75rem; ${state.l911Unlocked || state.fastTrack ? '' : 'opacity:0.5;'}">
                             <strong>L9.11 Exponents in Unit Systems</strong>
                             <p>For the gas-phase synthesis of ammonia: <code>N₂ (g) + 3 H₂ (g) ⇌ 2 NH₃ (g)</code>
                             <br>The equilibrium constant expression is:
                             <br><code style="font-size:1.05rem;">K_c = [NH₃]² / ([N₂] [H₂]³)</code>
                             <br>What is the exponent <strong>n</strong> for the composite units of K_c (expressed as <code>Mⁿ</code>, where M is Molarity)?</p>
                             <div class="s9-grid" style="grid-template-columns: 1fr auto; gap: 8px;">
-                                <input type="number" id="s9-kc-input" class="s9-input" placeholder="e.g. -2" value="${state.kcExponent}" ${disabled(state.appliedUnlocked)}>
-                                <button id="s9-check-kc" class="s9-btn" ${disabled(state.appliedUnlocked)}>Verify Exponent</button>
+                                <input type="number" id="s9-kc-input" class="s9-input" placeholder="e.g. -2" value="${state.kcExponent}" ${disabled(state.l911Unlocked)}>
+                                <button id="s9-check-kc" class="s9-btn" ${disabled(state.l911Unlocked)}>Verify Exponent</button>
                             </div>
                             <div id="s9-kc-feedback" class="s9-feedback">${state.kcFeedback}</div>
                         </div>
@@ -437,9 +516,33 @@ export function createStage9Quadratics() {
                     },
                     's9-check-bal': {
                         id: 's9-bal',
-                        level: 'concrete',
+                        level: 'applied',
                         keys: 'balA,balB,balC,balD',
                         prompt: 'Help me balance the chemical combustion reaction.'
+                    },
+                    's9-check-l92': {
+                        id: 's9-spatial-formulas',
+                        level: 'pictorial',
+                        keys: 'l92Answer',
+                        prompt: 'Help me calculate the volume of a rectangular box using V = l × w × h.'
+                    },
+                    's9-check-l95': {
+                        id: 's9-exponent-laws',
+                        level: 'abstract',
+                        keys: 'l95Answer',
+                        prompt: 'Help me simplify (x⁵ · x⁻²) / x² using product and quotient exponent rules.'
+                    },
+                    's9-check-l96': {
+                        id: 's9-neg-frac-exponents',
+                        level: 'abstract',
+                        keys: 'l96Answer',
+                        prompt: 'Help me evaluate 4^(−½) using negative and fractional exponent rules.'
+                    },
+                    's9-check-l97': {
+                        id: 's9-polynomial-foil',
+                        level: 'abstract',
+                        keys: 'l97Answer',
+                        prompt: 'Help me expand (x + 5)(x − 3) using FOIL and identify the middle-term coefficient.'
                     },
                     's9-check-kc': {
                         id: 's9-kc-exponent-units',
@@ -463,10 +566,10 @@ export function createStage9Quadratics() {
 
             const syncConcreteMission = () => {
                 if (state.fastTrack) return;
-                if (state.concreteMission.intersectionFound && state.balCorrect && !state.concreteCompleted) {
+                if (state.concreteMission.intersectionFound && !state.concreteCompleted) {
                     state.concreteCompleted = true;
                     state.pictorialUnlocked = true;
-                    state.concreteFeedback = 'Concrete mission complete. Both linear systems solved. Pictorial unlocked. Continue below.';
+                    state.concreteFeedback = 'Concrete mission complete. Intersection found. Pictorial unlocked. Continue below.';
                 }
             };
 
@@ -500,6 +603,13 @@ export function createStage9Quadratics() {
                     state.pictorialUnlocked = true;
                     state.abstractUnlocked = true;
                     state.appliedUnlocked = true;
+                    state.l92Completed = true;
+                    state.l95Completed = true;
+                    state.l96Completed = true;
+                    state.l97Completed = true;
+                    state.l910Unlocked = true;
+                    state.l910Completed = true;
+                    state.l911Unlocked = true;
                     state.diagnosticFeedback = 'Fast-Track Achievement unlocked! You mastered spatial geometry, FOIL expansions, and exponents. All levels are now open.';
                 } else {
                     state.fastTrack = false;
@@ -593,6 +703,85 @@ export function createStage9Quadratics() {
                 this.mount({ host, state, onStateChange });
             });
 
+            // L9.2 Geometric Spatial Formulas
+            host.querySelector('#s9-check-l92')?.addEventListener('click', () => {
+                const val = parseFloat(host.querySelector('#s9-l92-input').value);
+                state.l92Answer = host.querySelector('#s9-l92-input').value;
+                if (val === 60) {
+                    state.l92Completed = true;
+                    state.l92Feedback = 'Correct! V = 3 × 4 × 5 = 60 cm³. Geometric volume formulas multiply all spatial dimensions together.';
+                } else if (!isNaN(val)) {
+                    state.l92Feedback = `Incorrect. V = l × w × h = 3 × 4 × 5 = 60 cm³. You entered ${val} cm³.`;
+                } else {
+                    state.l92Feedback = 'Enter a numerical value for the volume.';
+                }
+                persist('L9.2 volume checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L9.5 Exponent Laws
+            host.querySelectorAll('[data-l95]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l95Answer = btn.getAttribute('data-l95');
+                    persist('L9.5 answer chosen');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+            host.querySelector('#s9-check-l95')?.addEventListener('click', () => {
+                if (state.l95Answer === 'x1') {
+                    state.l95Completed = true;
+                    state.l95Feedback = 'Correct! x⁵ · x⁻² = x³ (product rule: 5 + (−2) = 3), then x³ / x² = x¹ = x (quotient rule: 3 − 2 = 1).';
+                } else if (state.l95Answer) {
+                    state.l95Feedback = 'Incorrect. Step 1: x⁵ · x⁻² = x^(5−2) = x³. Step 2: x³ / x² = x^(3−2) = x¹ = x.';
+                } else {
+                    state.l95Feedback = 'Choose an answer above.';
+                }
+                persist('L9.5 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L9.6 Negative & Fractional Exponents
+            host.querySelectorAll('[data-l96]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l96Answer = btn.getAttribute('data-l96');
+                    persist('L9.6 answer chosen');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+            host.querySelector('#s9-check-l96')?.addEventListener('click', () => {
+                if (state.l96Answer === 'half') {
+                    state.l96Completed = true;
+                    state.l96Feedback = 'Correct! 4^(½) = √4 = 2, so 4^(−½) = 1/2. The negative exponent inverts; the fractional exponent takes the root.';
+                } else if (state.l96Answer) {
+                    state.l96Feedback = 'Incorrect. First: 4^(½) = √4 = 2. Then the negative sign means reciprocal: 4^(−½) = 1/2.';
+                } else {
+                    state.l96Feedback = 'Choose an answer above.';
+                }
+                persist('L9.6 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
+            // L9.7 Polynomial Operations (FOIL)
+            host.querySelectorAll('[data-l97]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    state.l97Answer = btn.getAttribute('data-l97');
+                    persist('L9.7 answer chosen');
+                    this.mount({ host, state, onStateChange });
+                });
+            });
+            host.querySelector('#s9-check-l97')?.addEventListener('click', () => {
+                if (state.l97Answer === '2') {
+                    state.l97Completed = true;
+                    state.l97Feedback = 'Correct! (x + 5)(x − 3) = x² − 3x + 5x − 15 = x² + 2x − 15. The middle term coefficient is +2.';
+                } else if (state.l97Answer) {
+                    state.l97Feedback = 'Incorrect. FOIL: First x·x = x², Outer x·(−3) = −3x, Inner 5·x = +5x, Last 5·(−3) = −15. Middle terms: −3x + 5x = +2x.';
+                } else {
+                    state.l97Feedback = 'Choose an answer above.';
+                }
+                persist('L9.7 checked');
+                this.mount({ host, state, onStateChange });
+            });
+
             // Abstract Factoring Check
             host.querySelector('#s9-check-factoring').addEventListener('click', () => {
                 const pVal = parseInt(host.querySelector('#s9-factor-p').value);
@@ -627,8 +816,9 @@ export function createStage9Quadratics() {
 
             host.querySelector('#s9-app-right').addEventListener('click', () => {
                 state.appliedChoice = 'right';
-                state.appliedFeedback = 'Correct! The positive, physically meaningful concentration root is x = 1.0 M.';
+                state.appliedFeedback = 'Correct! The positive, physically meaningful concentration root is x = 1.0 M. Continue to L9.10 below.';
                 state.appliedCorrect = true;
+                state.l910Unlocked = true;
                 persist('Applied weak acid choice correct');
                 this.mount({ host, state, onStateChange });
             });
@@ -638,6 +828,12 @@ export function createStage9Quadratics() {
             if (triangleInput) {
                 triangleInput.addEventListener('input', (e) => {
                     state.triangleC = e.target.value;
+                });
+            }
+            const l92Input = host.querySelector('#s9-l92-input');
+            if (l92Input) {
+                l92Input.addEventListener('input', (e) => {
+                    state.l92Answer = e.target.value;
                 });
             }
             const transversalInput = host.querySelector('#s9-transversal-input');
@@ -661,6 +857,8 @@ export function createStage9Quadratics() {
 
                 if (a === s9Bal.a && b === s9Bal.b && c === s9Bal.c && d === s9Bal.d) {
                     state.balCorrect = true;
+                    state.l910Completed = true;
+                    state.l911Unlocked = true;
                     state.balFeedback = `Correct! The balanced coefficients are ${s9Bal.a}, ${s9Bal.b}, ${s9Bal.c}, and ${s9Bal.d}. You successfully scaled to clear fractions!`;
                 } else if (a && b && c && d) {
                     // Check if they didn't scale or used wrong proportions
