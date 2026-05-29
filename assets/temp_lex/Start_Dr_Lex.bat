@@ -56,7 +56,7 @@ echo ==============================================
 echo.
 
 echo Opening Gnosys-AI...
-start "" "https://RorriMaesu.github.io/Gnosys-AI/?model=!MODEL!"
+start "" "https://RorriMaesu.github.io/RadReqs-AI/?model=!MODEL!"
 
 echo Downloading AI Model (this may take a few minutes the first time)...
 echo The terminal will automatically close when finished.

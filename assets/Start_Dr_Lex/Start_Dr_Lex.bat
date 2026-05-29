@@ -70,5 +70,5 @@ if errorlevel 1 (
 
 echo.
 echo Opening Gnosys-AI with model !MODEL!...
-start "" "https://RorriMaesu.github.io/Gnosys-AI/?model=!MODEL!"
+start "" "https://RorriMaesu.github.io/RadReqs-AI/?model=!MODEL!"
 echo The terminal will automatically close when finished.

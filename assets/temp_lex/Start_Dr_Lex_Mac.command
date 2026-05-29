@@ -40,7 +40,7 @@ echo "=============================================="
 echo ""
 
 echo "Opening Gnosys-AI..."
-open "https://RorriMaesu.github.io/Gnosys-AI/?model=$MODEL"
+open "https://RorriMaesu.github.io/RadReqs-AI/?model=$MODEL"
 
 echo "Downloading AI Model (this may take a few minutes the first time)..."
 echo "The terminal will automatically close when finished."
