@@ -10,7 +10,7 @@ import { createStage9Quadratics } from './stages/stage9-quadratics.js';
 import { createStage10Advanced } from './stages/stage10-advanced.js';
 import { createStage11Linearization } from './stages/stage11-linearization.js';
 import { createStage12Equilibrium } from './stages/stage12-equilibrium.js';
-import { CURRICULUM_MAP, TOTAL_LESSON_COUNT } from './curriculum-map.js';
+import { CURRICULUM_MAP } from './curriculum-map.js';
 import {
     COURSE_STATE_VERSION,
     createDefaultAdaptiveState,
@@ -64,9 +64,6 @@ const refs = {
     nav: null,
     canvas: null,
     currentPhase: null,
-    phaseObjective: null,
-    phaseLessons: null,
-    curriculumMeta: null,
     saveState: null,
     resetScope: null,
     resetStatus: null,
@@ -1678,38 +1675,6 @@ function curriculumById(phaseId) {
     return CURRICULUM_MAP.find((stage) => stage.id === phaseId) || null;
 }
 
-function parseLessonLabel(lessonLabel) {
-    const match = /^\s*L(\d+)\.(\d+)\b/i.exec(String(lessonLabel || ''));
-    if (!match) return null;
-    return {
-        stage: Number.parseInt(match[1], 10),
-        lesson: Number.parseInt(match[2], 10)
-    };
-}
-
-function compareLessonLabels(a, b) {
-    const parsedA = parseLessonLabel(a);
-    const parsedB = parseLessonLabel(b);
-
-    if (parsedA && parsedB) {
-        if (parsedA.stage !== parsedB.stage) {
-            return parsedA.stage - parsedB.stage;
-        }
-        if (parsedA.lesson !== parsedB.lesson) {
-            return parsedA.lesson - parsedB.lesson;
-        }
-    } else if (parsedA) {
-        return -1;
-    } else if (parsedB) {
-        return 1;
-    }
-
-    return String(a || '').localeCompare(String(b || ''), undefined, {
-        numeric: true,
-        sensitivity: 'base'
-    });
-}
-
 function isStageCompleted(phaseId) {
     const stageState = courseState.phases[phaseId];
     if (!stageState) return false;
@@ -1790,23 +1755,6 @@ function renderHeader() {
     const stageMap = curriculumById(phase.id);
     if (refs.currentPhase) {
         refs.currentPhase.textContent = stageMap?.title || phase.title;
-    }
-    if (refs.phaseObjective) {
-        refs.phaseObjective.textContent = stageMap?.objective || '';
-    }
-    if (refs.phaseLessons) {
-        refs.phaseLessons.innerHTML = '';
-        if (stageMap?.lessons?.length) {
-            const orderedLessons = stageMap.lessons.slice().sort(compareLessonLabels);
-            orderedLessons.forEach((lesson) => {
-                const li = document.createElement('li');
-                li.textContent = lesson;
-                refs.phaseLessons.appendChild(li);
-            });
-        }
-    }
-    if (refs.curriculumMeta) {
-        refs.curriculumMeta.textContent = `Expanded mastery path: ${CURRICULUM_MAP.length} stages, ${TOTAL_LESSON_COUNT} lessons.`;
     }
     updateResetControls();
 }
@@ -1925,9 +1873,6 @@ function init() {
     refs.nav = document.getElementById('cmr-phase-nav');
     refs.canvas = document.getElementById('cmr-phase-canvas');
     refs.currentPhase = document.getElementById('cmr-current-phase');
-    refs.phaseObjective = document.getElementById('cmr-current-objective');
-    refs.phaseLessons = document.getElementById('cmr-current-lessons');
-    refs.curriculumMeta = document.getElementById('cmr-curriculum-meta');
     refs.saveState = document.getElementById('cmr-save-state');
     refs.resetScope = document.getElementById('cmr-reset-scope');
     refs.resetStatus = document.getElementById('cmr-reset-status');

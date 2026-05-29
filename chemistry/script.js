@@ -1875,24 +1875,1116 @@ function saveLearningState() {
     localStorage.setItem(CHEM_STATE_KEY, JSON.stringify(learningState));
 }
 
+const CHEM_MATH_TAB_STATE_KEY = "chemistry_math_tab_state_v1";
+const CHEM_MATH_TAB_STATE_VERSION = 1;
+const CHEM_MATH_MIN_SESSIONS_FOR_MASTERY = 2;
+const CHEM_MATH_MIN_SCORE_FOR_MASTERY = 0.75;
+let chemistryMathTabState = null;
+let currentMathQuizSession = null;
+
+const CHEM_MATH_TAB_LESSONS = [
+    {
+        id: "dimensional",
+        title: "Dimensional Analysis & Unit Cancellation",
+        cardId: "math-card-track",
+        summary: "Build factor-label chains that cancel units cleanly from one chemistry unit to the next.",
+        why: "If the factor is flipped, the chain fails even when the arithmetic is fine.",
+        nextCheck: "Choose the right factor direction, convert a value, and explain the cancellation."
+    },
+    {
+        id: "sci-notation",
+        title: "Scientific Notation & E-Notation",
+        cardId: "math-card-sci",
+        summary: "Use exponent direction to compare, convert, and enter tiny chemistry values without losing scale.",
+        why: "Chemistry students often reverse exponent direction or misread calculator E-notation, which breaks concentration and particle-count work.",
+        nextCheck: "Convert one value, compare one magnitude, and prove the calculator format is correct."
+    },
+    {
+        id: "sigfigs",
+        title: "Significant Figures in Multi-Step Work",
+        cardId: "math-card-cache",
+        summary: "Delay rounding until the final line so intermediate values stay trustworthy.",
+        why: "Early rounding silently corrupts chemistry answers, especially in multi-step stoich and density work.",
+        nextCheck: "Show an unrounded intermediate result and the correctly rounded final answer."
+    },
+    {
+        id: "mole-conversions",
+        title: "Molar Mass and Mole Conversions",
+        cardId: "math-card-moles",
+        summary: "Convert grams, moles, and particles while keeping the unit chain explicit.",
+        why: "Students often memorize molar mass but still miss whether to multiply or divide.",
+        nextCheck: "Translate one compound from grams to moles and another from moles to particles."
+    },
+    {
+        id: "algebra",
+        title: "Equation Isolation (PV=nRT / q=mcDeltaT / M1V1=M2V2)",
+        cardId: "math-card-seesaw",
+        summary: "Rearrange chemistry formulas without breaking the balance of the equation.",
+        why: "Learners often divide only one side or lose track of the variable they are isolating.",
+        nextCheck: "Rewrite one formula and solve one numeric example with units."
+    },
+    {
+        id: "ph-log",
+        title: "pH / log10 Inverse Reasoning",
+        cardId: "math-card-ph",
+        summary: "Convert between pH and hydrogen ion concentration while preserving the log scale meaning.",
+        why: "A sign error or base confusion changes acidity by orders of magnitude.",
+        nextCheck: "Compute one forward and one reverse pH conversion plus a comparison prompt."
+    },
+    {
+        id: "percent-metrics",
+        title: "Percent Yield, Percent Error, Percent Composition",
+        cardId: "math-card-percent",
+        summary: "Choose the right percent formula and interpret what the ratio tells you.",
+        why: "Yield, error, and composition answer different chemistry questions and should not be mixed.",
+        nextCheck: "Compute one yield and one error problem, then identify which formula is appropriate."
+    },
+    {
+        id: "graphing",
+        title: "Slope/Intercept for Chemistry Lab Graphs",
+        cardId: "math-card-graph",
+        summary: "Read slope and intercept as chemistry meaning, not just graph arithmetic.",
+        why: "Calibration lines and rate plots only help if the learner can interpret the constant they represent.",
+        nextCheck: "Find a slope, explain the intercept, and make one prediction from a line."
+    }
+];
+
 function getDefaultMathRefresherState() {
-    return null;
+    return {
+        version: CHEM_MATH_TAB_STATE_VERSION,
+        activeLessonId: CHEM_MATH_TAB_LESSONS[0].id,
+        completedLessons: {},
+        lessonAttempts: {},
+        lessonCorrect: {},
+        lessonQuizScores: {},
+        misconceptionCounts: {}
+    };
 }
 
 function loadMathRefresherState() {
-    return null;
+    const fallback = getDefaultMathRefresherState();
+    const raw = localStorage.getItem(CHEM_MATH_TAB_STATE_KEY);
+    if (!raw) return fallback;
+
+    try {
+        const parsed = JSON.parse(raw);
+        return {
+            ...fallback,
+            ...parsed,
+            completedLessons: {
+                ...fallback.completedLessons,
+                ...(parsed.completedLessons || {})
+            },
+            lessonAttempts: {
+                ...fallback.lessonAttempts,
+                ...(parsed.lessonAttempts || {})
+            },
+            lessonCorrect: {
+                ...fallback.lessonCorrect,
+                ...(parsed.lessonCorrect || {})
+            },
+            lessonQuizScores: {
+                ...fallback.lessonQuizScores,
+                ...(parsed.lessonQuizScores || {})
+            },
+            misconceptionCounts: {
+                ...fallback.misconceptionCounts,
+                ...(parsed.misconceptionCounts || {})
+            }
+        };
+    } catch {
+        return fallback;
+    }
 }
 
 function saveMathRefresherState() {
-    // State is owned by chemistry/math-refresher/math-controller.js.
+    if (!chemistryMathTabState) return;
+    localStorage.setItem(CHEM_MATH_TAB_STATE_KEY, JSON.stringify(chemistryMathTabState));
 }
 
 function updateMathRefresherCtas() {
+    renderMathLessonRail();
     window.ChemMathRefresher?.updateCtas?.();
 }
 
 function bindMathRefresherActions() {
     window.ChemMathRefresher?.init?.();
+    initChemistryMathRefresherTab();
+}
+
+function getMathLessonIndexById(lessonId) {
+    return CHEM_MATH_TAB_LESSONS.findIndex((lesson) => lesson.id === lessonId);
+}
+
+function getActiveMathLesson() {
+    if (!chemistryMathTabState) return CHEM_MATH_TAB_LESSONS[0];
+    const idx = getMathLessonIndexById(chemistryMathTabState.activeLessonId);
+    if (idx < 0) return CHEM_MATH_TAB_LESSONS[0];
+    return CHEM_MATH_TAB_LESSONS[idx];
+}
+
+function setActiveMathLesson(lessonId, options = {}) {
+    if (!chemistryMathTabState) return;
+    const idx = getMathLessonIndexById(lessonId);
+    if (idx < 0) return;
+    if (!isMathLessonUnlocked(lessonId)) return;
+
+    chemistryMathTabState.activeLessonId = CHEM_MATH_TAB_LESSONS[idx].id;
+    saveMathRefresherState();
+    renderMathLessonRail();
+    if (options.scroll !== false) {
+        focusMathLessonCard(CHEM_MATH_TAB_LESSONS[idx]);
+    }
+}
+
+function focusMathLessonCard(lesson) {
+    CHEM_MATH_TAB_LESSONS.forEach((entry) => {
+        if (!entry.cardId) return;
+        const cardEl = document.getElementById(entry.cardId);
+        if (!cardEl) return;
+        const isActive = entry.id === lesson.id;
+        cardEl.classList.toggle("ring-2", isActive);
+        cardEl.classList.toggle("ring-amber-400", isActive);
+        cardEl.classList.toggle("shadow-lg", isActive);
+    });
+
+    if (!lesson.cardId) return;
+    const target = document.getElementById(lesson.cardId);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function markMathLessonComplete(lessonId) {
+    if (!chemistryMathTabState) return;
+    chemistryMathTabState.completedLessons[lessonId] = true;
+    saveMathRefresherState();
+    renderMathLessonRail();
+}
+
+function isMathLessonUnlocked(lessonId) {
+    const idx = getMathLessonIndexById(lessonId);
+    if (idx <= 0) return true;
+    const prior = CHEM_MATH_TAB_LESSONS[idx - 1];
+    return Boolean(chemistryMathTabState?.completedLessons?.[prior.id]);
+}
+
+function getMathLessonMasterySnapshot(lessonId) {
+    const scores = (chemistryMathTabState?.lessonQuizScores?.[lessonId] || []).map(Number).filter(Number.isFinite);
+    const attempts = Number(chemistryMathTabState?.lessonAttempts?.[lessonId] || 0);
+    const correct = Number(chemistryMathTabState?.lessonCorrect?.[lessonId] || 0);
+    const avg = scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0;
+    const recentTwo = scores.slice(-2);
+    const recentPass = recentTwo.length === 2 && recentTwo.every((score) => score >= CHEM_MATH_MIN_SCORE_FOR_MASTERY);
+    const passed = scores.length >= CHEM_MATH_MIN_SESSIONS_FOR_MASTERY
+        && avg >= CHEM_MATH_MIN_SCORE_FOR_MASTERY
+        && recentPass;
+
+    return {
+        scores,
+        attempts,
+        correct,
+        avg,
+        passed,
+        recentPass
+    };
+}
+
+function persistMathLessonScore(lessonId, score) {
+    if (!chemistryMathTabState) return;
+    if (!Array.isArray(chemistryMathTabState.lessonQuizScores[lessonId])) {
+        chemistryMathTabState.lessonQuizScores[lessonId] = [];
+    }
+    chemistryMathTabState.lessonQuizScores[lessonId] = [
+        ...chemistryMathTabState.lessonQuizScores[lessonId],
+        score
+    ].slice(-10);
+
+    const mastery = getMathLessonMasterySnapshot(lessonId);
+    if (mastery.passed) {
+        markMathLessonComplete(lessonId);
+    } else {
+        saveMathRefresherState();
+        renderMathLessonRail();
+    }
+}
+
+function incrementMisconceptionCounter(lessonId, category) {
+    if (!chemistryMathTabState || !lessonId || !category) return;
+    if (!chemistryMathTabState.misconceptionCounts[lessonId] || typeof chemistryMathTabState.misconceptionCounts[lessonId] !== "object") {
+        chemistryMathTabState.misconceptionCounts[lessonId] = {};
+    }
+    chemistryMathTabState.misconceptionCounts[lessonId][category] = (chemistryMathTabState.misconceptionCounts[lessonId][category] || 0) + 1;
+}
+
+function renderMathLessonRail() {
+    if (!chemistryMathTabState) return;
+    const rail = document.getElementById("math-tab-lesson-rail");
+    const progressText = document.getElementById("math-tab-progress-text");
+    const btnPrev = document.getElementById("btn-math-lesson-prev");
+    const btnNext = document.getElementById("btn-math-lesson-next");
+    const currentLessonTitle = document.getElementById("math-tab-current-lesson-title");
+    const currentLessonDesc = document.getElementById("math-tab-current-lesson-desc");
+    const currentLessonWhy = document.getElementById("math-tab-current-lesson-why");
+    const currentLessonNext = document.getElementById("math-tab-current-lesson-next");
+    const currentRun = document.getElementById("math-tab-current-run");
+    const runBar = document.getElementById("math-tab-run-bar");
+    const completedCountEl = document.getElementById("math-tab-completed-count");
+    const nextLocked = document.getElementById("math-tab-next-locked");
+    const lessonStateEl = document.getElementById("math-tab-current-lesson-state");
+    if (!rail || !progressText || !btnPrev || !btnNext) return;
+
+    const activeIndex = Math.max(0, getMathLessonIndexById(chemistryMathTabState.activeLessonId));
+    const activeLesson = CHEM_MATH_TAB_LESSONS[activeIndex];
+    const completedCount = CHEM_MATH_TAB_LESSONS.filter((lesson) => chemistryMathTabState.completedLessons[lesson.id]).length;
+    const mastery = getMathLessonMasterySnapshot(activeLesson.id);
+
+    progressText.textContent = `Lesson ${activeIndex + 1} of ${CHEM_MATH_TAB_LESSONS.length}: ${activeLesson.title} (${completedCount}/${CHEM_MATH_TAB_LESSONS.length} complete)`;
+    if (currentLessonTitle) currentLessonTitle.textContent = activeLesson.title;
+    if (currentLessonDesc) currentLessonDesc.textContent = activeLesson.summary || activeLesson.title;
+    if (currentLessonWhy) currentLessonWhy.textContent = activeLesson.why || "This lesson targets a common chemistry math failure point.";
+    if (currentLessonNext) currentLessonNext.textContent = activeLesson.nextCheck || "Complete the lesson checkpoint to advance.";
+    if (currentRun) currentRun.textContent = `${Math.round((mastery.avg || 0) * 100)}/100 correct`;
+    if (runBar) runBar.style.width = `${Math.max(0, Math.min(100, Math.round((mastery.avg || 0) * 100)))}%`;
+    if (completedCountEl) completedCountEl.textContent = String(completedCount);
+    if (nextLocked) {
+        const lockedIdx = CHEM_MATH_TAB_LESSONS.findIndex((lesson) => !chemistryMathTabState.completedLessons[lesson.id]);
+        nextLocked.textContent = lockedIdx >= 0 ? `Lesson ${lockedIdx + 1}` : "Course Complete";
+    }
+    if (lessonStateEl) {
+        lessonStateEl.textContent = mastery.passed ? "Mastered" : (chemistryMathTabState.completedLessons[activeLesson.id] ? "Complete" : "Active");
+    }
+
+    rail.innerHTML = "";
+    CHEM_MATH_TAB_LESSONS.forEach((lesson, idx) => {
+        const completed = Boolean(chemistryMathTabState.completedLessons[lesson.id]);
+        const isActive = lesson.id === chemistryMathTabState.activeLessonId;
+        const unlocked = isMathLessonUnlocked(lesson.id);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${isActive
+            ? "bg-amber-600 text-white border-amber-600"
+            : completed
+                ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                : unlocked
+                    ? "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                    : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"}`;
+        btn.textContent = `L${idx + 1}`;
+        btn.title = unlocked ? lesson.title : `${lesson.title} (locked until prior lesson mastery)`;
+        btn.disabled = !unlocked;
+        btn.addEventListener("click", () => {
+            if (!unlocked) return;
+            setActiveMathLesson(lesson.id);
+        });
+        rail.appendChild(btn);
+    });
+
+    btnPrev.disabled = activeIndex === 0;
+    btnNext.disabled = activeIndex === CHEM_MATH_TAB_LESSONS.length - 1;
+}
+
+function tryParseLooseJson(rawText) {
+    const source = String(rawText || "").trim();
+    if (!source) return null;
+
+    try {
+        return JSON.parse(source);
+    } catch {
+        const start = source.indexOf("{");
+        const end = source.lastIndexOf("}");
+        if (start < 0 || end < 0 || end <= start) return null;
+        try {
+            return JSON.parse(source.slice(start, end + 1));
+        } catch {
+            return null;
+        }
+    }
+}
+
+function buildMathFallbackQuiz(lessonId) {
+    const fallbackMap = {
+        dimensional: [
+            {
+                question: "For 25.0 mL -> L, should your factor include mL in numerator or denominator to cancel the starting unit?",
+                answerType: "text",
+                answerKey: "denominator",
+                errorCategory: "unit-error",
+                tolerance: 0
+            },
+            {
+                question: "Convert 25.0 mL to L.",
+                answerType: "numeric",
+                answerKey: 0.025,
+                errorCategory: "setup-error",
+                tolerance: 0.0005
+            },
+            {
+                question: "Convert 1.20 g/mL to kg/L.",
+                answerType: "numeric",
+                answerKey: 1.2,
+                errorCategory: "unit-error",
+                tolerance: 0.01
+            }
+        ],
+        "sci-notation": [
+            {
+                question: "Convert 0.00045 to normalized scientific notation. Enter only coefficient a in a x 10^b.",
+                answerType: "numeric",
+                answerKey: 4.5,
+                errorCategory: "arithmetic-error",
+                tolerance: 0.001
+            },
+            {
+                question: "Which is larger: 3.2E-4 or 3.2E-6? Enter: first or second.",
+                answerType: "text",
+                answerKey: "first",
+                errorCategory: "interpretation-error",
+                tolerance: 0
+            },
+            {
+                question: "Enter exponent b for normalized form of 67000 as a x 10^b.",
+                answerType: "numeric",
+                answerKey: 4,
+                errorCategory: "setup-error",
+                tolerance: 0
+            }
+        ],
+        sigfigs: [
+            {
+                question: "How many significant figures are in 0.00450?",
+                answerType: "numeric",
+                answerKey: 3,
+                errorCategory: "precision-error",
+                tolerance: 0
+            },
+            {
+                question: "For multiplication/division, do you round by decimal places or significant figures? Enter: decimal or sigfig.",
+                answerType: "text",
+                answerKey: "sigfig",
+                errorCategory: "precision-error",
+                tolerance: 0
+            },
+            {
+                question: "12.11 + 18.0 rounded by addition rule equals what?",
+                answerType: "numeric",
+                answerKey: 30.1,
+                errorCategory: "precision-error",
+                tolerance: 0.01
+            }
+        ],
+        "mole-conversions": [
+            {
+                question: "How many moles are in 36.0 g H2O (18.0 g/mol)?",
+                answerType: "numeric",
+                answerKey: 2,
+                errorCategory: "setup-error",
+                tolerance: 0.01
+            },
+            {
+                question: "For grams -> moles, do you multiply or divide by molar mass? Enter: multiply or divide.",
+                answerType: "text",
+                answerKey: "divide",
+                errorCategory: "setup-error",
+                tolerance: 0
+            },
+            {
+                question: "How many molecules are in 0.500 mol? (Use 6.022E23/mol)",
+                answerType: "numeric",
+                answerKey: 3.011e23,
+                errorCategory: "arithmetic-error",
+                tolerance: 1e21
+            }
+        ],
+        algebra: [
+            {
+                question: "From PV=nRT, solving for V requires dividing by which variable?",
+                answerType: "text",
+                answerKey: "p",
+                errorCategory: "setup-error",
+                tolerance: 0
+            },
+            {
+                question: "If q=mcDeltaT and q=418 J, m=10 g, c=4.18 J/gC, what is DeltaT?",
+                answerType: "numeric",
+                answerKey: 10,
+                errorCategory: "arithmetic-error",
+                tolerance: 0.05
+            },
+            {
+                question: "Is applying an operation to one side only a valid rearrangement step? Enter: yes or no.",
+                answerType: "text",
+                answerKey: "no",
+                errorCategory: "setup-error",
+                tolerance: 0
+            }
+        ],
+        "ph-log": [
+            {
+                question: "If [H+] = 1.0E-3 M, what is pH?",
+                answerType: "numeric",
+                answerKey: 3,
+                errorCategory: "setup-error",
+                tolerance: 0.02
+            },
+            {
+                question: "If pH changes from 5 to 3, is [H+] higher or lower at pH 3? Enter: higher or lower.",
+                answerType: "text",
+                answerKey: "higher",
+                errorCategory: "interpretation-error",
+                tolerance: 0
+            },
+            {
+                question: "What is [H+] for pH = 2?",
+                answerType: "numeric",
+                answerKey: 1e-2,
+                errorCategory: "setup-error",
+                tolerance: 2e-4
+            }
+        ],
+        "percent-metrics": [
+            {
+                question: "Theoretical yield 12.0 g, actual 9.0 g. Percent yield?",
+                answerType: "numeric",
+                answerKey: 75,
+                errorCategory: "setup-error",
+                tolerance: 0.2
+            },
+            {
+                question: "Measured 10.8 and accepted 12.0. Percent error?",
+                answerType: "numeric",
+                answerKey: 10,
+                errorCategory: "setup-error",
+                tolerance: 0.2
+            },
+            {
+                question: "For percent yield, denominator is actual or theoretical? Enter: actual or theoretical.",
+                answerType: "text",
+                answerKey: "theoretical",
+                errorCategory: "interpretation-error",
+                tolerance: 0
+            }
+        ],
+        graphing: [
+            {
+                question: "Line through (1,2) and (4,8): slope m?",
+                answerType: "numeric",
+                answerKey: 2,
+                errorCategory: "arithmetic-error",
+                tolerance: 0.01
+            },
+            {
+                question: "In y=mx+b, what does b represent? Enter: intercept or slope.",
+                answerType: "text",
+                answerKey: "intercept",
+                errorCategory: "interpretation-error",
+                tolerance: 0
+            },
+            {
+                question: "If y=2x+0.5, what is y when x=3?",
+                answerType: "numeric",
+                answerKey: 6.5,
+                errorCategory: "arithmetic-error",
+                tolerance: 0.05
+            }
+        ]
+    };
+
+    return fallbackMap[lessonId] || fallbackMap["dimensional"];
+}
+
+async function generateMathQuizSetWithGemma(lessonId) {
+    const fallbackItems = buildMathFallbackQuiz(lessonId);
+    const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434/api/generate";
+    const model = localStorage.getItem("chemistry_llm") || "gemma4:e4b";
+
+    const prompt = [
+        "Return strict JSON only.",
+        "Schema: {\"items\":[{\"question\":\"string\",\"answerType\":\"numeric|text\",\"answerKey\":\"string|number\",\"tolerance\":number,\"errorCategory\":\"setup-error|arithmetic-error|unit-error|precision-error|interpretation-error\"}]}",
+        "Generate exactly 3 intro-chem math checkpoint items for lesson: " + lessonId,
+        "Items must be beginner-friendly and answerable without external data."
+    ].join("\n");
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model,
+                stream: false,
+                prompt,
+                options: {
+                    temperature: 0.2,
+                    num_ctx: 3072
+                }
+            })
+        });
+
+        if (!response.ok) return fallbackItems;
+        const data = await response.json();
+        const parsed = tryParseLooseJson(data?.response || "");
+        if (!parsed || !Array.isArray(parsed.items) || parsed.items.length < 3) {
+            return fallbackItems;
+        }
+
+        const normalized = parsed.items.slice(0, 3).map((item) => ({
+            question: String(item.question || "").trim(),
+            answerType: item.answerType === "text" ? "text" : "numeric",
+            answerKey: item.answerKey,
+            tolerance: Number.isFinite(Number(item.tolerance)) ? Number(item.tolerance) : 0.05,
+            errorCategory: ["setup-error", "arithmetic-error", "unit-error", "precision-error", "interpretation-error"].includes(item.errorCategory)
+                ? item.errorCategory
+                : "setup-error"
+        })).filter((item) => item.question);
+
+        return normalized.length === 3 ? normalized : fallbackItems;
+    } catch {
+        return fallbackItems;
+    }
+}
+
+async function generateMathQuizWithGemma(lessonId) {
+    const fallback = buildMathFallbackQuiz(lessonId);
+    const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434/api/generate";
+    const model = localStorage.getItem("chemistry_llm") || "gemma4:e4b";
+
+    const prompt = [
+        "Return strict JSON only.",
+        "Schema: {\"question\":\"string\",\"answerType\":\"numeric|text\",\"answerKey\":\"string|number\",\"tolerance\":number}",
+        "Generate one short intro-chem math checkpoint question for lesson: " + lessonId,
+        "Avoid unsafe content. Keep beginner-friendly."
+    ].join("\n");
+
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model,
+                stream: false,
+                prompt,
+                options: {
+                    temperature: 0.2,
+                    num_ctx: 2048
+                }
+            })
+        });
+
+        if (!response.ok) return fallback;
+        const data = await response.json();
+        const parsed = tryParseLooseJson(data?.response || "");
+        if (!parsed || typeof parsed.question !== "string") return fallback;
+
+        return {
+            question: parsed.question,
+            answerType: parsed.answerType === "text" ? "text" : "numeric",
+            answerKey: parsed.answerKey,
+            tolerance: Number.isFinite(Number(parsed.tolerance)) ? Number(parsed.tolerance) : 0.05
+        };
+    } catch {
+        return fallback;
+    }
+}
+
+function gradeMathQuizAnswer(questionItem, userAnswerRaw) {
+    if (!questionItem) {
+        return {
+            correct: false,
+            message: "Generate a quiz first."
+        };
+    }
+
+    const userAnswer = String(userAnswerRaw || "").trim();
+    if (!userAnswer) {
+        return {
+            correct: false,
+            message: "Enter an answer before submitting."
+        };
+    }
+
+    if (questionItem.answerType === "text") {
+        const expected = String(questionItem.answerKey || "").trim().toLowerCase();
+        const actual = userAnswer.toLowerCase();
+        const ok = actual === expected || actual.includes(expected) || expected.includes(actual);
+        return {
+            correct: ok,
+            message: ok
+                ? "Correct. Great chemistry setup reasoning."
+                : `Not yet. Expected idea: ${questionItem.answerKey}`
+        };
+    }
+
+    const userNum = Number(userAnswer);
+    const answerNum = Number(questionItem.answerKey);
+    if (!Number.isFinite(userNum) || !Number.isFinite(answerNum)) {
+        return {
+            correct: false,
+            message: "Please enter a valid numeric answer."
+        };
+    }
+
+    const tol = Number.isFinite(Number(questionItem.tolerance)) ? Math.abs(Number(questionItem.tolerance)) : 0.05;
+    const ok = Math.abs(userNum - answerNum) <= tol;
+    return {
+        correct: ok,
+        message: ok
+            ? "Correct. Numeric checkpoint passed."
+            : `Not yet. Correct target is about ${answerNum}.`
+    };
+}
+
+function bindMathRefresherWidgets() {
+    const slider = document.getElementById("math-sci-zoom");
+    const sliderReadout = document.getElementById("math-sci-zoom-readout");
+    const calcToggle = document.getElementById("btn-math-calculator-toggle");
+    const calcView = document.getElementById("math-calculator-view");
+    const calcScreen = document.getElementById("math-calc-screen-value");
+    const calcPlain = document.getElementById("math-calc-plain-readout");
+    const parenthesisExample = document.getElementById("math-parenthesis-example");
+
+    if (slider && sliderReadout) {
+        const syncSlider = () => {
+            const exponent = Number(slider.value);
+            sliderReadout.textContent = `10^${exponent} chemical scale bridge`;
+            if (calcScreen) {
+                calcScreen.textContent = `6.022E${exponent}`;
+            }
+            if (calcPlain) {
+                calcPlain.textContent = `Calculator display for 6.022 x 10^${exponent}`;
+            }
+            if (parenthesisExample) {
+                parenthesisExample.textContent = `Use: (6.022E${exponent}) / (3.011E${exponent})`;
+            }
+        };
+        slider.addEventListener("input", syncSlider);
+        syncSlider();
+    }
+
+    if (calcToggle && calcView) {
+        calcToggle.addEventListener("click", () => {
+            const isHidden = calcView.classList.contains("hidden");
+            calcView.classList.toggle("hidden", !isHidden);
+            calcToggle.setAttribute("aria-pressed", String(isHidden));
+            calcToggle.textContent = isHidden ? "Calculator View: On" : "Calculator View: Off";
+        });
+    }
+
+    const cacheValue = document.getElementById("math-cache-value");
+    const cacheNote = document.getElementById("math-cache-note");
+    const cacheBtn = document.getElementById("btn-math-cache-add");
+    const cacheList = document.getElementById("math-cache-list");
+    const cacheRows = [];
+
+    if (cacheBtn && cacheValue && cacheNote && cacheList) {
+        const renderCache = () => {
+            cacheList.innerHTML = "";
+            cacheRows.slice(-8).forEach((row, idx) => {
+                const p = document.createElement("p");
+                p.textContent = `${idx + 1}. ${row.note}: ${row.value}`;
+                cacheList.appendChild(p);
+            });
+        };
+
+        cacheBtn.addEventListener("click", () => {
+            const value = cacheValue.value.trim();
+            const note = cacheNote.value.trim() || "working step";
+            if (!value) return;
+            cacheRows.push({ value, note });
+            cacheValue.value = "";
+            cacheNote.value = "";
+            renderCache();
+        });
+    }
+
+    const seesawState = {
+        leftNum: ["P1", "V1"],
+        leftDen: [],
+        rightNum: ["P2", "V2"],
+        rightDen: []
+    };
+
+    const leftNumEl = document.getElementById("math-seesaw-left-num");
+    const leftDenEl = document.getElementById("math-seesaw-left-den");
+    const rightNumEl = document.getElementById("math-seesaw-right-num");
+    const rightDenEl = document.getElementById("math-seesaw-right-den");
+    const seesawStatus = document.getElementById("math-shield-status");
+
+    const cancelPair = (numArr, denArr, token) => {
+        const nIdx = numArr.indexOf(token);
+        const dIdx = denArr.indexOf(token);
+        if (nIdx >= 0 && dIdx >= 0) {
+            numArr.splice(nIdx, 1);
+            denArr.splice(dIdx, 1);
+            return true;
+        }
+        return false;
+    };
+
+    const renderTokenList = (host, arr, tone = "") => {
+        if (!host) return;
+        host.innerHTML = "";
+        arr.forEach((token) => {
+            const pill = document.createElement("span");
+            pill.className = `math-token-pill${tone ? ` ${tone}` : ""}`;
+            pill.textContent = token;
+            host.appendChild(pill);
+        });
+        if (arr.length === 0) {
+            const blank = document.createElement("span");
+            blank.className = "text-xs text-gray-400";
+            blank.textContent = "(empty)";
+            host.appendChild(blank);
+        }
+    };
+
+    const renderSeesaw = () => {
+        renderTokenList(leftNumEl, seesawState.leftNum);
+        renderTokenList(leftDenEl, seesawState.leftDen, "math-token-den");
+        renderTokenList(rightNumEl, seesawState.rightNum);
+        renderTokenList(rightDenEl, seesawState.rightDen, "math-token-den");
+    };
+
+    document.querySelectorAll(".math-op-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const { token } = btn.dataset;
+            if (!token) return;
+            seesawState.leftDen.push(token);
+            seesawState.rightDen.push(token);
+            const leftCancelled = cancelPair(seesawState.leftNum, seesawState.leftDen, token);
+            const rightCancelled = cancelPair(seesawState.rightNum, seesawState.rightDen, token);
+
+            if (seesawStatus) {
+                seesawStatus.textContent = leftCancelled || rightCancelled
+                    ? `Divided both sides by ${token}. Matching tokens cancelled where present.`
+                    : `Divided both sides by ${token}. No immediate cancellation yet; continue isolating.`;
+            }
+            renderSeesaw();
+        });
+    });
+    renderSeesaw();
+
+    const phConcInput = document.getElementById("math-ph-concentration-input");
+    const phInput = document.getElementById("math-ph-input");
+    const phForwardBtn = document.getElementById("btn-math-ph-forward");
+    const phReverseBtn = document.getElementById("btn-math-ph-reverse");
+    const phForwardOut = document.getElementById("math-ph-forward-output");
+    const phReverseOut = document.getElementById("math-ph-reverse-output");
+
+    if (phForwardBtn && phConcInput && phForwardOut) {
+        phForwardBtn.addEventListener("click", () => {
+            const value = Number(phConcInput.value);
+            if (!Number.isFinite(value) || value <= 0) {
+                phForwardOut.textContent = "Forward result: enter a positive [H+] value.";
+                return;
+            }
+            const ph = -Math.log10(value);
+            phForwardOut.textContent = `Forward result: pH = ${ph.toFixed(3)}`;
+        });
+    }
+
+    if (phReverseBtn && phInput && phReverseOut) {
+        phReverseBtn.addEventListener("click", () => {
+            const value = Number(phInput.value);
+            if (!Number.isFinite(value)) {
+                phReverseOut.textContent = "Reverse result: enter a numeric pH value.";
+                return;
+            }
+            const concentration = Math.pow(10, -value);
+            phReverseOut.textContent = `Reverse result: [H+] = ${concentration.toExponential(3)} M`;
+        });
+    }
+
+    const trackGrid = document.getElementById("math-track-grid");
+    const trackOutput = document.getElementById("math-identity-output");
+    const trackOverlays = document.getElementById("math-identity-overlay-list");
+    const trackState = {};
+
+    let unitKeyboard = document.getElementById("math-track-keyboard-controls");
+    if (!unitKeyboard && trackGrid) {
+        unitKeyboard = document.createElement("div");
+        unitKeyboard.id = "math-track-keyboard-controls";
+        unitKeyboard.className = "mt-3 border border-gray-200 rounded-xl p-3 bg-white space-y-2";
+        unitKeyboard.innerHTML = `
+            <p class="text-xs font-bold uppercase tracking-wide text-gray-500">Keyboard Placement Mode</p>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <select id="math-kb-unit" class="border border-gray-300 rounded-lg px-2 py-1 text-xs">
+                    <option value="g">g</option>
+                    <option value="mol">mol</option>
+                    <option value="L">L</option>
+                    <option value="mL">mL</option>
+                </select>
+                <select id="math-kb-row" class="border border-gray-300 rounded-lg px-2 py-1 text-xs">
+                    <option value="top">Top</option>
+                    <option value="bottom">Bottom</option>
+                </select>
+                <select id="math-kb-col" class="border border-gray-300 rounded-lg px-2 py-1 text-xs">
+                    <option value="0">Col 1</option>
+                    <option value="1">Col 2</option>
+                    <option value="2">Col 3</option>
+                    <option value="3">Col 4</option>
+                </select>
+                <button id="btn-math-kb-place" type="button" class="rounded-lg px-2 py-1 text-xs font-bold text-white bg-amber-600 hover:bg-amber-500">Place Unit</button>
+            </div>
+            <button id="btn-math-kb-clear" type="button" class="rounded-lg px-2 py-1 text-xs font-bold text-gray-700 bg-gray-100 border border-gray-300 hover:bg-gray-200">Clear Track</button>
+        `;
+        trackGrid.after(unitKeyboard);
+    }
+
+    const renderTrackState = () => {
+        if (!trackGrid) return;
+        const slots = trackGrid.querySelectorAll(".math-track-slot");
+        const overlays = [];
+
+        slots.forEach((slot) => {
+            const { row, col } = slot.dataset;
+            const key = `${row}-${col}`;
+            const unit = trackState[key] || "";
+            slot.innerHTML = unit ? `<span class="math-token-pill">${unit}</span>` : "";
+            slot.classList.remove("math-track-cancelled");
+        });
+
+        for (let col = 0; col <= 2; col += 1) {
+            const topKey = `top-${col}`;
+            const bottomKey = `bottom-${col + 1}`;
+            if (trackState[topKey] && trackState[bottomKey] && trackState[topKey] === trackState[bottomKey]) {
+                overlays.push(`${trackState[topKey]} cancelled diagonally between top ${col + 1} and bottom ${col + 2}`);
+
+                const topEl = trackGrid.querySelector(`.math-track-slot[data-row="top"][data-col="${col}"]`);
+                const bottomEl = trackGrid.querySelector(`.math-track-slot[data-row="bottom"][data-col="${col + 1}"]`);
+                topEl?.classList.add("math-track-cancelled");
+                bottomEl?.classList.add("math-track-cancelled");
+            }
+        }
+
+        if (trackOverlays) {
+            trackOverlays.innerHTML = "";
+            overlays.forEach((msg) => {
+                const row = document.createElement("div");
+                row.className = "math-identity-overlay-item";
+                row.textContent = msg;
+                trackOverlays.appendChild(row);
+            });
+        }
+
+        if (trackOutput) {
+            trackOutput.textContent = overlays.length
+                ? `Great. ${overlays.length} diagonal cancellation identities detected.`
+                : "Drag matching units into diagonal slots (top col n and bottom col n+1) to trigger identity cancellation.";
+        }
+    };
+
+    document.querySelectorAll("#math-track-token-pool .math-unit-chip").forEach((chip) => {
+        chip.addEventListener("dragstart", (event) => {
+            event.dataTransfer?.setData("text/plain", chip.dataset.unit || "");
+        });
+    });
+
+    if (trackGrid) {
+        trackGrid.querySelectorAll(".math-track-slot").forEach((slot) => {
+            slot.addEventListener("dragover", (event) => {
+                event.preventDefault();
+                slot.classList.add("math-track-hover");
+            });
+            slot.addEventListener("dragleave", () => {
+                slot.classList.remove("math-track-hover");
+            });
+            slot.addEventListener("drop", (event) => {
+                event.preventDefault();
+                slot.classList.remove("math-track-hover");
+                const unit = event.dataTransfer?.getData("text/plain") || "";
+                const { row, col } = slot.dataset;
+                if (!row || col === undefined || !unit) return;
+                trackState[`${row}-${col}`] = unit;
+                renderTrackState();
+            });
+        });
+    }
+
+    const kbUnit = document.getElementById("math-kb-unit");
+    const kbRow = document.getElementById("math-kb-row");
+    const kbCol = document.getElementById("math-kb-col");
+    const kbPlace = document.getElementById("btn-math-kb-place");
+    const kbClear = document.getElementById("btn-math-kb-clear");
+
+    kbPlace?.addEventListener("click", () => {
+        const unit = String(kbUnit?.value || "");
+        const row = String(kbRow?.value || "");
+        const col = String(kbCol?.value || "");
+        if (!unit || !row || col === "") return;
+        trackState[`${row}-${col}`] = unit;
+        renderTrackState();
+    });
+
+    kbClear?.addEventListener("click", () => {
+        Object.keys(trackState).forEach((key) => delete trackState[key]);
+        renderTrackState();
+    });
+
+    const moleInput = document.getElementById("math-mole-input");
+    const moleBtn = document.getElementById("btn-math-mole-check");
+    const moleFeedback = document.getElementById("math-mole-feedback");
+    moleBtn?.addEventListener("click", () => {
+        const val = Number(moleInput?.value);
+        if (!Number.isFinite(val)) {
+            if (moleFeedback) moleFeedback.textContent = "Enter a numeric mole value.";
+            return;
+        }
+        const ok = Math.abs(val - 1) <= 0.02;
+        if (moleFeedback) {
+            moleFeedback.textContent = ok
+                ? "Correct. 18.0 g / (18.0 g/mol) = 1.00 mol."
+                : "Not yet. Use moles = grams / molar mass."
+        }
+    });
+
+    const percentInput = document.getElementById("math-percent-input");
+    const percentBtn = document.getElementById("btn-math-percent-check");
+    const percentFeedback = document.getElementById("math-percent-feedback");
+    percentBtn?.addEventListener("click", () => {
+        const val = Number(percentInput?.value);
+        if (!Number.isFinite(val)) {
+            if (percentFeedback) percentFeedback.textContent = "Enter a numeric percent yield.";
+            return;
+        }
+        const ok = Math.abs(val - 75) <= 0.3;
+        if (percentFeedback) {
+            percentFeedback.textContent = ok
+                ? "Correct. Percent yield = (actual/theoretical) x 100 = 75%."
+                : "Not yet. Compute (9.0 / 12.0) x 100."
+        }
+    });
+
+    const graphInput = document.getElementById("math-graph-input");
+    const graphBtn = document.getElementById("btn-math-graph-check");
+    const graphFeedback = document.getElementById("math-graph-feedback");
+    graphBtn?.addEventListener("click", () => {
+        const val = Number(graphInput?.value);
+        if (!Number.isFinite(val)) {
+            if (graphFeedback) graphFeedback.textContent = "Enter a numeric slope value.";
+            return;
+        }
+        const ok = Math.abs(val - 2) <= 0.01;
+        if (graphFeedback) {
+            graphFeedback.textContent = ok
+                ? "Correct. m = (8.0 - 2.0)/(4 - 1) = 2.0."
+                : "Not yet. Apply m = delta y / delta x."
+        }
+    });
+}
+
+function bindMathRefresherLessonFlow() {
+    const btnPrev = document.getElementById("btn-math-lesson-prev");
+    const btnNext = document.getElementById("btn-math-lesson-next");
+    const btnMark = document.getElementById("btn-math-mark-lesson");
+    const btnQuizGenerate = document.getElementById("btn-math-quiz-generate");
+    const btnQuizSubmit = document.getElementById("btn-math-quiz-submit");
+    const quizQuestion = document.getElementById("math-quiz-question");
+    const quizAnswer = document.getElementById("math-quiz-answer");
+    const quizFeedback = document.getElementById("math-quiz-feedback");
+
+    if (!btnPrev || !btnNext || !btnMark || !btnQuizGenerate || !btnQuizSubmit || !quizQuestion || !quizAnswer || !quizFeedback) {
+        return;
+    }
+
+    btnPrev.addEventListener("click", () => {
+        const idx = getMathLessonIndexById(chemistryMathTabState.activeLessonId);
+        if (idx <= 0) return;
+        setActiveMathLesson(CHEM_MATH_TAB_LESSONS[idx - 1].id);
+    });
+
+    btnNext.addEventListener("click", () => {
+        const idx = getMathLessonIndexById(chemistryMathTabState.activeLessonId);
+        if (idx < 0 || idx >= CHEM_MATH_TAB_LESSONS.length - 1) return;
+        setActiveMathLesson(CHEM_MATH_TAB_LESSONS[idx + 1].id);
+    });
+
+    btnMark.addEventListener("click", () => {
+        const lesson = getActiveMathLesson();
+        const mastery = getMathLessonMasterySnapshot(lesson.id);
+        if (mastery.passed) {
+            quizFeedback.textContent = `Mastery confirmed for ${lesson.title}. You can advance.`;
+            return;
+        }
+        quizFeedback.textContent = `Mastery pending for ${lesson.title}. Need at least ${CHEM_MATH_MIN_SESSIONS_FOR_MASTERY} quiz sessions and >= ${(CHEM_MATH_MIN_SCORE_FOR_MASTERY * 100).toFixed(0)}% recent performance.`;
+    });
+
+    btnQuizGenerate.addEventListener("click", async () => {
+        const lesson = getActiveMathLesson();
+        quizQuestion.textContent = "Generating checkpoint...";
+        quizFeedback.textContent = "";
+        const items = await generateMathQuizSetWithGemma(lesson.id);
+        currentMathQuizSession = {
+            lessonId: lesson.id,
+            items,
+            currentIndex: 0,
+            correctCount: 0
+        };
+        quizQuestion.textContent = `Q1/${items.length}: ${items[0].question}`;
+        quizAnswer.value = "";
+    });
+
+    btnQuizSubmit.addEventListener("click", () => {
+        const lesson = getActiveMathLesson();
+        if (!currentMathQuizSession || currentMathQuizSession.lessonId !== lesson.id) {
+            quizFeedback.textContent = "Generate a lesson quiz first.";
+            return;
+        }
+
+        const item = currentMathQuizSession.items[currentMathQuizSession.currentIndex];
+        const grade = gradeMathQuizAnswer(item, quizAnswer.value);
+        const itemCategory = item?.errorCategory || "setup-error";
+        const categoryLabelMap = {
+            "setup-error": "setup",
+            "arithmetic-error": "arithmetic",
+            "unit-error": "unit",
+            "precision-error": "precision",
+            "interpretation-error": "interpretation"
+        };
+
+        chemistryMathTabState.lessonAttempts[lesson.id] = (chemistryMathTabState.lessonAttempts[lesson.id] || 0) + 1;
+        if (grade.correct) {
+            chemistryMathTabState.lessonCorrect[lesson.id] = (chemistryMathTabState.lessonCorrect[lesson.id] || 0) + 1;
+            currentMathQuizSession.correctCount += 1;
+        } else {
+            incrementMisconceptionCounter(lesson.id, itemCategory);
+        }
+
+        const nextIndex = currentMathQuizSession.currentIndex + 1;
+        if (nextIndex < currentMathQuizSession.items.length) {
+            currentMathQuizSession.currentIndex = nextIndex;
+            const next = currentMathQuizSession.items[nextIndex];
+            quizQuestion.textContent = `Q${nextIndex + 1}/${currentMathQuizSession.items.length}: ${next.question}`;
+            quizFeedback.textContent = grade.correct
+                ? `${grade.message} Next question ready.`
+                : `${grade.message} Focus area: ${categoryLabelMap[itemCategory] || "setup"}.`;
+            quizAnswer.value = "";
+            saveMathRefresherState();
+            return;
+        }
+
+        const score = currentMathQuizSession.items.length > 0
+            ? currentMathQuizSession.correctCount / currentMathQuizSession.items.length
+            : 0;
+        persistMathLessonScore(lesson.id, score);
+
+        const mastery = getMathLessonMasterySnapshot(lesson.id);
+        quizQuestion.textContent = `Session complete: ${(score * 100).toFixed(0)}% (${currentMathQuizSession.correctCount}/${currentMathQuizSession.items.length}).`;
+        quizFeedback.textContent = mastery.passed
+            ? `Mastery unlocked for ${lesson.title}. Recent score trend is strong.`
+            : `Session recorded. Current average ${(mastery.avg * 100).toFixed(0)}%. Need ${(CHEM_MATH_MIN_SCORE_FOR_MASTERY * 100).toFixed(0)}% with consistent recent sessions.`;
+        quizAnswer.value = "";
+        currentMathQuizSession = null;
+        renderMathLessonRail();
+    });
+}
+
+function initChemistryMathRefresherTab() {
+    const tabSection = document.getElementById("view-math-refresher");
+    if (!tabSection) return;
+
+    chemistryMathTabState = loadMathRefresherState();
+    bindMathRefresherWidgets();
+    bindMathRefresherLessonFlow();
+    renderMathLessonRail();
+    focusMathLessonCard(getActiveMathLesson());
 }
 
 function dispatchMathRefresherToolCalls(toolCalls) {
@@ -2051,6 +3143,125 @@ function bindChemistryProgressResetButton() {
     });
 }
 
+// ---------------------------------------------------------------------------
+// Progress Snapshot for the "Ask Tutor First" dashboard button
+// ---------------------------------------------------------------------------
+
+function buildProgressSnapshot() {
+    // --- Coursework (masteryMatrix + syllabusData) ---
+    let matrix = {};
+    try { matrix = JSON.parse(localStorage.getItem('masteryMatrix') || '{}'); } catch (_) {}
+    const syllabus = window.syllabusData || null;
+
+    const STAGE_NAMES = { 1: 'Lecture', 2: 'Socratic', 3: 'Sandbox', 4: 'Feynman' };
+    let session = null;
+    try { session = JSON.parse(sessionStorage.getItem('activeLessonState') || 'null'); } catch (_) {}
+
+    let activeLessonLine = 'No active lesson yet.';
+    let masteredCount = 0;
+    const hwPendingList = [];
+    const rustedList = [];
+
+    if (syllabus) {
+        const allLessons = [];
+        syllabus.modules.forEach((mod) => {
+            (syllabus.lessonsByModule[mod.id] || []).forEach((l) => allLessons.push(l));
+        });
+        allLessons.forEach((lesson) => {
+            const state = (matrix[lesson.id] && typeof matrix[lesson.id].state === 'number')
+                ? matrix[lesson.id].state : 0;
+            if (state === 1) {
+                const stage = (session && session.lessonId === lesson.id && session.stageState)
+                    ? session.stageState : 1;
+                const stageName = STAGE_NAMES[stage] || 'Stage 1';
+                activeLessonLine = `Lesson ${lesson.numStr} "${lesson.title}" — Stage ${stage}: ${stageName}`;
+            }
+            if (state === 3) masteredCount++;
+            if (state === 2) hwPendingList.push(`${lesson.numStr} "${lesson.title}"`);
+            if (state === 4) rustedList.push(`${lesson.numStr} "${lesson.title}"`);
+        });
+    }
+
+    // --- Diagnostic track ---
+    let learnState = {};
+    try { learnState = JSON.parse(localStorage.getItem('chemistry_learning_state_v1') || '{}'); } catch (_) {}
+    const diagDone = learnState.diagnosticCompleted
+        ? `Complete — Track: ${learnState.recommendedTrack || 'Unknown'}`
+        : 'Not yet completed';
+
+    // --- Crash Course Videos ---
+    let videoState = {};
+    try { videoState = JSON.parse(localStorage.getItem('chemistry_video_state_v1') || '{}'); } catch (_) {}
+    const completedIds = Array.isArray(videoState.completedEpisodeIds) ? videoState.completedEpisodeIds : [];
+    const allEpisodes = Array.isArray(window.ChemData && window.ChemData.videoCurriculum)
+        ? window.ChemData.videoCurriculum : [];
+    const totalVideos = allEpisodes.length;
+    const lastEp = videoState.lastEpisodeId
+        ? allEpisodes.find((ep) => ep.id === videoState.lastEpisodeId) : null;
+    const nextEp = allEpisodes.find((ep) => !completedIds.includes(ep.id));
+    const videoLine = totalVideos > 0
+        ? `${completedIds.length} of ${totalVideos} episodes complete`
+        : 'No video data available';
+    const lastVideoLine = lastEp
+        ? `Last watched: Ep. ${lastEp.episodeNumber} "${lastEp.title}"`
+        : 'No episode watched yet';
+    const nextVideoLine = nextEp
+        ? `Next up: Ep. ${nextEp.episodeNumber} "${nextEp.title}"`
+        : 'All episodes complete!';
+
+    // --- Homework Binder ---
+    const hwLine = hwPendingList.length > 0
+        ? `Pending sheets: ${hwPendingList.join(', ')}`
+        : 'No pending homework sheets';
+
+    // --- Math Refresher ---
+    let mathState = {};
+    try { mathState = JSON.parse(localStorage.getItem('chemistry_math_tab_state_v1') || '{}'); } catch (_) {}
+    const mathDoneCount = mathState.completedLessons
+        ? Object.values(mathState.completedLessons).filter(Boolean).length : 0;
+
+    // --- Assemble message ---
+    const lines = [
+        'Hi Prof. Beaker! I need your expert guidance on what to focus on next.',
+        'Here is my full current status across the course:',
+        '',
+        '--- COURSEWORK ---',
+        `Active lesson: ${activeLessonLine}`,
+        `Mastered lessons: ${masteredCount}`,
+        rustedList.length > 0 ? `Rusted (need review): ${rustedList.join(', ')}` : 'No rusted lessons.',
+        `Diagnostic placement: ${diagDone}`,
+        '',
+        '--- CRASH COURSE VIDEOS ---',
+        videoLine,
+        lastVideoLine,
+        nextVideoLine,
+        '',
+        '--- HOMEWORK BINDER ---',
+        hwLine,
+        '',
+        '--- MATH REFRESHER ---',
+        `Math lessons completed: ${mathDoneCount}`,
+        '',
+        'Based on all of this, what should I prioritize working on today? Please give me a specific, concrete recommendation.'
+    ].filter((l) => l !== null).join('\n');
+
+    return lines;
+}
+
+function openTutorWithProgressContext() {
+    activateChemTab('tutor');
+    // Wait for the tab switch to render before injecting the message
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            const inputEl = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('chat-btn-send');
+            if (!inputEl || !sendBtn || inputEl.disabled) return;
+            inputEl.value = buildProgressSnapshot();
+            sendBtn.click();
+        }, 180);
+    });
+}
+
 function bindTutorActions() {
     const checkStatus = async () => {
         const dot = document.getElementById("chat-status-dot");
@@ -2082,7 +3293,8 @@ function bindTutorActions() {
 1. Help the user understand stoichiometry, nomenclature, dimensional analysis, and sig figs.
 2. If they ask dangerous chemical queries (e.g. how to make explosives), firmly refuse.
 3. Be encouraging. Use socratic questioning instead of just giving away the final numeric answer.
-4. Keep your responses concise (2-4 sentences max). Use markdown lists if helpful.`;
+4. Keep your responses concise (2-4 sentences max). Use markdown lists if helpful.
+5. When a student shares a full progress summary with sections like COURSEWORK, VIDEOS, and HOMEWORK BINDER, analyze it carefully and give a concrete, prioritized recommendation for exactly what they should work on next — covering coursework, videos, and homework in order of importance.`;
 
     const parseMD = (text) => {
         if (typeof text !== 'string') return '';
@@ -2328,7 +3540,7 @@ function bindVideoActions() {
     if (!listEl || !modalEl || !modalBackdropEl || !modalCloseBtn || !iframeEl || !titleEl || !chipsEl || !completeBtn || !quizBtn || !tutorAnchor || !completionPill) return;
 
     dashboardVideosBtn?.addEventListener("click", () => activateChemTab("videos"));
-    dashboardTutorBtn?.addEventListener("click", () => activateChemTab("tutor"));
+    dashboardTutorBtn?.addEventListener("click", () => openTutorWithProgressContext());
 
     const episodes = getVideoEpisodes();
     if (episodes.length === 0) {

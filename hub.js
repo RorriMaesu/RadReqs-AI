@@ -23,6 +23,16 @@ const COURSES = [
         status: 'active'
     },
     {
+        id: 'chemistry-math-refresher',
+        title: 'Chemistry Math Refresher',
+        description: 'Standalone companion course for chemistry math: unit analysis, sig figs, scientific notation, and mole-focused problem setup.',
+        link: './chemistry/math-refresher/index.html',
+        category: 'Sciences',
+        icon: 'fa-square-root-variable',
+        color: 'from-cyan-500 to-blue-600',
+        status: 'active'
+    },
+    {
         id: 'clinical-mathematics',
         title: 'Clinical Mathematics',
         description: 'Master clinical unit conversions, safety formatting, algebraic formulas, and scale-based logic.',
