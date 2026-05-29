@@ -1,7 +1,7 @@
-// Hub Application Logic - Unified Study Companion
-// Manages dynamic class creation, local storage persistence, course notebooks, checklists, and the Pomodoro focus timer.
+// Hub Application Logic - Code-Defined Study Companion
+// Manages the course registry, category filtering, study focus stats, and the Pomodoro timer.
 
-const DEFAULT_MODULES = [
+const COURSES = [
     {
         id: 'medical-terminology',
         title: 'Medical Terminology',
@@ -10,27 +10,27 @@ const DEFAULT_MODULES = [
         category: 'Clinical Core',
         icon: 'fa-staff-snake',
         color: 'from-teal-500 to-emerald-600',
-        isCore: true
+        status: 'active'
     },
     {
         id: 'intro-to-chemistry',
         title: 'Intro to Chemistry',
         description: 'Atoms, bonding, reactions, and core chemistry concepts for healthcare foundations.',
         link: './chemistry/index.html',
-        category: 'Core Sciences',
+        category: 'Sciences',
         icon: 'fa-flask-vial',
         color: 'from-amber-500 to-orange-600',
-        isCore: true
+        status: 'active'
     },
     {
         id: 'clinical-mathematics',
         title: 'Clinical Mathematics',
         description: 'Master clinical unit conversions, safety formatting, algebraic formulas, and scale-based logic.',
         link: './math/index.html',
-        category: 'Core Sciences',
+        category: 'Sciences',
         icon: 'fa-square-root-variable',
         color: 'from-blue-500 to-indigo-600',
-        isCore: true
+        status: 'active'
     },
     {
         id: 'psychology-care',
@@ -40,34 +40,100 @@ const DEFAULT_MODULES = [
         category: 'Clinical Core',
         icon: 'fa-brain',
         color: 'from-purple-500 to-fuchsia-600',
-        isCore: true
+        status: 'active'
+    },
+    {
+        id: 'general-sound-physics',
+        title: 'General & Sound Physics',
+        description: 'Acoustics, wave mechanics, electromagnetism, and SPI instrumentation foundations.',
+        link: '#',
+        category: 'Sciences',
+        icon: 'fa-wave-square',
+        color: 'from-sky-500 to-cyan-600',
+        status: 'planned'
+    },
+    {
+        id: 'anatomy-physiology',
+        title: 'Anatomy & Physiology',
+        description: 'Structure and function of the human body, organ systems, and homeostatic mechanisms.',
+        link: '#',
+        category: 'Sciences',
+        icon: 'fa-lungs',
+        color: 'from-rose-500 to-red-600',
+        status: 'planned'
+    },
+    {
+        id: 'general-biology',
+        title: 'General Biology',
+        description: 'Cellular biology, genetics, metabolism, and molecular systems.',
+        link: '#',
+        category: 'Sciences',
+        icon: 'fa-dna',
+        color: 'from-emerald-500 to-teal-600',
+        status: 'planned'
+    },
+    {
+        id: 'english-composition',
+        title: 'English Composition',
+        description: 'Written and oral communication skills for healthcare professionals.',
+        link: '#',
+        category: 'Humanities',
+        icon: 'fa-pen-nib',
+        color: 'from-cyan-500 to-sky-600',
+        status: 'planned'
+    },
+    {
+        id: 'ultrasound-physics-spi',
+        title: 'Ultrasound Physics (SPI)',
+        description: 'Acoustic physics, transducers, Doppler principles, and scan parameters.',
+        link: '#',
+        category: 'Sonography',
+        icon: 'fa-circle-nodes',
+        color: 'from-indigo-500 to-violet-600',
+        status: 'planned'
+    },
+    {
+        id: 'sectional-anatomy-path',
+        title: 'Sectional Anatomy & Path',
+        description: 'Multi-planar visualization (transverse, sagittal, coronal) and tissue disease states.',
+        link: '#',
+        category: 'Sonography',
+        icon: 'fa-border-all',
+        color: 'from-fuchsia-500 to-pink-600',
+        status: 'planned'
+    },
+    {
+        id: 'abdominal-sonography',
+        title: 'Abdominal Sonography',
+        description: 'Anatomy, scan protocols, and pathologies of the liver, gallbladder, kidneys, and spleen.',
+        link: '#',
+        category: 'Sonography',
+        icon: 'fa-stethoscope',
+        color: 'from-amber-600 to-orange-500',
+        status: 'planned'
+    },
+    {
+        id: 'ob-gyn-sonography',
+        title: 'OB/GYN Sonography',
+        description: 'Female pelvic anatomy, fetal biometry, embryology, and obstetric pathologies.',
+        link: '#',
+        category: 'Sonography',
+        icon: 'fa-baby',
+        color: 'from-pink-500 to-rose-600',
+        status: 'planned'
+    },
+    {
+        id: 'vascular-sonography',
+        title: 'Vascular Sonography',
+        description: 'Hemodynamics, peripheral vascular systems, carotid evaluation, and Doppler analysis.',
+        link: '#',
+        category: 'Sonography',
+        icon: 'fa-heart-pulse',
+        color: 'from-red-500 to-rose-600',
+        status: 'planned'
     }
 ];
 
-const COLOR_PRESETS = [
-    { name: 'Teal/Green', value: 'from-teal-500 to-emerald-600' },
-    { name: 'Amber/Orange', value: 'from-amber-500 to-orange-600' },
-    { name: 'Blue/Indigo', value: 'from-blue-500 to-indigo-600' },
-    { name: 'Purple/Fuchsia', value: 'from-purple-500 to-fuchsia-600' },
-    { name: 'Rose/Red', value: 'from-rose-500 to-red-600' },
-    { name: 'Sky/Cyan', value: 'from-sky-500 to-cyan-600' }
-];
-
-const ICON_PRESETS = [
-    'fa-book-open',
-    'fa-dna',
-    'fa-lungs',
-    'fa-heart-pulse',
-    'fa-circle-nodes',
-    'fa-stethoscope',
-    'fa-baby',
-    'fa-wave-square',
-    'fa-border-all',
-    'fa-pen-nib',
-    'fa-atom'
-];
-
-let customModules = [];
 let activeFilter = 'all';
 
 // Pomodoro Timer State
@@ -77,225 +143,146 @@ let timerMaxTime = 25 * 60;
 let timerIsRunning = false;
 let timerMode = 'focus'; // 'focus' or 'break'
 
-// Selected course for current Pomodoro focus session
-let timerSelectedCourseId = 'general'; 
+// Selected course for current Pomodoro focus session (Active modules only)
+let timerSelectedCourseId = 'general';
 
-// Active custom course being viewed in the notebook modal
-let activeNotebookCourseId = null;
+// Load stored focus times
+let focusStats = {};
 
-// Initialize Hub
 document.addEventListener('DOMContentLoaded', () => {
-    loadCustomModules();
+    loadFocusStats();
     initTimer();
     renderFilters();
     renderCourseGrid();
-    initModals();
     updateGlobalStats();
 });
 
-// Load Custom Modules from LocalStorage
-function loadCustomModules() {
+function loadFocusStats() {
     try {
-        const stored = localStorage.getItem('custom_study_modules');
+        const stored = localStorage.getItem('study_hub_focus_stats');
         if (stored) {
-            customModules = JSON.parse(stored);
+            focusStats = JSON.parse(stored);
         } else {
-            customModules = [];
+            focusStats = {};
         }
     } catch (e) {
-        console.error('Failed to load custom modules:', e);
-        customModules = [];
+        console.error('Failed to load focus stats:', e);
+        focusStats = {};
     }
 }
 
-// Save Custom Modules to LocalStorage
-function saveCustomModules() {
-    localStorage.setItem('custom_study_modules', JSON.stringify(customModules));
+function saveFocusStats() {
+    localStorage.setItem('study_hub_focus_stats', JSON.stringify(focusStats));
     updateGlobalStats();
 }
 
-// Get all modules (Defaults + Custom)
-function getAllModules() {
-    return [...DEFAULT_MODULES, ...customModules];
-}
-
-// Render Filters
+// Render Filter Buttons
 function renderFilters() {
     const filterContainer = document.getElementById('filter-pills');
     if (!filterContainer) return;
 
-    // Get unique categories from all modules
-    const modules = getAllModules();
-    const categories = new Set();
-    modules.forEach(m => {
-        if (m.category) categories.add(m.category);
-    });
+    const filters = [
+        { id: 'all', label: 'All Modules' },
+        { id: 'active', label: 'Active Study' },
+        { id: 'sciences', label: 'Sciences' },
+        { id: 'sonography', label: 'Sonography' }
+    ];
 
-    let html = `
-        <button onclick="setFilter('all')" class="px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${activeFilter === 'all' ? 'bg-indigo-600 text-white border border-indigo-500' : 'glass-card text-slate-400 hover:text-white hover:bg-white/5'}">
-            All Modules
+    filterContainer.innerHTML = filters.map(f => `
+        <button onclick="setFilter('${f.id}')" class="px-5 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm ${activeFilter === f.id ? 'bg-indigo-600 text-white border border-indigo-500' : 'glass-card text-slate-400 hover:text-white hover:bg-white/5'}">
+            ${f.label}
         </button>
-        <button onclick="setFilter('core')" class="px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${activeFilter === 'core' ? 'bg-indigo-600 text-white border border-indigo-500' : 'glass-card text-slate-400 hover:text-white hover:bg-white/5'}">
-            Core Modules
-        </button>
-        <button onclick="setFilter('custom')" class="px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${activeFilter === 'custom' ? 'bg-indigo-600 text-white border border-indigo-500' : 'glass-card text-slate-400 hover:text-white hover:bg-white/5'}">
-            Custom Classes
-        </button>
-    `;
-
-    categories.forEach(cat => {
-        const lowerCat = cat.toLowerCase();
-        html += `
-            <button onclick="setFilter('${lowerCat}')" class="px-5 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${activeFilter === lowerCat ? 'bg-indigo-600 text-white border border-indigo-500' : 'glass-card text-slate-400 hover:text-white hover:bg-white/5'}">
-                ${cat}
-            </button>
-        `;
-    });
-
-    filterContainer.innerHTML = html;
+    `).join('');
 }
 
-// Set Active Filter
-window.setFilter = function(filter) {
-    activeFilter = filter;
+window.setFilter = function(filterId) {
+    activeFilter = filterId;
     renderFilters();
     renderCourseGrid();
 };
 
-// Render Course Grid
+// Render Grid Cards
 function renderCourseGrid() {
     const grid = document.getElementById('course-grid');
     if (!grid) return;
 
-    const modules = getAllModules();
-    let filtered = modules;
-
-    if (activeFilter === 'core') {
-        filtered = modules.filter(m => m.isCore);
-    } else if (activeFilter === 'custom') {
-        filtered = modules.filter(m => !m.isCore);
-    } else if (activeFilter !== 'all') {
-        filtered = modules.filter(m => m.category && m.category.toLowerCase() === activeFilter);
+    let filtered = COURSES;
+    if (activeFilter === 'active') {
+        filtered = COURSES.filter(c => c.status === 'active');
+    } else if (activeFilter === 'sciences') {
+        filtered = COURSES.filter(c => c.category === 'Sciences');
+    } else if (activeFilter === 'sonography') {
+        filtered = COURSES.filter(c => c.category === 'Sonography');
     }
 
-    if (filtered.length === 0) {
-        grid.innerHTML = `
-            <div class="col-span-full text-center py-12 glass-card rounded-3xl border border-white/5">
-                <i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i>
-                <p class="text-slate-400 font-medium">No study modules found in this category.</p>
-                <button onclick="openAddClassModal()" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg transition-all">
-                    Create Custom Class
-                </button>
-            </div>
-        `;
-        return;
-    }
+    grid.innerHTML = filtered.map(c => {
+        const isActive = c.status === 'active';
+        
+        // Status pill
+        const statusPill = isActive
+            ? `<span class="px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-400 text-[10px] font-extrabold border border-teal-500/20 uppercase tracking-wider">Active</span>`
+            : `<span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-extrabold border border-slate-700 uppercase tracking-wider">Planned</span>`;
 
-    let html = '';
-    filtered.forEach(m => {
-        // Calculate task progress if custom
-        let taskProgressText = '';
-        if (!m.isCore) {
-            const totalTasks = m.tasks ? m.tasks.length : 0;
-            const completedTasks = m.tasks ? m.tasks.filter(t => t.completed).length : 0;
-            taskProgressText = totalTasks > 0 
-                ? `<div class="mt-4 flex items-center justify-between text-xs text-slate-400 font-semibold bg-slate-900/40 px-3 py-1.5 rounded-lg border border-white/5">
-                    <span>Tasks</span>
-                    <span>${completedTasks}/${totalTasks}</span>
-                   </div>`
-                : '';
-        }
-
-        // Custom action handlers
-        const clickAction = m.isCore 
-            ? `href="${m.link}"` 
-            : m.link 
-                ? `href="${m.link}" target="_blank"` 
-                : `href="#" onclick="openNotebookModal('${m.id}'); return false;"`;
-
-        const badgeHtml = m.isCore 
-            ? `<span class="px-2.5 py-0.5 rounded-full bg-teal-500/10 text-teal-400 text-[10px] font-extrabold border border-teal-500/20 uppercase tracking-wider">Core Module</span>` 
-            : `<span class="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-extrabold border border-indigo-500/20 uppercase tracking-wider">${m.category}</span>`;
-
-        const focusLoggedText = m.totalFocusSeconds && m.totalFocusSeconds > 0 
-            ? `<span class="text-[10px] text-slate-500 font-bold ml-2 flex items-center gap-1"><i class="fa-solid fa-clock"></i> ${(m.totalFocusSeconds / 3600).toFixed(1)} hrs</span>` 
+        // Focus logged badge
+        const loggedSeconds = focusStats[c.id] || 0;
+        const focusBadge = loggedSeconds > 0
+            ? `<span class="text-[10px] text-slate-500 font-bold ml-2 flex items-center gap-1" title="Study Focus Logged"><i class="fa-solid fa-clock"></i> ${(loggedSeconds / 3600).toFixed(1)} hrs</span>`
             : '';
 
-        html += `
-            <div class="block group relative">
-                <a ${clickAction} class="block h-full">
-                    <div class="glass-card rounded-3xl p-8 h-full transition-all duration-300 module-active relative overflow-hidden flex flex-col min-h-[220px]">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-indigo-500/20 transition-all"></div>
-                        
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br ${m.color} flex items-center justify-center border border-white/10 shadow-lg">
-                                <i class="fa-solid ${m.icon} text-2xl text-white"></i>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                ${badgeHtml}
-                                ${focusLoggedText}
-                            </div>
+        // Handle card click
+        const clickAction = isActive
+            ? `href="${c.link}"`
+            : `href="#" onclick="showToast('${c.title}'); return false;"`;
+
+        return `
+            <a ${clickAction} class="block group relative ${!isActive ? 'opacity-70 hover:opacity-90' : ''}">
+                <div class="glass-card rounded-3xl p-8 h-full transition-all duration-300 module-active relative overflow-hidden flex flex-col min-h-[220px]">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-indigo-500/20 transition-all"></div>
+                    
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br ${c.color} flex items-center justify-center border border-white/10 shadow-lg">
+                            <i class="fa-solid ${c.icon} text-2xl text-white"></i>
                         </div>
-
-                        <h3 class="text-2xl font-bold text-white mb-2 leading-snug group-hover:text-indigo-200 transition-colors">${m.title}</h3>
-                        <p class="text-slate-400 text-sm mb-6 leading-relaxed flex-grow">${m.description}</p>
-                        
-                        <div class="mt-auto flex items-center text-indigo-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
-                            ${m.isCore ? 'Launch Module' : m.link ? 'Open Resource' : 'Open Notebook'} <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
+                        <div class="flex items-center gap-1">
+                            ${statusPill}
+                            ${focusBadge}
                         </div>
-
-                        ${taskProgressText}
                     </div>
-                </a>
 
-                ${!m.isCore ? `
-                    <div class="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <button onclick="event.stopPropagation(); openEditClassModal('${m.id}');" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center border border-white/10 shadow-lg backdrop-blur-md" title="Edit Course">
-                            <i class="fa-solid fa-pen text-xs"></i>
-                        </button>
-                        <button onclick="event.stopPropagation(); deleteCourse('${m.id}');" class="w-8 h-8 rounded-lg bg-red-950/80 hover:bg-red-800 text-red-400 hover:text-white flex items-center justify-center border border-red-900/50 shadow-lg backdrop-blur-md" title="Delete Course">
-                            <i class="fa-solid fa-trash-can text-xs"></i>
-                        </button>
+                    <h3 class="text-2xl font-bold text-white mb-2 leading-snug group-hover:text-indigo-200 transition-colors">${c.title}</h3>
+                    <p class="text-slate-400 text-sm mb-6 leading-relaxed flex-grow">${c.description}</p>
+                    
+                    <div class="mt-auto flex items-center text-indigo-400 font-bold text-sm group-hover:translate-x-1 transition-transform">
+                        ${isActive ? 'Launch Module' : 'In Development'} <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
                     </div>
-                ` : ''}
-            </div>
+                </div>
+            </a>
         `;
-    });
-
-    grid.innerHTML = html;
+    }).join('');
 }
 
-// Global Statistics Dashboard Loader
+// Global Stats Bar Loader
 function updateGlobalStats() {
     const statFocusText = document.getElementById('stat-total-focus');
-    const statModulesText = document.getElementById('stat-active-modules');
     const statStreakText = document.getElementById('stat-streak');
     const timerSelect = document.getElementById('timer-course-select');
 
-    if (!statFocusText || !statModulesText || !statStreakText) return;
+    if (!statFocusText || !statStreakText) return;
 
-    // Load focus time
+    // Sum focus hours
     let totalSeconds = 0;
-    customModules.forEach(m => {
-        if (m.totalFocusSeconds) totalSeconds += m.totalFocusSeconds;
-    });
-    // Add default mock base or just tracked focus time
-    const totalHours = (totalSeconds / 3600).toFixed(1);
-    statFocusText.textContent = `${totalHours} hrs`;
+    Object.values(focusStats).forEach(s => totalSeconds += s);
+    statFocusText.textContent = `${(totalSeconds / 3600).toFixed(1)} hrs`;
 
-    // Active modules count
-    const totalModules = getAllModules().length;
-    statModulesText.textContent = `${totalModules} Active`;
-
-    // Streak tracker logic (standard localized read or fallback)
+    // Local streak read
     const streak = localStorage.getItem('study_streak_count') || '3';
     statStreakText.textContent = `${streak} Days`;
 
-    // Populate Pomodoro dropdown selector
+    // Populate dropdown with active courses only
     if (timerSelect) {
         let options = '<option value="general">General Study Focus</option>';
-        getAllModules().forEach(m => {
-            options += `<option value="${m.id}">${m.title}</option>`;
+        COURSES.filter(c => c.status === 'active').forEach(c => {
+            options += `<option value="${c.id}">${c.title}</option>`;
         });
         const currentSelected = timerSelectedCourseId;
         timerSelect.innerHTML = options;
@@ -304,7 +291,7 @@ function updateGlobalStats() {
 }
 
 // ----------------------------------------------------
-// POMODORO FOCUS TIMER MODULE
+// POMODORO TIMER WORKSPACE LOGIC
 // ----------------------------------------------------
 function initTimer() {
     const btnPlay = document.getElementById('timer-play');
@@ -335,7 +322,6 @@ function startTimer() {
     timerInterval = setInterval(() => {
         timerTimeLeft--;
         
-        // Accumulate focus time if focus mode is active and running
         if (timerMode === 'focus') {
             logFocusSecond();
         }
@@ -366,11 +352,11 @@ function switchTimerMode() {
     if (timerMode === 'focus') {
         timerMode = 'break';
         timerTimeLeft = 5 * 60; // 5 min break
-        showNotification('Focus Session Complete!', 'Time for a well-deserved 5-minute break.');
+        showBrowserNotification('Focus Session Complete!', 'Take a 5-minute break.');
     } else {
         timerMode = 'focus';
         timerTimeLeft = timerMaxTime;
-        showNotification('Break Time Over!', 'Let\'s lock back into learning focus.');
+        showBrowserNotification('Break Over!', 'Lock back into your learning.');
     }
     resetTimer();
 }
@@ -378,6 +364,7 @@ function switchTimerMode() {
 function updateTimerDisplay() {
     const display = document.getElementById('timer-display');
     const modeIndicator = document.getElementById('timer-mode-indicator');
+    const progressRing = document.getElementById('timer-progress-ring');
     
     if (!display) return;
 
@@ -387,40 +374,28 @@ function updateTimerDisplay() {
 
     if (modeIndicator) {
         modeIndicator.textContent = timerMode === 'focus' ? 'Focus Session Active' : 'Break Time Active';
-        modeIndicator.className = timerMode === 'focus' 
-            ? 'text-xs font-extrabold text-indigo-400 uppercase tracking-widest' 
-            : 'text-xs font-extrabold text-teal-400 uppercase tracking-widest';
+    }
+
+    if (progressRing) {
+        const total = timerMode === 'focus' ? timerMaxTime : 5 * 60;
+        const progress = (total - timerTimeLeft) / total;
+        // Circumference is 2 * pi * r = 2 * 3.14159 * 64 = 402.12
+        const offset = 402 - (progress * 402);
+        progressRing.style.strokeDashoffset = offset;
     }
 }
 
 function logFocusSecond() {
     if (timerSelectedCourseId === 'general') return;
     
-    // Find the course
-    const mIndex = customModules.findIndex(m => m.id === timerSelectedCourseId);
-    if (mIndex !== -1) {
-        if (!customModules[mIndex].totalFocusSeconds) {
-            customModules[mIndex].totalFocusSeconds = 0;
-        }
-        customModules[mIndex].totalFocusSeconds++;
-        
-        // Throttled save every 10 seconds to reduce write overhead
-        if (customModules[mIndex].totalFocusSeconds % 10 === 0) {
-            saveCustomModules();
-            if (activeNotebookCourseId === timerSelectedCourseId) {
-                updateNotebookFocusStats();
-            }
-        }
+    if (!focusStats[timerSelectedCourseId]) {
+        focusStats[timerSelectedCourseId] = 0;
     }
-}
-
-function updateNotebookFocusStats() {
-    const focusDisplay = document.getElementById('notebook-focus-time');
-    if (!focusDisplay) return;
-    const course = customModules.find(m => m.id === activeNotebookCourseId);
-    if (course) {
-        const hrs = (course.totalFocusSeconds ? course.totalFocusSeconds / 3600 : 0).toFixed(2);
-        focusDisplay.textContent = `${hrs} hrs focused`;
+    focusStats[timerSelectedCourseId]++;
+    
+    // Save to LocalStorage every 10 seconds to decrease writes
+    if (focusStats[timerSelectedCourseId] % 10 === 0) {
+        saveFocusStats();
     }
 }
 
@@ -429,22 +404,19 @@ function playTimerAlert() {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+        oscillator.frequency.setValueAtTime(660, audioCtx.currentTime);
         gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.3);
-    } catch(e) {
-        console.warn('Audio alert not supported on this browser context.');
+        oscillator.stop(audioCtx.currentTime + 0.35);
+    } catch (e) {
+        console.warn('Audio API warning');
     }
 }
 
-function showNotification(title, message) {
+function showBrowserNotification(title, message) {
     if (Notification.permission === 'granted') {
         new Notification(title, { body: message });
     } else if (Notification.permission !== 'denied') {
@@ -457,276 +429,37 @@ function showNotification(title, message) {
 }
 
 // ----------------------------------------------------
-// MODAL MANAGEMENT & COURSE EDITOR (CRUD)
+// TOAST NOTIFICATION SYSTEM (For Planned Modules)
 // ----------------------------------------------------
-function initModals() {
-    const modalAdd = document.getElementById('modal-add-class');
-    const modalNotebook = document.getElementById('modal-notebook');
-    
-    // Auto-populate icons & colors in form presets
-    const iconPresetContainer = document.getElementById('form-icon-presets');
-    const colorPresetContainer = document.getElementById('form-color-presets');
-
-    if (iconPresetContainer) {
-        iconPresetContainer.innerHTML = ICON_PRESETS.map(icon => `
-            <button type="button" onclick="selectFormIcon('${icon}')" id="preset-icon-${icon}" class="w-10 h-10 rounded-xl bg-slate-900 border border-white/5 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-800 transition-colors">
-                <i class="fa-solid ${icon}"></i>
-            </button>
-        `).join('');
-    }
-
-    if (colorPresetContainer) {
-        colorPresetContainer.innerHTML = COLOR_PRESETS.map(p => `
-            <button type="button" onclick="selectFormColor('${p.value}')" id="preset-color-${p.value.replace(/\//g, '_')}" class="w-full h-8 rounded-lg bg-gradient-to-br ${p.value} border border-white/10 hover:scale-105 transition-transform" title="${p.name}"></button>
-        `).join('');
-    }
-
-    // Modal submit binding
-    const form = document.getElementById('add-class-form');
-    if (form) {
-        form.addEventListener('submit', handleClassFormSubmit);
-    }
-
-    // Notebook text area bindings
-    const notebookNotes = document.getElementById('notebook-notes');
-    if (notebookNotes) {
-        notebookNotes.addEventListener('input', (e) => {
-            if (!activeNotebookCourseId) return;
-            const idx = customModules.findIndex(m => m.id === activeNotebookCourseId);
-            if (idx !== -1) {
-                customModules[idx].notes = e.target.value;
-                saveCustomModules();
-            }
-        });
-    }
-}
-
-let selectedFormIcon = 'fa-book-open';
-let selectedFormColor = 'from-indigo-500 to-violet-600';
-let editingCourseId = null;
-
-window.selectFormIcon = function(icon) {
-    selectedFormIcon = icon;
-    ICON_PRESETS.forEach(i => {
-        const el = document.getElementById(`preset-icon-${i}`);
-        if (el) {
-            el.className = `w-10 h-10 rounded-xl bg-slate-900 border flex items-center justify-center hover:bg-slate-800 transition-colors ${i === icon ? 'border-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'border-white/5 text-slate-400 hover:text-white'}`;
-        }
-    });
-};
-
-window.selectFormColor = function(color) {
-    selectedFormColor = color;
-    COLOR_PRESETS.forEach(p => {
-        const safeId = p.value.replace(/\//g, '_');
-        const el = document.getElementById(`preset-color-${safeId}`);
-        if (el) {
-            el.className = `w-full h-8 rounded-lg bg-gradient-to-br ${p.value} border hover:scale-105 transition-all ${p.value === color ? 'border-white ring-2 ring-indigo-500 shadow-lg' : 'border-white/10'}`;
-        }
-    });
-};
-
-window.openAddClassModal = function() {
-    editingCourseId = null;
-    document.getElementById('modal-title-text').textContent = 'Add Custom Study Module';
-    document.getElementById('add-class-form').reset();
-    selectFormIcon('fa-book-open');
-    selectFormColor('from-indigo-500 to-violet-600');
-    
-    document.getElementById('modal-add-class').classList.remove('hidden');
-    document.getElementById('modal-add-class').classList.add('flex');
-};
-
-window.openEditClassModal = function(id) {
-    const course = customModules.find(m => m.id === id);
-    if (!course) return;
-
-    editingCourseId = id;
-    document.getElementById('modal-title-text').textContent = 'Edit Course Details';
-    document.getElementById('course-name-input').value = course.title;
-    document.getElementById('course-desc-input').value = course.description;
-    document.getElementById('course-cat-input').value = course.category || 'General';
-    document.getElementById('course-link-input').value = course.link || '';
-
-    selectFormIcon(course.icon || 'fa-book-open');
-    selectFormColor(course.color || 'from-indigo-500 to-violet-600');
-
-    document.getElementById('modal-add-class').classList.remove('hidden');
-    document.getElementById('modal-add-class').classList.add('flex');
-};
-
-window.closeAddClassModal = function() {
-    document.getElementById('modal-add-class').classList.add('hidden');
-    document.getElementById('modal-add-class').classList.remove('flex');
-};
-
-function handleClassFormSubmit(e) {
-    e.preventDefault();
-    const title = document.getElementById('course-name-input').value.trim();
-    const description = document.getElementById('course-desc-input').value.trim();
-    const category = document.getElementById('course-cat-input').value.trim() || 'General';
-    const link = document.getElementById('course-link-input').value.trim();
-
-    if (!title || !description) return;
-
-    if (editingCourseId) {
-        // Edit Mode
-        const idx = customModules.findIndex(m => m.id === editingCourseId);
-        if (idx !== -1) {
-            customModules[idx].title = title;
-            customModules[idx].description = description;
-            customModules[idx].category = category;
-            customModules[idx].link = link;
-            customModules[idx].icon = selectedFormIcon;
-            customModules[idx].color = selectedFormColor;
-        }
-    } else {
-        // Create Mode
-        const newCourse = {
-            id: 'custom-' + Date.now().toString(),
-            title,
-            description,
-            category,
-            link,
-            icon: selectedFormIcon,
-            color: selectedFormColor,
-            isCore: false,
-            notes: '',
-            tasks: [],
-            totalFocusSeconds: 0
-        };
-        customModules.push(newCourse);
-    }
-
-    saveCustomModules();
-    closeAddClassModal();
-    renderFilters();
-    renderCourseGrid();
-}
-
-window.deleteCourse = function(id) {
-    if (!confirm('Are you sure you want to permanently delete this course and all its study notes/tasks?')) return;
-    customModules = customModules.filter(m => m.id !== id);
-    saveCustomModules();
-    renderFilters();
-    renderCourseGrid();
-};
-
-// ----------------------------------------------------
-// NOTEBOOK & TODO TRACKER MODULE (Custom Classes Only)
-// ----------------------------------------------------
-window.openNotebookModal = function(id) {
-    const course = customModules.find(m => m.id === id);
-    if (!course) return;
-
-    activeNotebookCourseId = id;
-    document.getElementById('notebook-title').textContent = course.title;
-    document.getElementById('notebook-category').textContent = course.category || 'General';
-    document.getElementById('notebook-notes').value = course.notes || '';
-    
-    updateNotebookFocusStats();
-    renderNotebookTasks();
-
-    document.getElementById('modal-notebook').classList.remove('hidden');
-    document.getElementById('modal-notebook').classList.add('flex');
-};
-
-window.closeNotebookModal = function() {
-    document.getElementById('modal-notebook').classList.add('hidden');
-    document.getElementById('modal-notebook').classList.remove('flex');
-    activeNotebookCourseId = null;
-    renderCourseGrid(); // Refresh grid task counter
-};
-
-function renderNotebookTasks() {
-    const container = document.getElementById('notebook-task-list');
+window.showToast = function(courseTitle) {
+    const container = document.getElementById('toast-container');
     if (!container) return;
 
-    const course = customModules.find(m => m.id === activeNotebookCourseId);
-    if (!course || !course.tasks) return;
-
-    if (course.tasks.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-6 text-slate-500 text-xs">
-                No active study objectives. Add some below!
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = course.tasks.map(t => `
-        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-white/5 group/task shadow-sm">
-            <label class="flex items-center gap-3 cursor-pointer text-sm font-semibold select-none ${t.completed ? 'line-through text-slate-500' : 'text-slate-200'}">
-                <input type="checkbox" onchange="toggleTask('${t.id}')" ${t.completed ? 'checked' : ''} class="w-4 h-4 rounded text-indigo-600 bg-slate-800 border-white/10 focus:ring-indigo-500 focus:ring-offset-slate-950">
-                ${escapeHTML(t.text)}
-            </label>
-            <button onclick="deleteTask('${t.id}')" class="opacity-0 group-hover/task:opacity-100 text-slate-500 hover:text-red-400 transition-all px-2 py-1 rounded">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'glass-card border border-indigo-500/20 px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-sm text-slate-200 fade-in select-none max-w-sm w-full';
+    toast.style.background = 'rgba(15, 23, 42, 0.9)';
+    toast.style.backdropFilter = 'blur(12px)';
+    
+    toast.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-satellite-dish animate-pulse"></i>
         </div>
-    `).join('');
-}
+        <div class="flex-grow">
+            <p class="font-extrabold text-white">${courseTitle}</p>
+            <p class="text-xs text-slate-400 mt-0.5">Currently in development. Core lessons coming soon!</p>
+        </div>
+    `;
 
-window.addNotebookTask = function() {
-    const input = document.getElementById('notebook-task-input');
-    if (!input || !activeNotebookCourseId) return;
+    container.appendChild(toast);
 
-    const text = input.value.trim();
-    if (!text) return;
-
-    const idx = customModules.findIndex(m => m.id === activeNotebookCourseId);
-    if (idx !== -1) {
-        if (!customModules[idx].tasks) customModules[idx].tasks = [];
-        customModules[idx].tasks.push({
-            id: 'task-' + Date.now().toString(),
-            text,
-            completed: false
-        });
-        saveCustomModules();
-        input.value = '';
-        renderNotebookTasks();
-    }
+    // Auto-remove toast after 4 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.5s ease-out';
+        setTimeout(() => {
+            toast.remove();
+        }, 500);
+    }, 4000);
 };
-
-window.toggleTask = function(taskId) {
-    if (!activeNotebookCourseId) return;
-    const cIdx = customModules.findIndex(m => m.id === activeNotebookCourseId);
-    if (cIdx !== -1) {
-        const tIdx = customModules[cIdx].tasks.findIndex(t => t.id === taskId);
-        if (tIdx !== -1) {
-            customModules[cIdx].tasks[tIdx].completed = !customModules[cIdx].tasks[tIdx].completed;
-            saveCustomModules();
-            renderNotebookTasks();
-        }
-    }
-};
-
-window.deleteTask = function(taskId) {
-    if (!activeNotebookCourseId) return;
-    const cIdx = customModules.findIndex(m => m.id === activeNotebookCourseId);
-    if (cIdx !== -1) {
-        customModules[cIdx].tasks = customModules[cIdx].tasks.filter(t => t.id !== taskId);
-        saveCustomModules();
-        renderNotebookTasks();
-    }
-};
-
-// Enter key support for Task Input
-window.handleTaskInputKey = function(event) {
-    if (event.key === 'Enter') {
-        addNotebookTask();
-    }
-};
-
-// Helper function to escape HTML injection
-function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag] || tag)
-    );
-}
