@@ -2,7 +2,7 @@
   <img src="./assets/RADreqsLogo.jpg" alt="RadReqs-AI Logo" width="200" style="border-radius: 20px; margin-bottom: 20px;"/>
 </div>
 
-# RadReqs-AI ☢️
+# RadReqs-AI 🧬 (Pre-Health & Sonography Study Suite)
 
 [![Deploy to GitHub Pages](https://github.com/RorriMaesu/RadReqs-AI/actions/workflows/deploy.yml/badge.svg)](https://RorriMaesu.github.io/RadReqs-AI/)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](#)
@@ -12,10 +12,10 @@
 
 <a href="https://buymeacoffee.com/rorrimaesu" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
 
-**RadReqs-AI** is a premium, AI-powered educational suite designed specifically for aspiring Radiation Therapists and Radiologic Technologists (X-Ray Techs). It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor powered by Google's Gemma 4.
+**RadReqs-AI** is a premium, AI-powered educational suite designed for health science students preparing for competitive allied health programs, with a focus on **Sonography** pre-requisites and clinical core sciences. It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor powered by Google's Gemma.
 
 > [!NOTE]
-> **Author's Note & Disclaimer:** I am a new student starting my learning path in this field and developed this application for my personal study. While I am happy to share this tool with other students, please note that it is provided "as-is" with absolutely no guarantees of accuracy. I am using it to learn, and encourage you to always cross-reference definitions with official textbooks.
+> **Author's Note & Disclaimer:** I am a student navigating this learning path and developed this application for my personal study. While I am happy to share this tool with other students, please note that it is provided "as-is" with absolutely no guarantees of accuracy. I am using it to learn, and encourage you to always cross-reference definitions with official textbooks.
 
 <p align="center">
   <img src="./assets/screenshots/RadReqsLandingPageDarkModeScreenshot.jpg" alt="RadReqs-AI Hub Landing Page" width="100%">
@@ -25,8 +25,8 @@
 
 ## 🌟 Features
 
-### 1. The RadReqs Hub
-A sleek, modern central landing page providing access to the complete prerequisite and core curriculum required for radiology professionals. The entire suite features fully integrated **Light and Dark Mode** options with beautiful, frosted-glass navigation and fluid theme switching.
+### 1. The Study Hub
+A sleek, modern central landing page providing access to the complete prerequisite and core curriculum required for sonography and pre-clinical professionals. The entire suite features fully integrated **Light and Dark Mode** options with beautiful, frosted-glass navigation and fluid theme switching.
 
 ### 2. Medical Terminology (Active Module)
 The foundational module for clinical language mastery.
@@ -61,19 +61,19 @@ A full chemistry learning system spanning Skills Lab, Coursework, and Homework B
 - **Universal Reset Progress:** Header-level reset control across chemistry pages with typed `RESET` confirmation, cross-tab synchronization, and a compact success toast before reload.
 - **Prof. Beaker (AI Tutor):** Context-aware chemistry guidance powered by your local Ollama model.
 
-### 4. Clinical Mathematics (New Module)
-A specialized mathematical engine designed to enforce safety and accuracy in clinical dosimetry calculations.
-- **Numeracy & Units:** Practice converting between legacy units (Rad, Rem, Curie) and SI units (Gy, Sv, Bq).
+### 4. Clinical Mathematics (Active Module)
+A mathematical engine designed to enforce safety and accuracy in clinical and dosage calculations.
+- **Numeracy & Units:** Practice converting between metrics, concentrations, and physical measurements.
 - **Safety Validator:** Catch and correct dangerous formatting errors like trailing zeros (`5.0`), naked decimals (`5.`), and missing leading zeros (`.5`).
 - **Algebraic Logic:** Master formula rearrangement with an interactive, foolproof "variable chip" puzzle UI.
-- **Spatial Geometry:** A dynamic simulator to practice the Inverse Square Law using an interactive Source-to-Image Distance (SID) slider.
+- **Scale and Physical Laws:** Practice applying physical scaling laws (such as the inverse square law for imaging energy intensities) using interactive sliders.
 
-### 5. Psychology & Patient Care Simulator (New Module)
-An expert-level training module for navigating complex clinical, behavioral, and medical emergencies.
+### 5. Psychology & Patient Care Simulator (Active Module)
+An training module for navigating complex clinical, behavioral, and patient care situations.
 - **Chart Auditor:** Rigorously test your ability to spot hidden clinical contraindications, procedural hazards, and safety red flags within 29 complex patient charts.
-- **Jargon Filter:** Master clinical communication by translating terrifying medical terminology into comforting, patient-safe explanations across 25 high-fidelity scenarios.
+- **Jargon Filter:** Master clinical communication by translating medical terminology into comforting, patient-safe explanations across 25 scenarios.
 - **Timed Crisis De-escalation:** A high-stakes, 24-scenario gauntlet where you must manage severe emergencies (e.g., contrast anaphylaxis, combative patients, sensory overload) using timed tactical empathy and immediate decision-making.
-- **EHR Legal Auditor:** Learn the critical difference between subjective complaining and objective, defensible charting with a built-in expert guide and AI feedback loop.
+- **EHR Legal Auditor:** Learn the critical difference between subjective complaining and objective, charting with a built-in expert guide and AI feedback loop.
 
 ### 6. Gamification Engine
 Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
@@ -102,12 +102,14 @@ Study anywhere, perfectly optimized for your phone.
 ### 8. Comprehensive Curriculum Roadmap
 Placeholders are beautifully integrated for future module expansion, creating a complete pathway:
 - Anatomy & Physiology
-- General Physics
-- Radiographic Positioning & Image Production
-- Radiation Protection & Radiobiology
-- Radiation Physics & Dosimetry
-- Treatment Planning
-- Oncology & Pathology
+- General & Sound Physics (SPI Prep)
+- Ultrasound Physics & Instrumentation
+- Abdominal Sonography
+- OB/GYN Sonography
+- Vascular Sonography
+- Sectional Anatomy & Pathology
+- General Biology
+- English Composition
 
 ---
 
