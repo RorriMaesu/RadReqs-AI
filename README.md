@@ -18,7 +18,7 @@
 > **Author's Note & Disclaimer:** I am a student navigating this learning path and developed this application for my personal study. While I am happy to share this tool with other students, please note that it is provided "as-is" with absolutely no guarantees of accuracy. I am using it to learn, and encourage you to always cross-reference definitions with official textbooks.
 
 <p align="center">
-  <img src="./assets/screenshots/RadReqsLandingPageDarkModeScreenshot.jpg" alt="Gnosys-AI Hub Landing Page" width="100%">
+  <img src="./assets/screenshots/GnosysLandingPageDarkModeScreenshot.jpg" alt="Gnosys-AI Hub Landing Page" width="100%">
 </p>
 
 ---
@@ -27,6 +27,13 @@
 
 ### 1. The Study Hub
 A sleek, modern central landing page providing access to the complete curriculum required for academic and professional success. The entire suite features fully integrated **Light and Dark Mode** options with beautiful, frosted-glass navigation and fluid theme switching.
+
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/GnosysLandingPageDarkModeScreenshot.jpg" alt="Gnosys-AI Landing Page"></td>
+    <td width="50%"><img src="./assets/screenshots/GnosysFocusTimerScreenshot.jpg" alt="Focus Pomodoro Timer"></td>
+  </tr>
+</table>
 
 ### 2. Medical Terminology (Active Module)
 The foundational module for clinical language mastery.
@@ -49,6 +56,10 @@ The foundational module for clinical language mastery.
     <td width="50%"><img src="./assets/screenshots/medicalTerminologyAbbreviationDecoderAIDarkModeScreenshot.jpg" alt="Abbreviation Decoder"></td>
     <td width="50%"><img src="./assets/screenshots/medicalTerminologyPluralizationAIDarkModeScreenshot.jpg" alt="Pluralization"></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/medicalTerminologyLexiconScreenshot.jpg" alt="Lexicon Dictionary"></td>
+    <td width="50%"></td>
+  </tr>
 </table>
 
 ### 3. Intro to Chemistry (Active Expansion)
@@ -57,11 +68,37 @@ A full chemistry learning system spanning Skills Lab, Coursework, and Homework B
 - **Core Calculator Stack:** Molar mass, dimensional analysis, stoichiometry, significant figures, nomenclature, and lab-focused precision tools.
 - **Prof. Beaker (AI Tutor):** Context-aware chemistry guidance powered by your local Ollama model.
 
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/chemistryDashboardScreenshot.jpg" alt="Chemistry Dashboard"></td>
+    <td width="50%"><img src="./assets/screenshots/chemistryCourseworkScreenshot.jpg" alt="Coursework Lectures"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/chemistryPeriodicTableScreenshot.jpg" alt="Periodic Table"></td>
+    <td width="50%"><img src="./assets/screenshots/chemistryTutorAIDarkModeScreenshot.jpg" alt="Prof. Beaker AI Tutor"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/chemistryDimensionalAnalysisScreenshot.jpg" alt="Dimensional Analysis"></td>
+    <td width="50%"><img src="./assets/screenshots/chemistryMeasurementLabScreenshot.jpg" alt="Measurement Lab"></td>
+  </tr>
+</table>
+
 ### 4. Applied Mathematics (Active Module)
 A mathematical engine designed to reinforce safety, precision, and accuracy in scientific and clinical calculations.
 - **Numeracy & Units:** Practice converting between SI metrics, legacy units, concentrations, and physical measurements.
 - **Precision Validator:** Catch and correct formatting errors like trailing zeros (`5.0`), naked decimals (`5.`), and missing leading zeros (`.5`).
 - **Algebraic Logic:** Master formula rearrangement with an interactive, foolproof "variable chip" puzzle UI.
+
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/mathNumeracyScreenshot.jpg" alt="Clinical Numeracy"></td>
+    <td width="50%"><img src="./assets/screenshots/mathSafetyValidatorScreenshot.jpg" alt="Safety Validator"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/mathAlgebraicLogicScreenshot.jpg" alt="Algebraic Logic Chips"></td>
+    <td width="50%"><img src="./assets/screenshots/mathTutorScreenshot.jpg" alt="Math Tutor Chat"></td>
+  </tr>
+</table>
 
 ### 5. Psychology & Communication Simulator (Active Module)
 A training module for navigating complex interpersonal, behavioral, and professional care situations.
@@ -69,6 +106,17 @@ A training module for navigating complex interpersonal, behavioral, and professi
 - **Jargon Filter:** Master professional communication by translating academic terminology into comforting, clear explanations.
 - **Timed Crisis De-escalation:** A high-stakes gauntlet where you must manage severe interpersonal emergencies using timed tactical empathy.
 - **EHR & Documentation Auditor:** Learn the critical difference between subjective reporting and objective, defensible charting.
+
+<table width="100%">
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/psychContextAuditorScreenshot.jpg" alt="Context Chart Auditor"></td>
+    <td width="50%"><img src="./assets/screenshots/psychDeescalationScreenshot.jpg" alt="Timed Crisis De-escalation"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./assets/screenshots/psychEhrAuditorScreenshot.jpg" alt="Legal EHR Auditor"></td>
+    <td width="50%"><img src="./assets/screenshots/psychTutorScreenshot.jpg" alt="Psychology Tutor Chat"></td>
+  </tr>
+</table>
 
 ### 6. Gamification Engine
 Learning complex clinical and academic data is hard. Gnosys-AI keeps you engaged and addicted to studying.
