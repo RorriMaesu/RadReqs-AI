@@ -53,4 +53,4 @@ fi
 
 echo ""
 echo "Opening Gnosys-AI with model: $MODEL"
-open "https://RorriMaesu.github.io/RadReqs-AI/?model=$MODEL"
+open "https://RorriMaesu.github.io/Gnosys-AI/?model=$MODEL"

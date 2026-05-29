@@ -4,7 +4,7 @@
 
 # Gnosys-AI 🧠 (Universal Study Suite)
 
-[![Deploy to GitHub Pages](https://github.com/RorriMaesu/RadReqs-AI/actions/workflows/deploy.yml/badge.svg)](https://RorriMaesu.github.io/RadReqs-AI/)
+[![Deploy to GitHub Pages](https://github.com/RorriMaesu/Gnosys-AI/actions/workflows/deploy.yml/badge.svg)](https://RorriMaesu.github.io/Gnosys-AI/)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](#)
 [![JavaScript](https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E)](#)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](#)
@@ -106,13 +106,13 @@ Expanding to support a broad array of subjects across disciplines:
 ## 🚀 Getting Started
 
 ### Path A: For Students (1-Click Setup)
-You do not need to download this repository or know how to code to use Gnosys-AI. The suite is hosted entirely online at **[https://RorriMaesu.github.io/RadReqs-AI/](https://RorriMaesu.github.io/RadReqs-AI/)**.
+You do not need to download this repository or know how to code to use Gnosys-AI. The suite is hosted entirely online at **[https://RorriMaesu.github.io/Gnosys-AI/](https://RorriMaesu.github.io/Gnosys-AI/)**.
 
 However, for **Dr. Lex** (the AI Tutor) to work, it runs completely free and privately on your own computer. To activate him:
 
 1. **Install Ollama:** Download and install the Ollama app for [Windows (.exe)](https://ollama.com/download/OllamaSetup.exe) or [macOS (.zip)](https://ollama.com/download/Ollama-darwin.zip).
 2. **Download the Smart Launcher:** 
-   - **[⬇️ Download Dr. Lex Smart Launcher (.zip)](https://github.com/RorriMaesu/RadReqs-AI/raw/main/assets/Start_Dr_Lex.zip)**
+   - **[⬇️ Download Dr. Lex Smart Launcher (.zip)](https://github.com/RorriMaesu/Gnosys-AI/raw/main/assets/Start_Dr_Lex.zip)**
 3. **Run the Script:** Open the downloaded `.zip` file and double-click the launcher for your system (`Start_Dr_Lex.bat` for Windows, or `Start_Dr_Lex_Mac.command` for Mac).
 
 The script will configure CORS, download the model, and launch the website for you!
@@ -124,8 +124,8 @@ Gnosys-AI is built with pure Vanilla JavaScript and HTML.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/RorriMaesu/RadReqs-AI.git
-   cd RadReqs-AI
+   git clone https://github.com/RorriMaesu/Gnosys-AI.git
+   cd Gnosys-AI
    ```
 2. Install dependencies and compile CSS:
    ```bash

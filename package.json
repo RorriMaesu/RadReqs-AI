@@ -9,16 +9,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RorriMaesu/RadReqs-AI.git"
+    "url": "git+https://github.com/RorriMaesu/Gnosys-AI.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/RorriMaesu/RadReqs-AI/issues"
+    "url": "https://github.com/RorriMaesu/Gnosys-AI/issues"
   },
-  "homepage": "https://github.com/RorriMaesu/RadReqs-AI#readme",
+  "homepage": "https://github.com/RorriMaesu/Gnosys-AI#readme",
   "devDependencies": {
     "http-server": "^14.1.1",
     "tailwindcss": "^3.4.19"
