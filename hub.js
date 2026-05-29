@@ -1,5 +1,5 @@
-// Hub Application Logic - Code-Defined Study Companion
-// Manages the course registry, category filtering, study focus stats, and the Pomodoro timer.
+// Hub Application Logic - Redesigned UI
+// Manages static course registry, category filtering, stats modals, and the floating Pomodoro timer.
 
 const COURSES = [
     {
@@ -142,11 +142,8 @@ let timerTimeLeft = 25 * 60; // 25 minutes default
 let timerMaxTime = 25 * 60;
 let timerIsRunning = false;
 let timerMode = 'focus'; // 'focus' or 'break'
-
-// Selected course for current Pomodoro focus session (Active modules only)
 let timerSelectedCourseId = 'general';
 
-// Load stored focus times
 let focusStats = {};
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -176,7 +173,7 @@ function saveFocusStats() {
     updateGlobalStats();
 }
 
-// Render Filter Buttons
+// Render Filters
 function renderFilters() {
     const filterContainer = document.getElementById('filter-pills');
     if (!filterContainer) return;
@@ -201,7 +198,7 @@ window.setFilter = function(filterId) {
     renderCourseGrid();
 };
 
-// Render Grid Cards
+// Render Course Cards
 function renderCourseGrid() {
     const grid = document.getElementById('course-grid');
     if (!grid) return;
@@ -261,24 +258,39 @@ function renderCourseGrid() {
     }).join('');
 }
 
-// Global Stats Bar Loader
+// ----------------------------------------------------
+// FLOATING STATS BUTTON & MODAL
+// ----------------------------------------------------
+window.openStatsModal = function() {
+    updateGlobalStats();
+    document.getElementById('modal-stats').classList.remove('hidden');
+    document.getElementById('modal-stats').classList.add('flex');
+};
+
+window.closeStatsModal = function() {
+    document.getElementById('modal-stats').classList.add('hidden');
+    document.getElementById('modal-stats').classList.remove('flex');
+};
+
+// Update Global Stats in the Modal & Dropdown
 function updateGlobalStats() {
     const statFocusText = document.getElementById('stat-total-focus');
     const statStreakText = document.getElementById('stat-streak');
     const timerSelect = document.getElementById('timer-course-select');
+    const breakdownContainer = document.getElementById('stats-course-breakdown');
 
-    if (!statFocusText || !statStreakText) return;
+    if (statFocusText) {
+        let totalSeconds = 0;
+        Object.values(focusStats).forEach(s => totalSeconds += s);
+        statFocusText.textContent = `${(totalSeconds / 3600).toFixed(1)} hrs`;
+    }
 
-    // Sum focus hours
-    let totalSeconds = 0;
-    Object.values(focusStats).forEach(s => totalSeconds += s);
-    statFocusText.textContent = `${(totalSeconds / 3600).toFixed(1)} hrs`;
+    if (statStreakText) {
+        const streak = localStorage.getItem('study_streak_count') || '3';
+        statStreakText.textContent = `${streak} Days`;
+    }
 
-    // Local streak read
-    const streak = localStorage.getItem('study_streak_count') || '3';
-    statStreakText.textContent = `${streak} Days`;
-
-    // Populate dropdown with active courses only
+    // Populate active courses dropdown
     if (timerSelect) {
         let options = '<option value="general">General Study Focus</option>';
         COURSES.filter(c => c.status === 'active').forEach(c => {
@@ -288,11 +300,63 @@ function updateGlobalStats() {
         timerSelect.innerHTML = options;
         timerSelect.value = currentSelected;
     }
+
+    // Render course focus time breakdown in the modal
+    if (breakdownContainer) {
+        const activeCourses = COURSES.filter(c => c.status === 'active');
+        let breakdownHTML = activeCourses.map(c => {
+            const seconds = focusStats[c.id] || 0;
+            const hours = (seconds / 3600).toFixed(1);
+            return `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 border border-white/5 text-slate-200">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid ${c.icon} text-slate-400"></i>
+                        <span class="text-xs font-semibold">${c.title}</span>
+                    </div>
+                    <span class="text-xs font-extrabold text-indigo-400">${hours} hrs</span>
+                </div>
+            `;
+        }).join('');
+
+        // Append General Study Focus stats
+        const generalSeconds = focusStats['general'] || 0;
+        const generalHours = (generalSeconds / 3600).toFixed(1);
+        breakdownHTML += `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/40 border border-white/5 text-slate-200">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-hourglass-half text-indigo-400"></i>
+                    <span class="text-xs font-semibold">General Study Focus</span>
+                </div>
+                <span class="text-xs font-extrabold text-indigo-400">${generalHours} hrs</span>
+            </div>
+        `;
+        breakdownContainer.innerHTML = breakdownHTML;
+    }
 }
 
 // ----------------------------------------------------
-// POMODORO TIMER WORKSPACE LOGIC
+// FLOATING TIMER WORKSPACE LOGIC
 // ----------------------------------------------------
+let timerExpanded = false;
+
+window.toggleFloatingTimer = function() {
+    const panel = document.getElementById('timer-expanded-panel');
+    const btn = document.getElementById('timer-toggle-btn');
+    
+    if (!panel || !btn) return;
+
+    timerExpanded = !timerExpanded;
+    if (timerExpanded) {
+        panel.classList.remove('hidden');
+        panel.classList.add('flex');
+        btn.classList.add('border-indigo-400');
+    } else {
+        panel.classList.add('hidden');
+        panel.classList.remove('flex');
+        btn.classList.remove('border-indigo-400');
+    }
+};
+
 function initTimer() {
     const btnPlay = document.getElementById('timer-play');
     const btnPause = document.getElementById('timer-pause');
@@ -318,6 +382,13 @@ function startTimer() {
     
     document.getElementById('timer-play').classList.add('hidden');
     document.getElementById('timer-pause').classList.remove('hidden');
+    
+    // Add pulsing border to floating button
+    const pulse = document.getElementById('timer-pulse-ring');
+    if (pulse) {
+        pulse.classList.remove('opacity-0');
+        pulse.classList.add('animate-ping', 'opacity-100');
+    }
 
     timerInterval = setInterval(() => {
         timerTimeLeft--;
@@ -340,6 +411,13 @@ function pauseTimer() {
     clearInterval(timerInterval);
     document.getElementById('timer-play').classList.remove('hidden');
     document.getElementById('timer-pause').classList.add('hidden');
+
+    // Remove pulsing border
+    const pulse = document.getElementById('timer-pulse-ring');
+    if (pulse) {
+        pulse.classList.remove('animate-ping', 'opacity-100');
+        pulse.classList.add('opacity-0');
+    }
 }
 
 function resetTimer() {
@@ -365,6 +443,7 @@ function updateTimerDisplay() {
     const display = document.getElementById('timer-display');
     const modeIndicator = document.getElementById('timer-mode-indicator');
     const progressRing = document.getElementById('timer-progress-ring');
+    const badge = document.getElementById('timer-badge');
     
     if (!display) return;
 
@@ -379,21 +458,27 @@ function updateTimerDisplay() {
     if (progressRing) {
         const total = timerMode === 'focus' ? timerMaxTime : 5 * 60;
         const progress = (total - timerTimeLeft) / total;
-        // Circumference is 2 * pi * r = 2 * 3.14159 * 64 = 402.12
-        const offset = 402 - (progress * 402);
+        // Circumference is 2 * pi * r = 2 * 3.14159 * 34 = 213.6
+        const offset = 213 - (progress * 213);
         progressRing.style.strokeDashoffset = offset;
+    }
+
+    if (badge) {
+        badge.textContent = `${mins}m`;
+        if (timerIsRunning) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
     }
 }
 
 function logFocusSecond() {
-    if (timerSelectedCourseId === 'general') return;
-    
     if (!focusStats[timerSelectedCourseId]) {
         focusStats[timerSelectedCourseId] = 0;
     }
     focusStats[timerSelectedCourseId]++;
     
-    // Save to LocalStorage every 10 seconds to decrease writes
     if (focusStats[timerSelectedCourseId] % 10 === 0) {
         saveFocusStats();
     }
@@ -412,7 +497,7 @@ function playTimerAlert() {
         oscillator.start();
         oscillator.stop(audioCtx.currentTime + 0.35);
     } catch (e) {
-        console.warn('Audio API warning');
+        console.warn('Audio alert API warning');
     }
 }
 
@@ -435,7 +520,6 @@ window.showToast = function(courseTitle) {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
-    // Create toast element
     const toast = document.createElement('div');
     toast.className = 'glass-card border border-indigo-500/20 px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 text-sm text-slate-200 fade-in select-none max-w-sm w-full';
     toast.style.background = 'rgba(15, 23, 42, 0.9)';
@@ -453,7 +537,6 @@ window.showToast = function(courseTitle) {
 
     container.appendChild(toast);
 
-    // Auto-remove toast after 4 seconds
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
