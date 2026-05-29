@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "=============================================="
-echo "Activating Dr. Lex (RadReqs-AI Tutor)"
+echo "Activating Dr. Lex (Gnosys-AI Tutor)"
 echo "=============================================="
 echo ""
 echo "Setting secure browser permissions (CORS)..."
@@ -52,5 +52,5 @@ if ! ollama pull "$MODEL"; then
 fi
 
 echo ""
-echo "Opening RadReqs-AI with model: $MODEL"
-open "https://RorriMaesu.github.io/RadReqs-AI/?model=$MODEL"
+echo "Opening Gnosys-AI with model: $MODEL"
+open "https://RorriMaesu.github.io/Gnosys-AI/?model=$MODEL"

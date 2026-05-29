@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 echo ==============================================
-echo Activating Dr. Lex (RadReqs-AI Tutor)
+echo Activating Dr. Lex (Gnosys-AI Tutor)
 echo ==============================================
 echo.
 echo Setting secure browser connection permissions (CORS)...
@@ -69,6 +69,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo Opening RadReqs-AI with model !MODEL!...
-start "" "https://RorriMaesu.github.io/RadReqs-AI/?model=!MODEL!"
+echo Opening Gnosys-AI with model !MODEL!...
+start "" "https://RorriMaesu.github.io/Gnosys-AI/?model=!MODEL!"
 echo The terminal will automatically close when finished.

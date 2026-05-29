@@ -182,6 +182,8 @@ function renderFilters() {
         { id: 'all', label: 'All Modules' },
         { id: 'active', label: 'Active Study' },
         { id: 'sciences', label: 'Sciences' },
+        { id: 'clinical', label: 'Clinical Core' },
+        { id: 'humanities', label: 'Humanities' },
         { id: 'sonography', label: 'Sonography' }
     ];
 
@@ -208,6 +210,10 @@ function renderCourseGrid() {
         filtered = COURSES.filter(c => c.status === 'active');
     } else if (activeFilter === 'sciences') {
         filtered = COURSES.filter(c => c.category === 'Sciences');
+    } else if (activeFilter === 'clinical') {
+        filtered = COURSES.filter(c => c.category === 'Clinical Core');
+    } else if (activeFilter === 'humanities') {
+        filtered = COURSES.filter(c => c.category === 'Humanities');
     } else if (activeFilter === 'sonography') {
         filtered = COURSES.filter(c => c.category === 'Sonography');
     }

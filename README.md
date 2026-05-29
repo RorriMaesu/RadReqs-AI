@@ -1,10 +1,10 @@
 <div align="center">
-  <img src="./assets/RADreqsLogo.jpg" alt="RadReqs-AI Logo" width="200" style="border-radius: 20px; margin-bottom: 20px;"/>
+  <img src="./assets/GnosysAILogo.jpg" alt="Gnosys-AI Logo" width="200" style="border-radius: 20px; margin-bottom: 20px;"/>
 </div>
 
-# RadReqs-AI 🧬 (Pre-Health & Sonography Study Suite)
+# Gnosys-AI 🧠 (Universal Study Suite)
 
-[![Deploy to GitHub Pages](https://github.com/RorriMaesu/RadReqs-AI/actions/workflows/deploy.yml/badge.svg)](https://RorriMaesu.github.io/RadReqs-AI/)
+[![Deploy to GitHub Pages](https://github.com/RorriMaesu/Gnosys-AI/actions/workflows/deploy.yml/badge.svg)](https://RorriMaesu.github.io/Gnosys-AI/)
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)](#)
 [![JavaScript](https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E)](#)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](#)
@@ -12,13 +12,13 @@
 
 <a href="https://buymeacoffee.com/rorrimaesu" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
 
-**RadReqs-AI** is a premium, AI-powered educational suite designed for health science students preparing for competitive allied health programs, with a focus on **Sonography** pre-requisites and clinical core sciences. It accelerates learning through highly gamified spaced-repetition, intelligent clinical scenario decryption, and an integrated local LLM tutor powered by Google's Gemma.
+**Gnosys-AI** is a premium, AI-powered educational suite designed for students across all disciplines. It accelerates academic mastery through highly gamified spaced-repetition, intelligent scenario decryption, scientific calculations, and an integrated local LLM tutor powered by Google's Gemma.
 
 > [!NOTE]
 > **Author's Note & Disclaimer:** I am a student navigating this learning path and developed this application for my personal study. While I am happy to share this tool with other students, please note that it is provided "as-is" with absolutely no guarantees of accuracy. I am using it to learn, and encourage you to always cross-reference definitions with official textbooks.
 
 <p align="center">
-  <img src="./assets/screenshots/RadReqsLandingPageDarkModeScreenshot.jpg" alt="RadReqs-AI Hub Landing Page" width="100%">
+  <img src="./assets/screenshots/RadReqsLandingPageDarkModeScreenshot.jpg" alt="Gnosys-AI Hub Landing Page" width="100%">
 </p>
 
 ---
@@ -26,11 +26,12 @@
 ## 🌟 Features
 
 ### 1. The Study Hub
-A sleek, modern central landing page providing access to the complete prerequisite and core curriculum required for sonography and pre-clinical professionals. The entire suite features fully integrated **Light and Dark Mode** options with beautiful, frosted-glass navigation and fluid theme switching.
+A sleek, modern central landing page providing access to the complete curriculum required for academic and professional success. The entire suite features fully integrated **Light and Dark Mode** options with beautiful, frosted-glass navigation and fluid theme switching.
 
 ### 2. Medical Terminology (Active Module)
 The foundational module for clinical language mastery.
 - **Spaced Repetition Flashcards:** Adaptive algorithm to ensure long-term retention of medical roots, prefixes, and suffixes.
+- **Word Builder:** Drag and drop prefixes, roots, and suffixes to construct complex clinical terms.
 - **Chart Decrypter:** Translates complex clinical SOAP notes into plain English, intelligently graded by an LLM.
 - **Abbreviation Decoder & Pluralization:** Rapid-fire tools to master medical shorthand and grammar.
 - **Dr. Lex (AI Tutor):** An integrated, warm, and precise AI tutor powered by **Gemma 4** (via Ollama) that can break down complex terms, provide mnemonics, and generate on-demand quizzes.
@@ -52,35 +53,29 @@ The foundational module for clinical language mastery.
 
 ### 3. Intro to Chemistry (Active Expansion)
 A full chemistry learning system spanning Skills Lab, Coursework, and Homework Binder, built for CH 104Z/124Z-style progression.
-- **Skills Lab + Crash Course Hub:** Dedicated **Crash Course Chemistry** section with episode playlist navigation, in-modal playback, concept chips, watched tracking, previous/next episode actions, and 3-question micro-quiz reinforcement.
-- **Diagnostic + Practice Track:** Entry diagnostic and guided practice pathways for core prereq competencies.
+- **Skills Lab + Crash Course Hub:** Dedicated **Crash Course Chemistry** section with episode playlist navigation, watched tracking, and micro-quiz reinforcement.
 - **Core Calculator Stack:** Molar mass, dimensional analysis, stoichiometry, significant figures, nomenclature, and lab-focused precision tools.
-- **Coursework State Machine (4 Stages):** Micro-lecture -> Socratic check -> Sandbox handshake -> Feynman final, with lesson-level continuity and session recovery.
-- **Homework Binder Accreditation:** Procedurally generated 10-question worksheet sets with strict local grading and an **80% mastery threshold**.
-- **Explore Mode (Cross-Page):** Universal bypass toggle in Coursework/Homework headers for free curriculum exploration without auto-crediting mastery.
-- **Universal Reset Progress:** Header-level reset control across chemistry pages with typed `RESET` confirmation, cross-tab synchronization, and a compact success toast before reload.
 - **Prof. Beaker (AI Tutor):** Context-aware chemistry guidance powered by your local Ollama model.
 
-### 4. Clinical Mathematics (Active Module)
-A mathematical engine designed to enforce safety and accuracy in clinical and dosage calculations.
-- **Numeracy & Units:** Practice converting between metrics, concentrations, and physical measurements.
-- **Safety Validator:** Catch and correct dangerous formatting errors like trailing zeros (`5.0`), naked decimals (`5.`), and missing leading zeros (`.5`).
+### 4. Applied Mathematics (Active Module)
+A mathematical engine designed to reinforce safety, precision, and accuracy in scientific and clinical calculations.
+- **Numeracy & Units:** Practice converting between SI metrics, legacy units, concentrations, and physical measurements.
+- **Precision Validator:** Catch and correct formatting errors like trailing zeros (`5.0`), naked decimals (`5.`), and missing leading zeros (`.5`).
 - **Algebraic Logic:** Master formula rearrangement with an interactive, foolproof "variable chip" puzzle UI.
-- **Scale and Physical Laws:** Practice applying physical scaling laws (such as the inverse square law for imaging energy intensities) using interactive sliders.
 
-### 5. Psychology & Patient Care Simulator (Active Module)
-An training module for navigating complex clinical, behavioral, and patient care situations.
-- **Chart Auditor:** Rigorously test your ability to spot hidden clinical contraindications, procedural hazards, and safety red flags within 29 complex patient charts.
-- **Jargon Filter:** Master clinical communication by translating medical terminology into comforting, patient-safe explanations across 25 scenarios.
-- **Timed Crisis De-escalation:** A high-stakes, 24-scenario gauntlet where you must manage severe emergencies (e.g., contrast anaphylaxis, combative patients, sensory overload) using timed tactical empathy and immediate decision-making.
-- **EHR Legal Auditor:** Learn the critical difference between subjective complaining and objective, charting with a built-in expert guide and AI feedback loop.
+### 5. Psychology & Communication Simulator (Active Module)
+A training module for navigating complex interpersonal, behavioral, and professional care situations.
+- **Context Auditor:** Rigorously test your ability to spot hidden behavioral cues, procedural hazards, and safety red flags within complex case charts.
+- **Jargon Filter:** Master professional communication by translating academic terminology into comforting, clear explanations.
+- **Timed Crisis De-escalation:** A high-stakes gauntlet where you must manage severe interpersonal emergencies using timed tactical empathy.
+- **EHR & Documentation Auditor:** Learn the critical difference between subjective reporting and objective, defensible charting.
 
 ### 6. Gamification Engine
-Learning complex clinical data is hard. RadReqs-AI keeps you engaged and addicted to studying.
+Learning complex clinical and academic data is hard. Gnosys-AI keeps you engaged and addicted to studying.
 - **XP & Leveling System:** Progress from *Pre-Med Student* all the way to *Legacy Master*.
-- **Streak Tracking & Shields:** Maintain daily study streaks, unlock comeback achievements, and earn streak shields to protect your progress.
-- **Achievement Badges:** Unlock over 20 unique badges like *Hundred Club*, *Code Cracker*, and *Clinical Clarity*.
-- **Daily Quests:** Complete procedurally generated daily objectives for bonus XP.
+- **Streak Tracking & Shields:** Maintain daily study streaks, unlock achievements, and earn shields to protect progress.
+- **Achievement Badges:** Unlock over 20 unique badges.
+- **Daily Quests:** Complete objectives for bonus XP.
 
 <table width="100%">
   <tr>
@@ -99,53 +94,44 @@ Study anywhere, perfectly optimized for your phone.
   </tr>
 </table>
 
-### 8. Comprehensive Curriculum Roadmap
-Placeholders are beautifully integrated for future module expansion, creating a complete pathway:
-- Anatomy & Physiology
-- General & Sound Physics (SPI Prep)
-- Ultrasound Physics & Instrumentation
-- Abdominal Sonography
-- OB/GYN Sonography
-- Vascular Sonography
-- Sectional Anatomy & Pathology
-- General Biology
-- English Composition
+### 8. Academic & Clinical Curriculum Roadmap
+Expanding to support a broad array of subjects across disciplines:
+- 🧬 **Natural Sciences**: General Biology, Anatomy & Physiology
+- 🧮 **Mathematical & Physical Sciences**: Applied Physics, Wave Mechanics, SPI Physics
+- 🏥 **Clinical Specialties**: Ultrasound Physics & Instrumentation, Abdominal Sonography, OB/GYN Sonography, Vascular Sonography, Sectional Anatomy & Pathology
+- ✍️ **Humanities & General Studies**: English Composition, Ethics & Communication
 
 ---
 
 ## 🚀 Getting Started
 
 ### Path A: For Students (1-Click Setup)
-You do not need to download this repository or know how to code to use RadReqs-AI. The suite is hosted entirely online at **[https://RorriMaesu.github.io/RadReqs-AI/](https://RorriMaesu.github.io/RadReqs-AI/)**.
+You do not need to download this repository or know how to code to use Gnosys-AI. The suite is hosted entirely online at **[https://RorriMaesu.github.io/Gnosys-AI/](https://RorriMaesu.github.io/Gnosys-AI/)**.
 
 However, for **Dr. Lex** (the AI Tutor) to work, it runs completely free and privately on your own computer. To activate him:
 
 1. **Install Ollama:** Download and install the Ollama app for [Windows (.exe)](https://ollama.com/download/OllamaSetup.exe) or [macOS (.zip)](https://ollama.com/download/Ollama-darwin.zip).
 2. **Download the Smart Launcher:** 
-   - **[⬇️ Download Dr. Lex Smart Launcher (.zip)](https://github.com/RorriMaesu/RadReqs-AI/raw/main/assets/Start_Dr_Lex.zip)**
-3. **Run the Script:** Open the downloaded `.zip` file and double-click the launcher for your system (`Start_Dr_Lex.bat` for Windows, or `Start_Dr_Lex_Mac.command` for Mac). The script will automatically detect your hardware, pick the optimal AI model, and download it.
-   
-   - **Windows Users:** If a dialog appears asking to "Extract all" or "Run", simply click **Run**. If Windows SmartScreen displays a blue 'Windows protected your PC' warning, click **More info** and then **Run anyway**.
-   - **Mac Users:** You may need to right-click -> Open if you get a permissions warning.
+   - **[⬇️ Download Dr. Lex Smart Launcher (.zip)](https://github.com/RorriMaesu/Gnosys-AI/raw/main/assets/Start_Dr_Lex.zip)**
+3. **Run the Script:** Open the downloaded `.zip` file and double-click the launcher for your system (`Start_Dr_Lex.bat` for Windows, or `Start_Dr_Lex_Mac.command` for Mac).
 
-The script will automatically configure browser security permissions (CORS), download Dr. Lex's brain (this takes a few minutes the first time), and instantly launch the website for you to start studying!
+The script will configure CORS, download the model, and launch the website for you!
 
 ---
 
 ### Path B: For Developers (Local Development)
-RadReqs-AI is built with pure Vanilla JavaScript and HTML.
+Gnosys-AI is built with pure Vanilla JavaScript and HTML.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/RorriMaesu/RadReqs-AI.git
-   cd RadReqs-AI
+   git clone https://github.com/RorriMaesu/Gnosys-AI.git
+   cd Gnosys-AI
    ```
-2. Install dependencies (Tailwind CLI) and compile CSS:
+2. Install dependencies and compile CSS:
    ```bash
    npm install
    npm run build:css
    ```
-   *(Note: Use `npm run dev` while actively editing HTML to auto-recompile CSS).*
 3. Start a local HTTP server from the root directory:
    ```bash
    python -m http.server 8000
@@ -158,17 +144,17 @@ RadReqs-AI is built with pure Vanilla JavaScript and HTML.
 
 ## 🛠️ Architecture
 - **Frontend:** HTML5, TailwindCSS (via CDN), Vanilla JavaScript.
-- **Data Persistence:** Client-side `localStorage` with a robust zero-data-loss automatic migration system between module versions.
+- **Data Persistence:** Client-side `localStorage`.
 - **AI Integration:** Direct asynchronous `fetch` requests to `http://localhost:11434` (Ollama REST API).
 - **Icons:** FontAwesome 6.
 
 ---
 
 ## ☕ Support the Project
-RadReqs-AI is a free, open-source educational suite built to help future healthcare heroes. If this app helped you pass your exams or master clinical language, consider buying me a coffee to support continued development and hosting! 
+Gnosys-AI is a free, open-source educational suite built to help future healthcare heroes. If this app helped you pass your exams or master clinical language, consider buying me a coffee to support continued development and hosting! 
 
 <a href="https://buymeacoffee.com/rorrimaesu" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
 
 ---
 
-*Built for Clinical Excellence.*
+*Built for Academic Excellence.*
