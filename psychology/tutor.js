@@ -107,11 +107,16 @@ window.PsychTutor = (() => {
         ];
         
         try {
-            let targetModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
+        let targetModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
+        try {
+            const reqOptions = {};
+            if (targetModel.toLowerCase().includes('gemma4')) {
+                reqOptions.draft_num_predict = 4;
+            }
             let response = await fetch("http://localhost:11434/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: targetModel, messages: payload, stream: true })
+                body: JSON.stringify({ model: targetModel, messages: payload, stream: true, options: reqOptions })
             });
             
             // Auto-detect installed model if 404 (Model not found)
@@ -123,11 +128,15 @@ window.PsychTutor = (() => {
                         const fallback = tagsData.models.find(m => m.name.includes('gemma')) || tagsData.models[0];
                         targetModel = fallback.name;
                         localStorage.setItem("psych_llm", targetModel);
+                        const retryOptions = {};
+                        if (targetModel.toLowerCase().includes('gemma4')) {
+                            retryOptions.draft_num_predict = 4;
+                        }
                         // Retry with the detected model
                         response = await fetch("http://localhost:11434/api/chat", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ model: targetModel, messages: payload, stream: true })
+                            body: JSON.stringify({ model: targetModel, messages: payload, stream: true, options: retryOptions })
                         });
                     }
                 }
@@ -172,6 +181,9 @@ window.PsychTutor = (() => {
             }
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[targetModel];
+            }
             typingWrap.remove();
             appendBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
             const statusText = document.getElementById('chat-status-text');

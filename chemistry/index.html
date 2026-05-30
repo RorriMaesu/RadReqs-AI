@@ -12,6 +12,7 @@
     </script>
     <link rel="stylesheet" href="../assets/css/tailwind.css">
     <link rel="stylesheet" href="math-refresher/styles.css">
+    <link rel="stylesheet" href="gamification.css">
     <link rel="icon" type="image/jpeg" href="../assets/GnosysAILogo.jpg">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -758,8 +759,8 @@
                 <button id="btn-darkmode" title="Toggle Dark Mode" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white flex items-center justify-center shadow-sm transition-colors shrink-0">
                     <i class="fa-solid fa-moon"></i>
                 </button>
-                <button id="btn-reset-progress" type="button" title="Reset Chemistry Progress" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300 dark:bg-rose-500/15 dark:border-rose-500/35 hover:bg-rose-500/20 transition-colors shrink-0">
-                    <i class="fa-solid fa-trash-arrow-up mr-1"></i>Reset Progress
+                <button id="btn-settings" title="Settings & Reset" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 dark:bg-slate-850 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white flex items-center justify-center shadow-sm transition-colors shrink-0">
+                    <i class="fa-solid fa-gear text-sm"></i>
                 </button>
             </div>
         </div>
@@ -2215,8 +2216,10 @@
 
     <script src="mastery.js"></script>
     <script src="data.js"></script>
+    <script src="../assets/ollama-launcher.js"></script>
     <script src="ai-tutor.js"></script>
     <script type="module" src="math-refresher/math-controller.js"></script>
+    <script src="gamification.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -131,7 +131,10 @@ function getConfiguredChatEndpoint() {
 }
 
 function getChemistryModel() {
-    return localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
+    if (typeof window.getGnosysModel === 'function') {
+        return window.getGnosysModel('chemistry_llm');
+    }
+    return localStorage.getItem('gnosys_active_llm') || localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
 }
 
 function pickAvailableModel(requestedModel, models) {
@@ -225,10 +228,18 @@ function normalizeTutorResponse(parsed) {
 }
 
 async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
+    let activeModel = getChemistryModel();
+    if (typeof window.ensureOllamaActive === 'function') {
+        try {
+            await window.ensureOllamaActive(getConfiguredEndpoint().replace('/api/generate', ''), activeModel);
+        } catch (err) {
+            console.error(err);
+            return { ...TUTOR_OFFLINE_MOCK };
+        }
+    }
     const maxAttempts = 3;
     const prompt = buildTutorPrompt(systemPrompt, messageHistory, userInput);
     const endpoint = getConfiguredEndpoint();
-    let activeModel = getChemistryModel();
 
     try {
         const models = await fetchOllamaTags(endpoint);
@@ -246,23 +257,33 @@ async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
         let responseData;
 
         try {
+            const bodyObj = {
+                model: activeModel,
+                stream: false,
+                prompt
+            };
+            if (activeModel.toLowerCase().includes('gemma4')) {
+                bodyObj.options = { draft_num_predict: 4 };
+            }
             response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: activeModel,
-                    stream: false,
-                    prompt
-                })
+                body: JSON.stringify(bodyObj)
             });
         } catch (fetchErr) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[activeModel];
+            }
             console.warn('Local tutor offline/unreachable. Using mock fallback.', fetchErr);
             return { ...TUTOR_OFFLINE_MOCK };
         }
 
         if (!response.ok) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[activeModel];
+            }
             // Retry on non-OK responses, then fail gracefully.
             if (attempt === maxAttempts) {
                 return { ...TUTOR_ERROR_RESPONSE };
@@ -297,8 +318,11 @@ async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
 }
 
 async function streamPeriodicTableTutor(systemPrompt, messageHistory, userInput, onToken) {
-    const endpoint = getConfiguredChatEndpoint();
     let activeModel = getChemistryModel();
+    if (typeof window.ensureOllamaActive === 'function') {
+        await window.ensureOllamaActive(getConfiguredEndpoint().replace('/api/generate', ''), activeModel);
+    }
+    const endpoint = getConfiguredChatEndpoint();
     const safeHistory = Array.isArray(messageHistory) ? messageHistory : [];
 
     try {
@@ -318,24 +342,36 @@ async function streamPeriodicTableTutor(systemPrompt, messageHistory, userInput,
         { role: 'user', content: typeof userInput === 'string' ? userInput : '' }
     ];
 
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: activeModel,
-            messages: payloadMessages,
-            stream: true,
-            options: {
-                num_ctx: 4096,
-                temperature: 0.6
-            }
-        })
-    });
+    const requestOptions = {
+        num_ctx: 4096,
+        temperature: 0.6
+    };
+    if (activeModel.toLowerCase().includes('gemma4')) {
+        requestOptions.draft_num_predict = 4;
+    }
 
-    if (!response.ok || !response.body) {
-        throw new Error(`Ollama chat request failed with status ${response.status}`);
+    let response;
+    try {
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: activeModel,
+                messages: payloadMessages,
+                stream: true,
+                options: requestOptions
+            })
+        });
+        if (!response.ok || !response.body) {
+            throw new Error(`Ollama chat request failed with status ${response ? response.status : 'unknown'}`);
+        }
+    } catch (err) {
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[activeModel];
+        }
+        throw err;
     }
 
     const reader = response.body.getReader();
@@ -419,6 +455,9 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
     onProgress('connect', 'running', `Connecting to Ollama endpoint at ${endpoint}...`);
     let models = [];
     try {
+        if (typeof window.ensureOllamaActive === 'function') {
+            await window.ensureOllamaActive(endpoint.replace('/api/generate', ''), activeModel);
+        }
         models = await fetchOllamaTags(endpoint);
         onProgress('connect', 'success', `Successfully connected to Ollama.`);
     } catch (err) {
@@ -453,6 +492,13 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
     const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
+            const requestOptions = {
+                num_ctx: 2048,
+                temperature: 0.7
+            };
+            if (activeModel.toLowerCase().includes('gemma4')) {
+                requestOptions.draft_num_predict = 4;
+            }
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -461,10 +507,7 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
                     stream: false,
                     prompt: prompt,
                     system: systemPrompt,
-                    options: {
-                        num_ctx: 2048,
-                        temperature: 0.7
-                    }
+                    options: requestOptions
                 })
             });
 
@@ -479,6 +522,9 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
             }
             break; // Success
         } catch (err) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[activeModel];
+            }
             if (attempt === maxAttempts) {
                 throw err; // Re-throw if final attempt fails
             }
@@ -496,8 +542,11 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
 }
 
 async function fetchGeneratedQuestion(lesson, mode) {
-    const endpoint = getConfiguredEndpoint();
     let activeModel = getChemistryModel();
+    if (typeof window.ensureOllamaActive === 'function') {
+        await window.ensureOllamaActive(getConfiguredEndpoint().replace('/api/generate', ''), activeModel);
+    }
+    const endpoint = getConfiguredEndpoint();
     
     let systemPrompt = `You are an Expert Professor of General Chemistry.`;
     let prompt = '';
@@ -522,23 +571,35 @@ async function fetchGeneratedQuestion(lesson, mode) {
         throw new Error(`Unsupported mode for question generation: ${mode}`);
     }
 
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: activeModel,
-            stream: false,
-            prompt: prompt,
-            system: systemPrompt,
-            options: {
-                num_ctx: 2048,
-                temperature: 0.8
-            }
-        })
-    });
+    const requestOptions = {
+        num_ctx: 2048,
+        temperature: 0.8
+    };
+    if (activeModel.toLowerCase().includes('gemma4')) {
+        requestOptions.draft_num_predict = 4;
+    }
 
-    if (!response.ok) {
-        throw new Error(`Ollama returned status ${response.status}`);
+    let response;
+    try {
+        response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: activeModel,
+                stream: false,
+                prompt: prompt,
+                system: systemPrompt,
+                options: requestOptions
+            })
+        });
+        if (!response.ok) {
+            throw new Error(`Ollama returned status ${response.status}`);
+        }
+    } catch (err) {
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[activeModel];
+        }
+        throw err;
     }
 
     const data = await response.json();

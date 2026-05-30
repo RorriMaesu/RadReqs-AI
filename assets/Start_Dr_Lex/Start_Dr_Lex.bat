@@ -8,6 +8,10 @@ echo Setting secure browser connection permissions (CORS)...
 set OLLAMA_ORIGINS=*
 setx OLLAMA_ORIGINS "*" >nul 2>&1
 
+echo Registering custom browser URL protocol for Ollama...
+reg add "HKCU\Software\Classes\gnosys-ollama" /v "URL Protocol" /t REG_SZ /d "" /f >nul 2>&1
+reg add "HKCU\Software\Classes\gnosys-ollama\shell\open\command" /ve /t REG_SZ /d "\"%%LOCALAPPDATA%%\Programs\Ollama\ollama app.exe\"" /f >nul 2>&1
+
 echo Starting Ollama background service...
 taskkill /f /im ollama.exe >nul 2>&1
 taskkill /f /im "ollama app.exe" >nul 2>&1

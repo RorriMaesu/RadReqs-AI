@@ -63,14 +63,18 @@ function updateDashboard() {
 async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
     try {
         let targetModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
+        const requestOptions = {
+            num_predict: 150,
+            num_ctx: 1024
+        };
+        if (targetModel.toLowerCase().includes('gemma4')) {
+            requestOptions.draft_num_predict = 4;
+        }
         let payload = {
             model: targetModel,
             prompt: `${systemPrompt}\n\nStudent Input: "${userInput}"`,
             stream: false,
-            options: {
-                num_predict: 150,
-                num_ctx: 1024
-            }
+            options: requestOptions
         };
         if (jsonFormat) payload.format = 'json';
 
@@ -89,6 +93,11 @@ async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
                     targetModel = fallback.name;
                     localStorage.setItem("psych_llm", targetModel);
                     payload.model = targetModel;
+                    if (targetModel.toLowerCase().includes('gemma4')) {
+                        payload.options.draft_num_predict = 4;
+                    } else {
+                        delete payload.options.draft_num_predict;
+                    }
                     response = await fetch('http://localhost:11434/api/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -102,6 +111,9 @@ async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
         const data = await response.json();
         return data.response;
     } catch (error) {
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[targetModel];
+        }
         console.warn('Local LLM is offline or returned an error. Using hardcoded clinical logic fallback.', error);
         return null;
     }
@@ -695,12 +707,17 @@ async function sendEhrChatMessage() {
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<i class="fa-solid fa-ellipsis"></i>';
     
+    const currentModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
     try {
+        const requestOptions = { num_predict: 1000 };
+        if (currentModel.toLowerCase().includes('gemma4')) {
+            requestOptions.draft_num_predict = 4;
+        }
         const payload = {
-            model: localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b",
+            model: currentModel,
             messages: ehrChatHistory,
             stream: false,
-            options: { num_predict: 1000 }
+            options: requestOptions
         };
         
         const response = await fetch('http://localhost:11434/api/chat', {
@@ -729,6 +746,9 @@ async function sendEhrChatMessage() {
         historyEl.scrollTop = historyEl.scrollHeight;
         
     } catch (e) {
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[currentModel];
+        }
         console.error("Chatbot error:", e);
         const errDiv = document.createElement('div');
         errDiv.className = 'text-rose-500 text-xs text-center p-2';

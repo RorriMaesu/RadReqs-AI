@@ -1780,6 +1780,20 @@
         if (score >= PASS_PERCENT) {
             setGradeDisplay(score, 'ACCREDITED', 'emerald');
             showStatus(`Passed with ${score}%. Lesson marked as Mastered.`, 'success');
+            
+            if (typeof window.awardXP === 'function') {
+                window.awardXP(50, 'assignment');
+                if (score === 100) {
+                    window.awardXP(25, 'assignment_perfect');
+                }
+            }
+            if (typeof window.updateStatsCounter === 'function') {
+                window.updateStatsCounter('assignmentsCompleted', 1);
+            }
+            if (score === 100 && typeof window.checkAchievements === 'function') {
+                window.checkAchievements('perfect_assignment', {});
+            }
+
             window.updateLessonState(appState.selectedLessonId, STATE_MASTERED);
             appState.matrix = readMatrix();
 
@@ -1841,14 +1855,16 @@
             });
         }
 
-        const btnResetProgress = document.getElementById('btn-reset-progress');
-        if (btnResetProgress) {
-            btnResetProgress.addEventListener('click', () => {
-                if (typeof window.confirmAndResetChemistryProgress !== 'function') {
-                    window.alert('Reset service unavailable on this page.');
-                    return;
+        const btnSettings = document.getElementById('btn-settings');
+        if (btnSettings) {
+            btnSettings.addEventListener('click', () => {
+                if (typeof window.openChemistrySettingsModal === 'function') {
+                    window.openChemistrySettingsModal();
+                } else if (typeof window.confirmAndResetChemistryProgress === 'function') {
+                    window.confirmAndResetChemistryProgress();
+                } else {
+                    window.alert('Settings service unavailable on this page.');
                 }
-                window.confirmAndResetChemistryProgress();
             });
         }
 

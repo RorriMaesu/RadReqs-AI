@@ -30,7 +30,7 @@ function getConfiguredEndpoint() {
 }
 
 function getConfiguredModel() {
-    return localStorage.getItem('chemistry_llm') || DEFAULT_MODEL;
+    return localStorage.getItem('gnosys_active_llm') || localStorage.getItem('chemistry_llm') || DEFAULT_MODEL;
 }
 
 function getTagsEndpoint(generateEndpoint) {
@@ -163,9 +163,18 @@ async function runGenerateCall(prompt, system, options = {}) {
     try {
         const models = await fetchAvailableModels(endpoint);
         model = pickAvailableModel(model, models);
+        localStorage.setItem('gnosys_active_llm', model);
         localStorage.setItem('chemistry_llm', model);
     } catch (_err) {
         // Keep existing model when tag lookup is unavailable.
+    }
+
+    const requestOptions = {
+        temperature: typeof options.temperature === 'number' ? options.temperature : 0.5,
+        num_ctx: typeof options.num_ctx === 'number' ? options.num_ctx : 4096
+    };
+    if (model.toLowerCase().includes('gemma4')) {
+        requestOptions.draft_num_predict = 4;
     }
 
     const response = await fetch(endpoint, {
@@ -176,10 +185,7 @@ async function runGenerateCall(prompt, system, options = {}) {
             stream: false,
             prompt,
             system,
-            options: {
-                temperature: typeof options.temperature === 'number' ? options.temperature : 0.5,
-                num_ctx: typeof options.num_ctx === 'number' ? options.num_ctx : 4096
-            }
+            options: requestOptions
         })
     });
 

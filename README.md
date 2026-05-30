@@ -142,7 +142,15 @@ Study anywhere, perfectly optimized for your phone.
   </tr>
 </table>
 
-### 8. Academic & Clinical Curriculum Roadmap
+### 8. Intelligent AI Connection Engine & Hardware Profiler
+Experience top-tier, private local intelligence with advanced configuration and scheduling tools:
+- **Curated High-Quality LLMs:** Select from pre-configured recommended models (`gemma4:e4b` Default with Multi-Token Prediction, `llama3.2` 3B, `qwen2.5` 7B, `llama3` 8B, `mistral` 7B, and `phi3` 3.8B) or supply a custom model tag.
+- **Hardware-Aware Recommendations:** Automatically query system specifications (GPU adapter, dedicated VRAM, system RAM, Apple Silicon Unified Memory limits) to dynamically recommend optimal models.
+- **VRAM Safeguards:** Identifies model memory footprints in GB. Categorizes choices (`✓ Recommended` if fully VRAM accelerated, `⚠️ CPU Offload` if offloaded to slower RAM), and disables options that exceed system thresholds to prevent crashes. One-click "Auto-Configure" automatically selects the best fit for your machine.
+- **Dynamic Pull Downloader:** If a chosen model is missing, Gnosys-AI automatically intercepts the state and streams the download directly within the glassmorphic loading modal using Ollama's `/api/pull` streaming endpoint with a real-time progress bar.
+- **VRAM Pre-Loading & Connection Caching:** Starts Ollama automatically (via protocol scheme fallback or Python sidecar) and preloads models into warm VRAM. Caches active connection tokens (with 4-minute invalidation checks) to eliminate chat delays.
+
+### 9. Academic & Clinical Curriculum Roadmap
 Expanding to support a broad array of subjects across disciplines:
 - 🧬 **Natural Sciences**: General Biology, Anatomy & Physiology
 - 🧮 **Mathematical & Physical Sciences**: Applied Physics, Wave Mechanics, SPI Physics
@@ -180,9 +188,9 @@ Gnosys-AI is built with pure Vanilla JavaScript and HTML.
    npm install
    npm run build:css
    ```
-3. Start a local HTTP server from the root directory:
+3. Start the custom local HTTP server from the root directory (enables protocol handlers and hardware detection API):
    ```bash
-   python -m http.server 8000
+   python server.py
    ```
 4. Open your browser and navigate to `http://localhost:8000`.
 

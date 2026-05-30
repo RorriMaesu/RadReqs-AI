@@ -160,11 +160,16 @@ Guidelines:
             ...chatHistory
         ];
         
+        const currentModel = localStorage.getItem("gnosys_active_llm") || localStorage.getItem("chemistry_llm") || "gemma4:e4b";
         try {
+            const bodyObj = { model: currentModel, messages: payload, stream: true };
+            if (currentModel.toLowerCase().includes('gemma4')) {
+                bodyObj.options = { draft_num_predict: 4 };
+            }
             const response = await fetch("http://localhost:11434/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
+                body: JSON.stringify(bodyObj)
             });
             if (!response.ok) throw new Error("HTTP error");
 
@@ -202,6 +207,9 @@ Guidelines:
             }
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[currentModel];
+            }
             if (typingWrap.parentNode) {
                 typingWrap.remove();
             }

@@ -1217,10 +1217,19 @@
         saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
 
         if (mode === 'socratic' && aiResult.passed === true) {
+            if (typeof window.awardXP === 'function') {
+                window.awardXP(15, 'coursework_socratic');
+            }
             renderStage3();
         }
 
         if (mode === 'feynman' && aiResult.passed === true) {
+            if (typeof window.awardXP === 'function') {
+                window.awardXP(100, 'coursework_feynman');
+            }
+            if (typeof window.updateStatsCounter === 'function') {
+                window.updateStatsCounter('lessonsMastered', 1);
+            }
             updateLessonState(appState.lessonId, 2);
             localStorage.removeItem(`sandbox_complete_${appState.lessonId}`);
             saveSessionState(appState.lessonId, appState.stage, appState.messageHistory);
@@ -1368,14 +1377,16 @@
             });
         }
 
-        const btnResetProgress = document.getElementById('btn-reset-progress');
-        if (btnResetProgress) {
-            btnResetProgress.addEventListener('click', () => {
-                if (typeof window.confirmAndResetChemistryProgress !== 'function') {
-                    window.alert('Reset service unavailable on this page.');
-                    return;
+        const btnSettings = document.getElementById('btn-settings');
+        if (btnSettings) {
+            btnSettings.addEventListener('click', () => {
+                if (typeof window.openChemistrySettingsModal === 'function') {
+                    window.openChemistrySettingsModal();
+                } else if (typeof window.confirmAndResetChemistryProgress === 'function') {
+                    window.confirmAndResetChemistryProgress();
+                } else {
+                    window.alert('Settings service unavailable on this page.');
                 }
-                window.confirmAndResetChemistryProgress();
             });
         }
 

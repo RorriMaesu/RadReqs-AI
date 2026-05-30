@@ -9,6 +9,13 @@ let diagnosticSession = null;
 let chemistrySessionGamification = { streak: 0, xp: 0 };
 let chemistryVideoState = null;
 
+function getChemistryModel() {
+    if (typeof window.getGnosysModel === 'function') {
+        return window.getGnosysModel('chemistry_llm');
+    }
+    return localStorage.getItem('gnosys_active_llm') || localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
+}
+
 const chemistryDeckRegistry = {
     nomen: { state: null, cardIds: [] },
     poly: { state: null, cardIds: [] }
@@ -203,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
     chemistryVideoState = loadVideoState();
 
     bindDarkModeToggle();
-    bindChemistryProgressResetButton();
+    bindChemistrySettingsButton();
     bindTabs();
     mountConstants();
     mountElementChips();
@@ -2392,9 +2399,18 @@ function buildMathFallbackQuiz(lessonId) {
 }
 
 async function generateMathQuizSetWithGemma(lessonId) {
+    if (typeof window.ensureOllamaActive === 'function') {
+        try {
+            const tempEndpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
+            const model = getChemistryModel();
+            await window.ensureOllamaActive(tempEndpoint.replace('/api/generate', ''), model);
+        } catch (_err) {
+            return buildMathFallbackQuiz(lessonId);
+        }
+    }
     const fallbackItems = buildMathFallbackQuiz(lessonId);
     const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434/api/generate";
-    const model = localStorage.getItem("chemistry_llm") || "gemma4:e4b";
+    const model = getChemistryModel();
 
     const prompt = [
         "Return strict JSON only.",
@@ -2404,6 +2420,13 @@ async function generateMathQuizSetWithGemma(lessonId) {
     ].join("\n");
 
     try {
+        const reqOptions = {
+            temperature: 0.2,
+            num_ctx: 3072
+        };
+        if (model.toLowerCase().includes('gemma4')) {
+            reqOptions.draft_num_predict = 4;
+        }
         const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2411,14 +2434,16 @@ async function generateMathQuizSetWithGemma(lessonId) {
                 model,
                 stream: false,
                 prompt,
-                options: {
-                    temperature: 0.2,
-                    num_ctx: 3072
-                }
+                options: reqOptions
             })
         });
 
-        if (!response.ok) return fallbackItems;
+        if (!response.ok) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[model];
+            }
+            return fallbackItems;
+        }
         const data = await response.json();
         const parsed = tryParseLooseJson(data?.response || "");
         if (!parsed || !Array.isArray(parsed.items) || parsed.items.length < 3) {
@@ -2437,14 +2462,26 @@ async function generateMathQuizSetWithGemma(lessonId) {
 
         return normalized.length === 3 ? normalized : fallbackItems;
     } catch {
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[model];
+        }
         return fallbackItems;
     }
 }
 
 async function generateMathQuizWithGemma(lessonId) {
+    if (typeof window.ensureOllamaActive === 'function') {
+        try {
+            const tempEndpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
+            const model = getChemistryModel();
+            await window.ensureOllamaActive(tempEndpoint.replace('/api/generate', ''), model);
+        } catch (_err) {
+            return buildMathFallbackQuiz(lessonId);
+        }
+    }
     const fallback = buildMathFallbackQuiz(lessonId);
     const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434/api/generate";
-    const model = localStorage.getItem("chemistry_llm") || "gemma4:e4b";
+    const model = getChemistryModel();
 
     const prompt = [
         "Return strict JSON only.",
@@ -2454,6 +2491,13 @@ async function generateMathQuizWithGemma(lessonId) {
     ].join("\n");
 
     try {
+        const reqOptions = {
+            temperature: 0.2,
+            num_ctx: 2048
+        };
+        if (model.toLowerCase().includes('gemma4')) {
+            reqOptions.draft_num_predict = 4;
+        }
         const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2461,14 +2505,16 @@ async function generateMathQuizWithGemma(lessonId) {
                 model,
                 stream: false,
                 prompt,
-                options: {
-                    temperature: 0.2,
-                    num_ctx: 2048
-                }
+                options: reqOptions
             })
         });
 
-        if (!response.ok) return fallback;
+        if (!response.ok) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[model];
+            }
+            return fallback;
+        }
         const data = await response.json();
         const parsed = tryParseLooseJson(data?.response || "");
         if (!parsed || typeof parsed.question !== "string") return fallback;
@@ -2480,6 +2526,9 @@ async function generateMathQuizWithGemma(lessonId) {
             tolerance: Number.isFinite(Number(parsed.tolerance)) ? Number(parsed.tolerance) : 0.05
         };
     } catch {
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[model];
+        }
         return fallback;
     }
 }
@@ -3050,15 +3099,31 @@ function registerChemDeckState(deckKey, state, cardIds) {
 }
 
 function applySessionGamification(grade) {
+    let xpAwarded = 0;
     if (grade === 0) {
         chemistrySessionGamification.streak = 0;
         chemistrySessionGamification.xp = Math.max(0, chemistrySessionGamification.xp - 5);
-    } else if (grade === 2) {
+    } else if (grade === 1) { // Hard
+        chemistrySessionGamification.streak += 1;
+        chemistrySessionGamification.xp += 5;
+        xpAwarded = 10;
+    } else if (grade === 2) { // Good
         chemistrySessionGamification.streak += 1;
         chemistrySessionGamification.xp += 10;
-    } else if (grade === 3) {
+        xpAwarded = 15;
+    } else if (grade === 3) { // Easy
         chemistrySessionGamification.streak += 1;
         chemistrySessionGamification.xp += 20;
+        xpAwarded = 20;
+    }
+
+    if (typeof window.awardXP === 'function') {
+        if (xpAwarded > 0) {
+            window.awardXP(xpAwarded, 'flashcard');
+        }
+        if (typeof window.updateStatsCounter === 'function') {
+            window.updateStatsCounter('nomenclatureReviews', 1);
+        }
     }
 
     updateChemistryScoreboard();
@@ -3120,8 +3185,8 @@ function bindDarkModeToggle() {
     });
 }
 
-function bindChemistryProgressResetButton() {
-    const btn = document.getElementById("btn-reset-progress");
+function bindChemistrySettingsButton() {
+    const btn = document.getElementById("btn-settings");
     if (!btn) return;
 
     const resetEventName = window.CHEMISTRY_PROGRESS_RESET_EVENT || "chemistryProgressReset";
@@ -3135,11 +3200,13 @@ function bindChemistryProgressResetButton() {
     });
 
     btn.addEventListener("click", () => {
-        if (typeof window.confirmAndResetChemistryProgress !== "function") {
-            window.alert("Reset service unavailable on this page.");
-            return;
+        if (typeof window.openChemistrySettingsModal === "function") {
+            window.openChemistrySettingsModal();
+        } else if (typeof window.confirmAndResetChemistryProgress === "function") {
+            window.confirmAndResetChemistryProgress();
+        } else {
+            window.alert("Settings service unavailable on this page.");
         }
-        window.confirmAndResetChemistryProgress();
     });
 }
 
@@ -3386,8 +3453,24 @@ function bindTutorActions() {
         const text = input.value.trim();
         if (!text) return;
         
+        if (typeof window.ensureOllamaActive === 'function') {
+            try {
+                const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
+                const model = getChemistryModel();
+                await window.ensureOllamaActive(endpoint.replace('/api/chat', '').replace('/api/generate', ''), model);
+            } catch (err) {
+                console.error(err);
+                appendBubble("assistant", "Could not connect to local Ollama service. Please make sure Ollama is running.");
+                return;
+            }
+        }
+        
         appendBubble("user", text);
         chatHistory.push({ role: "user", content: text });
+        if (typeof window.awardXP === 'function') {
+            window.awardXP(5, 'tutor');
+            window.updateStatsCounter('tutorMessages', 1);
+        }
         if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
         
         input.value = "";
@@ -3401,11 +3484,16 @@ function bindTutorActions() {
 
         let payload = [{ role: "system", content: TUTOR_SYSTEM }, ...chatHistory];
         
+        const currentModel = getChemistryModel();
         try {
+            const bodyObj = { model: currentModel, messages: payload, stream: true };
+            if (currentModel.toLowerCase().includes('gemma4')) {
+                bodyObj.options = { draft_num_predict: 4 };
+            }
             const response = await fetch("http://localhost:11434/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
+                body: JSON.stringify(bodyObj)
             });
             if (!response.ok) throw new Error("HTTP error");
 
@@ -3442,6 +3530,9 @@ function bindTutorActions() {
             chatHistory.push({ role: "assistant", content: assistantText });
             if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
         } catch (e) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[currentModel];
+            }
             typingWrap.remove();
             appendBubble("assistant", "Could not connect to Ollama on localhost:11434.");
         }
@@ -3572,6 +3663,10 @@ function bindVideoActions() {
                 ...chemistryVideoState.completedEpisodeIds,
                 episodeId
             ]));
+            if (typeof window.awardXP === 'function') {
+                window.awardXP(30, 'video');
+                window.updateStatsCounter('videosWatched', 1);
+            }
         } else {
             chemistryVideoState.completedEpisodeIds = chemistryVideoState.completedEpisodeIds.filter((id) => id !== episodeId);
         }
@@ -4257,6 +4352,22 @@ function recordCompetencyAttempt(competencyId, isCorrect) {
     const item = learningState.competencyProgress[competencyId];
     item.attempts += 1;
     if (isCorrect) item.correct += 1;
+
+    if (isCorrect && typeof window.awardXP === 'function' && typeof window.updateStatsCounter === 'function') {
+        if (competencyId === 'mole-concept') {
+            window.awardXP(15, 'molar');
+            window.updateStatsCounter('molarMassCalculated', 1);
+        } else if (competencyId === 'dim-analysis') {
+            window.awardXP(15, 'dimensions');
+            window.updateStatsCounter('conversionsCompleted', 1);
+        } else if (competencyId === 'stoich-setup') {
+            window.awardXP(15, 'stoich');
+            window.updateStatsCounter('equationsBalanced', 1);
+        } else if (competencyId === 'measurement-precision') {
+            window.awardXP(15, 'lab');
+            window.updateStatsCounter('correctLabReadings', 1);
+        }
+    }
 
     window.ChemMathRefresher?.notifyCompetencyAttempt?.(competencyId, isCorrect);
 
@@ -5538,6 +5649,10 @@ function bindSigFigActions() {
         const userVal = inputEl.value.trim();
         if (userVal === currentSession.expectedString || parseFloat(userVal) === parseFloat(currentSession.expectedString)) {
             setStatus(output, `Correct! The proper sig fig rounded answer is ${currentSession.expectedString}.`, "ok");
+            if (typeof window.awardXP === 'function') {
+                window.awardXP(15, 'sigfigs');
+                window.updateStatsCounter('sigFigsSolved', 1);
+            }
             if (window.activeSandboxHandshake && getTabForTarget(window.activeSandboxHandshake.target) === 'sigfigs') {
                 completeActiveSandboxHandshake();
             }
@@ -7154,6 +7269,18 @@ window.ChemTutor = (() => {
     }
 
     async function streamOllama(msgsEl, chatHistory, systemContext = "") {
+        if (typeof window.ensureOllamaActive === 'function') {
+            try {
+                const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
+                const model = getChemistryModel();
+                await window.ensureOllamaActive(endpoint.replace('/api/chat', '').replace('/api/generate', ''), model);
+            } catch (err) {
+                console.error(err);
+                removeContainerTypingIndicator(msgsEl);
+                appendInlineBubble(msgsEl, "assistant", "Could not connect to local Ollama service. Please make sure Ollama is running.");
+                return;
+            }
+        }
         removeContainerTypingIndicator(msgsEl);
         const typingWrap = createTypingIndicatorElement("ChemTutor", true);
         msgsEl.appendChild(typingWrap);
@@ -7164,11 +7291,16 @@ window.ChemTutor = (() => {
             ...chatHistory
         ];
         
+        const currentModel = getChemistryModel();
         try {
+            const bodyObj = { model: currentModel, messages: payload, stream: true };
+            if (currentModel.toLowerCase().includes('gemma4')) {
+                bodyObj.options = { draft_num_predict: 4 };
+            }
             const response = await fetch("http://localhost:11434/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: localStorage.getItem("chemistry_llm") || "gemma4:e4b", messages: payload, stream: true })
+                body: JSON.stringify(bodyObj)
             });
             if (!response.ok) throw new Error("HTTP error");
 
@@ -7204,6 +7336,9 @@ window.ChemTutor = (() => {
             }
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[currentModel];
+            }
             typingWrap.remove();
             appendInlineBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
         }

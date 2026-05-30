@@ -4,6 +4,7 @@
   "description": "<div align=\"center\">   <img src=\"./assets/GnosysAILogo.jpg\" alt=\"Gnosys-AI Logo\" width=\"200\" style=\"border-radius: 20px; margin-bottom: 20px;\"/> </div>",
   "main": "index.js",
   "scripts": {
+    "start": "python server.py",
     "build:css": "npx tailwindcss -i ./src/input.css -o ./assets/css/tailwind.css --minify",
     "dev": "npx tailwindcss -i ./src/input.css -o ./assets/css/tailwind.css --watch"
   },

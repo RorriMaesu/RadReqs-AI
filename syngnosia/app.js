@@ -1124,6 +1124,15 @@ function setupEventListeners() {
     document.getElementById('modal-btn-reset-all').addEventListener('click', resetAllProgress);
     document.getElementById('modal-btn-reset-system').addEventListener('click', () => resetSystemProgress(state.activeSystem));
     document.getElementById('fc-btn-review-mastered').addEventListener('click', reviewMasteredCards);
+    
+    const modelSelect = document.getElementById('modal-model-select');
+    if (modelSelect) {
+        modelSelect.addEventListener('change', (e) => {
+            if (e.target.value !== '__custom__') {
+                setTutorModel(e.target.value);
+            }
+        });
+    }
 
     // Feature A: Legal Consent and Reporting Errors
     const btnGeneralFeedback = document.getElementById('btn-general-feedback');
@@ -2105,6 +2114,54 @@ function openResetModal() {
             ? 'Reset All Systems'
             : `Reset "${state.activeSystem}"`;
     }
+
+    const selectEl = document.getElementById('modal-model-select');
+    const offlineMsg = document.getElementById('modal-model-offline-msg');
+    if (selectEl) {
+        const currentModel = getTutorModel();
+        
+        if (typeof window.populateModelSelector === 'function') {
+            window.populateModelSelector(selectEl, currentModel, OLLAMA_URL).then(online => {
+                if (!online && offlineMsg) {
+                    offlineMsg.classList.remove('hidden');
+                } else if (offlineMsg) {
+                    offlineMsg.classList.add('hidden');
+                }
+            });
+        } else {
+            getAvailableOllamaModels()
+                .then(models => {
+                    if (Array.isArray(models) && models.length > 0) {
+                        selectEl.innerHTML = '';
+                        if (offlineMsg) offlineMsg.classList.add('hidden');
+                        
+                        models.forEach(model => {
+                            const opt = document.createElement('option');
+                            opt.value = model;
+                            opt.textContent = model;
+                            if (model === currentModel) opt.selected = true;
+                            selectEl.appendChild(opt);
+                        });
+
+                        if (!models.includes(currentModel)) {
+                            const opt = document.createElement('option');
+                            opt.value = currentModel;
+                            opt.textContent = `${currentModel} (unlisted)`;
+                            opt.selected = true;
+                            selectEl.appendChild(opt);
+                        }
+                    } else {
+                        selectEl.innerHTML = `<option value="${currentModel}" selected>${currentModel}</option>`;
+                        if (offlineMsg) offlineMsg.classList.remove('hidden');
+                    }
+                })
+                .catch(() => {
+                    selectEl.innerHTML = `<option value="${currentModel}" selected>${currentModel}</option>`;
+                    if (offlineMsg) offlineMsg.classList.remove('hidden');
+                });
+        }
+    }
+
     document.getElementById('modal-reset').classList.remove('hidden');
 }
 
@@ -3041,11 +3098,15 @@ function nextPluralChallenge() {
 const OLLAMA_URL  = 'http://localhost:11434';
 
 function getTutorModel() {
-    return localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
+    if (typeof window.getGnosysModel === 'function') {
+        return window.getGnosysModel('syngnosia_tutor_model');
+    }
+    return localStorage.getItem('gnosys_active_llm') || localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
 }
 
 function setTutorModel(model) {
     if (!model || typeof model !== 'string') return;
+    localStorage.setItem('gnosys_active_llm', model);
     localStorage.setItem('syngnosia_tutor_model', model);
 }
 
@@ -3094,16 +3155,38 @@ function responseLooksLikeModelNotFound(status, bodyText) {
 
 async function requestOllamaWithModelFallback(path, buildBody) {
     let model = getTutorModel();
+    if (typeof window.ensureOllamaActive === 'function') {
+        await window.ensureOllamaActive(OLLAMA_URL, model);
+    }
 
     for (let attempt = 0; attempt < 2; attempt++) {
-        const response = await fetch(`${OLLAMA_URL}${path}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(buildBody(model))
-        });
+        const bodyObj = buildBody(model);
+        if (model.toLowerCase().includes('gemma4')) {
+            if (!bodyObj.options) bodyObj.options = {};
+            if (bodyObj.options.draft_num_predict === undefined) {
+                bodyObj.options.draft_num_predict = 4;
+            }
+        }
+        let response;
+        try {
+            response = await fetch(`${OLLAMA_URL}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(bodyObj)
+            });
+        } catch (fetchErr) {
+            if (window.gnosysActiveModelsCache) {
+                delete window.gnosysActiveModelsCache[model];
+            }
+            throw fetchErr;
+        }
 
         if (response.ok) {
             return { response, model };
+        }
+
+        if (window.gnosysActiveModelsCache) {
+            delete window.gnosysActiveModelsCache[model];
         }
 
         const errorText = await response.text();
