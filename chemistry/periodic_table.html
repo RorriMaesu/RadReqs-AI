@@ -68,6 +68,35 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+
+        /* Mobile UI Layout Optimization Overrides */
+        .no-scrollbar::-webkit-scrollbar { display: none !important; }
+        .no-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+
+        @media (max-width: 1024px) {
+            /* Hide heavy header navigation */
+            header nav { display: none !important; }
+            header h1 { font-size: 1rem !important; }
+            header p { font-size: 8px !important; }
+            
+            /* Socratic Chat Drawer overlay */
+            aside {
+                position: fixed !important;
+                right: -100% !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                width: 85vw !important;
+                max-width: 320px !important;
+                z-index: 200 !important;
+                transition: right 0.25s ease-in-out !important;
+                box-shadow: -8px 0 25px rgba(0,0,0,0.4) !important;
+                display: flex !important;
+            }
+            aside.show-mobile-tutor {
+                right: 0 !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-screen flex flex-col overflow-hidden">
@@ -114,8 +143,15 @@
         <!-- Left / Center Workspace containing Element Table -->
         <main class="flex-grow flex flex-col p-6 overflow-y-auto space-y-6">
             
-            <!-- Mount our custom periodic-table Web Component -->
-            <periodic-table id="chemistry-table"></periodic-table>
+            <!-- Mount our custom periodic-table Web Component in a scrollable container -->
+            <div class="w-full text-center py-2 px-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-xs font-semibold select-none flex items-center justify-center gap-2 lg:hidden">
+                <i class="fa-solid fa-arrows-left-right animate-pulse"></i> Swipe to explore periodic table ↔
+            </div>
+            <div class="w-full overflow-x-auto no-scrollbar pb-3" style="-webkit-overflow-scrolling: touch;">
+                <div class="min-w-[1020px] pr-4">
+                    <periodic-table id="chemistry-table"></periodic-table>
+                </div>
+            </div>
             
             <!-- Reactivity & Bonding Sandbox Overlay (Hidden by default) -->
             <div id="bonding-panel" class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 relative overflow-hidden hidden">
@@ -153,6 +189,9 @@
                     <span>Ask Socratic Tutor</span>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <button id="close-mobile-tutor" type="button" onclick="toggleMobilePeriodicTutor()" class="lg:hidden text-slate-500 hover:text-white px-2 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-[10px] flex items-center gap-1 font-semibold border border-transparent">
+                        <i class="fa-solid fa-xmark"></i> Close
+                    </button>
                     <button id="clear-chat" title="Clear Chat History" class="text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-[10px] flex items-center gap-1 font-semibold border border-transparent">
                         <i class="fa-solid fa-trash-can"></i> Clear
                     </button>
@@ -580,7 +619,7 @@
                 } catch (err) {
                     console.error("Tutor request failure:", err);
                     typingBubble.remove();
-                    appendTutorMessage("I couldn't reach your local Ollama tutor. Start Ollama on localhost:11434, then try again. If it is already running, check that your selected model is installed.");
+                    appendTutorMessage("I couldn't reach your local tutor provider. Complete mobile setup or reconnect your desktop provider, then try again.");
                 }
             });
 
@@ -651,6 +690,20 @@
                 }
             });
         });
+    </script>
+
+    <!-- Floating Socratic Chat Trigger (Mobile Only) -->
+    <button id="btn-mobile-tutor-trigger" onclick="toggleMobilePeriodicTutor()" class="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-amber-600 hover:bg-amber-500 border border-amber-500/30 text-white flex items-center justify-center shadow-2xl z-[180] hover:scale-105 transition-all">
+        <i class="fa-solid fa-comments text-xl"></i>
+    </button>
+
+    <script>
+        function toggleMobilePeriodicTutor() {
+            const aside = document.querySelector('aside');
+            if (aside) {
+                aside.classList.toggle('show-mobile-tutor');
+            }
+        }
     </script>
 </body>
 </html>

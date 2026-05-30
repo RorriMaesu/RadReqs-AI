@@ -63,7 +63,7 @@ Lab Data Crunch: Mock lab worksheets evaluated via JS logic.
 
 5. Local LLM API Hook (ai-tutor.js)
 
-Config: const CONFIG = { endpoint: 'http://localhost:11434/api/generate', model: 'gemma' }.
+Config: const CONFIG = { endpoint: 'local-provider', model: 'gemma' }.
 
 Prompt Injection: Inject parsed Syllabus parameters (concept, clinical_tie_in, feynman_prompt) dynamically into the systemPrompt.
 

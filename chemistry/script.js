@@ -140,12 +140,44 @@ function extractThinkingAndToolPayload(rawText) {
 }
 
 async function streamOllamaWithThinkingFilter({
-    endpoint = "http://localhost:11434/api/chat",
+    endpoint = "local-provider",
     payload,
     onVisibleToken,
     onThinking,
     onToolCalls
 }) {
+    const shouldUseRouter = Boolean(window.GnosysLLM) && !String(endpoint).startsWith('https://');
+    if (shouldUseRouter) {
+        const safeMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+        const systemMessage = safeMessages.find((m) => m?.role === 'system');
+        const nonSystem = safeMessages.filter((m) => m?.role !== 'system');
+        const userEntry = nonSystem[nonSystem.length - 1] || { role: 'user', content: '' };
+        const priorHistory = nonSystem.slice(0, -1);
+
+        let rawText = '';
+        await window.GnosysLLM.generateResponse(systemMessage?.content || '', userEntry?.content || '', {
+            stream: true,
+            history: priorHistory,
+            model: payload?.model,
+            moduleKey: 'chemistry_llm',
+            onToken: (token) => {
+                rawText += token;
+                const parsedPayload = extractThinkingAndToolPayload(rawText);
+                if (typeof onVisibleToken === 'function') onVisibleToken(parsedPayload.visibleText, rawText);
+                if (typeof onThinking === 'function' && parsedPayload.thinking) onThinking(parsedPayload.thinking);
+                if (typeof onToolCalls === 'function' && parsedPayload.toolCalls.length) onToolCalls(parsedPayload.toolCalls);
+            },
+        });
+
+        const parsed = extractThinkingAndToolPayload(rawText);
+        return {
+            raw: rawText,
+            visibleText: parsed.visibleText,
+            thinking: parsed.thinking,
+            toolCalls: parsed.toolCalls,
+        };
+    }
+
     const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2399,17 +2431,10 @@ function buildMathFallbackQuiz(lessonId) {
 }
 
 async function generateMathQuizSetWithModel(lessonId) {
-    if (typeof window.ensureOllamaActive === 'function') {
-        try {
-            const tempEndpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
-            const model = getChemistryModel();
-            await window.ensureOllamaActive(tempEndpoint.replace('/api/generate', ''), model);
-        } catch (_err) {
-            return buildMathFallbackQuiz(lessonId);
-        }
+    if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+        return buildMathFallbackQuiz(lessonId);
     }
     const fallbackItems = buildMathFallbackQuiz(lessonId);
-    const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434/api/generate";
     const model = getChemistryModel();
 
     const prompt = [
@@ -2420,32 +2445,19 @@ async function generateMathQuizSetWithModel(lessonId) {
     ].join("\n");
 
     try {
-        const reqOptions = {
-            temperature: 0.2,
-            num_ctx: 3072
-        };
-        if (model.toLowerCase().includes('gemma4')) {
-            reqOptions.draft_num_predict = 4;
-        }
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model,
-                stream: false,
-                prompt,
-                options: reqOptions
-            })
+        const result = await window.GnosysLLM.generateResponse('', prompt, {
+            moduleKey: 'chemistry_llm',
+            model,
+            stream: false,
         });
 
-        if (!response.ok) {
+        if (!result || typeof result.text !== 'string') {
             if (window.gnosysActiveModelsCache) {
                 delete window.gnosysActiveModelsCache[model];
             }
             return fallbackItems;
         }
-        const data = await response.json();
-        const parsed = tryParseLooseJson(data?.response || "");
+        const parsed = tryParseLooseJson(result.text || "");
         if (!parsed || !Array.isArray(parsed.items) || parsed.items.length < 3) {
             return fallbackItems;
         }
@@ -2470,17 +2482,10 @@ async function generateMathQuizSetWithModel(lessonId) {
 }
 
 async function generateMathQuizWithModel(lessonId) {
-    if (typeof window.ensureOllamaActive === 'function') {
-        try {
-            const tempEndpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
-            const model = getChemistryModel();
-            await window.ensureOllamaActive(tempEndpoint.replace('/api/generate', ''), model);
-        } catch (_err) {
-            return buildMathFallbackQuiz(lessonId);
-        }
+    if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+        return buildMathFallbackQuiz(lessonId);
     }
     const fallback = buildMathFallbackQuiz(lessonId);
-    const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434/api/generate";
     const model = getChemistryModel();
 
     const prompt = [
@@ -2491,32 +2496,19 @@ async function generateMathQuizWithModel(lessonId) {
     ].join("\n");
 
     try {
-        const reqOptions = {
-            temperature: 0.2,
-            num_ctx: 2048
-        };
-        if (model.toLowerCase().includes('gemma4')) {
-            reqOptions.draft_num_predict = 4;
-        }
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model,
-                stream: false,
-                prompt,
-                options: reqOptions
-            })
+        const result = await window.GnosysLLM.generateResponse('', prompt, {
+            moduleKey: 'chemistry_llm',
+            model,
+            stream: false,
         });
 
-        if (!response.ok) {
+        if (!result || typeof result.text !== 'string') {
             if (window.gnosysActiveModelsCache) {
                 delete window.gnosysActiveModelsCache[model];
             }
             return fallback;
         }
-        const data = await response.json();
-        const parsed = tryParseLooseJson(data?.response || "");
+        const parsed = tryParseLooseJson(result.text || "");
         if (!parsed || typeof parsed.question !== "string") return fallback;
 
         return {
@@ -3333,16 +3325,19 @@ function bindTutorActions() {
     const checkStatus = async () => {
         const dot = document.getElementById("chat-status-dot");
         const text = document.getElementById("chat-status-text");
+        if (!dot || !text) return false;
         try {
-            const res = await fetch("http://localhost:11434/api/ps", { signal: AbortSignal.timeout(3000) });
-            if (res.ok) {
-                dot.className = "inline-block w-2 h-2 rounded-full bg-green-500";
-                text.textContent = "Prof. Beaker is ready";
-                return true;
+            await window.GnosysLLM?.init?.();
+            const status = window.GnosysLLM?.getStatus?.();
+            const display = window.GnosysLLM?.getTutorStatusDisplay?.(status);
+            if (display) {
+                dot.className = display.dotClass;
+                text.textContent = display.text;
+                return display.connected;
             }
         } catch {}
-        dot.className = "inline-block w-2 h-2 rounded-full bg-red-400";
-        text.textContent = "Ollama offline";
+        dot.className = "inline-block w-2 h-2 rounded-full bg-amber-500";
+        text.textContent = "Mobile Setup Required";
         return false;
     };
 
@@ -3453,16 +3448,9 @@ function bindTutorActions() {
         const text = input.value.trim();
         if (!text) return;
         
-        if (typeof window.ensureOllamaActive === 'function') {
-            try {
-                const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
-                const model = getChemistryModel();
-                await window.ensureOllamaActive(endpoint.replace('/api/chat', '').replace('/api/generate', ''), model);
-            } catch (err) {
-                console.error(err);
-                appendBubble("assistant", "Could not connect to local Ollama service. Please make sure Ollama is running.");
-                return;
-            }
+        if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+            appendBubble("assistant", "Shared local AI router is unavailable.");
+            return;
         }
         
         appendBubble("user", text);
@@ -3486,44 +3474,31 @@ function bindTutorActions() {
         
         const currentModel = getChemistryModel();
         try {
-            const bodyObj = { model: currentModel, messages: payload, stream: true };
-            if (currentModel.toLowerCase().includes('gemma4')) {
-                bodyObj.options = { draft_num_predict: 4 };
-            }
-            const response = await fetch("http://localhost:11434/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyObj)
-            });
-            if (!response.ok) throw new Error("HTTP error");
-
+            const systemMessage = payload.find((msg) => msg.role === 'system');
+            const nonSystem = payload.filter((msg) => msg.role !== 'system');
+            const userEntry = nonSystem[nonSystem.length - 1] || { role: 'user', content: '' };
+            const priorHistory = nonSystem.slice(0, -1);
             let assistantText = "";
             let firstToken = true;
             let bubble = null;
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.message?.content) {
-                            if (firstToken) {
-                                typingWrap.remove();
-                                bubble = appendBubble("assistant", "");
-                                firstToken = false;
-                            }
-                            assistantText += data.message.content;
-                            bubble.innerHTML = parseMD(assistantText);
-                            msgsEl.scrollTop = msgsEl.scrollHeight;
-                        }
-                        if (data.done) break;
-                    } catch {}
+            await window.GnosysLLM.generateResponse(systemMessage?.content || '', userEntry.content || '', {
+                moduleKey: 'chemistry_llm',
+                model: currentModel,
+                stream: true,
+                history: priorHistory,
+                onToken: (token) => {
+                    if (firstToken) {
+                        typingWrap.remove();
+                        bubble = appendBubble("assistant", "");
+                        firstToken = false;
+                    }
+                    assistantText += token;
+                    bubble.innerHTML = parseMD(assistantText);
+                    msgsEl.scrollTop = msgsEl.scrollHeight;
                 }
-            }
+            });
+
             if (firstToken) {
                 typingWrap.remove();
             }
@@ -3534,7 +3509,7 @@ function bindTutorActions() {
                 delete window.gnosysActiveModelsCache[currentModel];
             }
             typingWrap.remove();
-            appendBubble("assistant", "Could not connect to Ollama on localhost:11434.");
+            appendBubble("assistant", "Could not connect to the local AI provider.");
         }
 
         input.disabled = false;
@@ -7269,17 +7244,10 @@ window.ChemTutor = (() => {
     }
 
     async function streamOllama(msgsEl, chatHistory, systemContext = "") {
-        if (typeof window.ensureOllamaActive === 'function') {
-            try {
-                const endpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
-                const model = getChemistryModel();
-                await window.ensureOllamaActive(endpoint.replace('/api/chat', '').replace('/api/generate', ''), model);
-            } catch (err) {
-                console.error(err);
-                removeContainerTypingIndicator(msgsEl);
-                appendInlineBubble(msgsEl, "assistant", "Could not connect to local Ollama service. Please make sure Ollama is running.");
-                return;
-            }
+        if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+            removeContainerTypingIndicator(msgsEl);
+            appendInlineBubble(msgsEl, "assistant", "Shared local AI router is unavailable.");
+            return;
         }
         removeContainerTypingIndicator(msgsEl);
         const typingWrap = createTypingIndicatorElement("ChemTutor", true);
@@ -7293,44 +7261,30 @@ window.ChemTutor = (() => {
         
         const currentModel = getChemistryModel();
         try {
-            const bodyObj = { model: currentModel, messages: payload, stream: true };
-            if (currentModel.toLowerCase().includes('gemma4')) {
-                bodyObj.options = { draft_num_predict: 4 };
-            }
-            const response = await fetch("http://localhost:11434/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyObj)
-            });
-            if (!response.ok) throw new Error("HTTP error");
-
+            const systemMessage = payload.find((msg) => msg.role === 'system');
+            const nonSystem = payload.filter((msg) => msg.role !== 'system');
+            const userEntry = nonSystem[nonSystem.length - 1] || { role: 'user', content: '' };
+            const priorHistory = nonSystem.slice(0, -1);
             let assistantText = "";
             let firstToken = true;
             let bubble = null;
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.message?.content) {
-                            if (firstToken) {
-                                typingWrap.remove();
-                                bubble = appendInlineBubble(msgsEl, "assistant", "");
-                                firstToken = false;
-                            }
-                            assistantText += data.message.content;
-                            bubble.innerHTML = parseMD(assistantText);
-                            msgsEl.scrollTop = msgsEl.scrollHeight;
-                        }
-                        if (data.done) break;
-                    } catch {}
+            await window.GnosysLLM.generateResponse(systemMessage?.content || '', userEntry.content || '', {
+                moduleKey: 'chemistry_llm',
+                model: currentModel,
+                stream: true,
+                history: priorHistory,
+                onToken: (token) => {
+                    if (firstToken) {
+                        typingWrap.remove();
+                        bubble = appendInlineBubble(msgsEl, "assistant", "");
+                        firstToken = false;
+                    }
+                    assistantText += token;
+                    bubble.innerHTML = parseMD(assistantText);
+                    msgsEl.scrollTop = msgsEl.scrollHeight;
                 }
-            }
+            });
             if (firstToken) {
                 typingWrap.remove();
             }
@@ -7340,7 +7294,7 @@ window.ChemTutor = (() => {
                 delete window.gnosysActiveModelsCache[currentModel];
             }
             typingWrap.remove();
-            appendInlineBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
+            appendInlineBubble(msgsEl, "assistant", "Could not connect to the local AI provider.");
         }
     }
 

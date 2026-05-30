@@ -227,6 +227,38 @@
         .dark ::-webkit-scrollbar { width: 6px; height: 6px; }
         .dark ::-webkit-scrollbar-thumb { background-color: #363a52; border-radius: 3px; }
         .dark ::-webkit-scrollbar-track { background-color: #13151e; }
+
+        /* Mobile UI Optimization Overrides */
+        @media (max-width: 640px) {
+            /* Header and badges scaling */
+            header .max-w-7xl { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+            header .flex.items-center.gap-4 { gap: 0.35rem !important; }
+            header h1 { font-size: 1rem !important; }
+            #level-title { font-size: 8px !important; }
+            #xp-header-text { font-size: 8px !important; }
+            header .w-20 { width: 3rem !important; }
+            
+            /* Flashcards responsiveness */
+            .flip-card { height: 260px !important; }
+            .flip-card-front, .flip-card-back { padding: 1rem !important; }
+            #fc-term { font-size: 1.8rem !important; margin-bottom: 1rem !important; word-break: break-word !important; overflow-wrap: break-word !important; }
+            #fc-meaning { font-size: 1.5rem !important; word-break: break-word !important; overflow-wrap: break-word !important; }
+            #fc-controls button { padding: 0.5rem 0.25rem !important; }
+            #fc-controls button .text-sm { font-size: 0.75rem !important; }
+            #fc-controls button i { font-size: 1rem !important; }
+            
+            /* Mobile scrollbar and nav tab sizing */
+            .no-scrollbar::-webkit-scrollbar { display: none !important; }
+            .no-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+            
+            /* Chat area adjustments */
+            #chat-messages { max-height: 40vh !important; }
+            #chat-input { font-size: 0.9rem !important; padding: 0.75rem 1rem !important; }
+            
+            /* Word Builder sizing */
+            #wb-target { font-size: 1.25rem !important; }
+            #wb-preview { font-size: 1.75rem !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col selection:bg-teal-200 selection:text-teal-900">
@@ -244,6 +276,7 @@
                     <i class="fa-solid fa-staff-snake text-teal-500"></i>
                     <span class="hidden sm:inline">Medical Terminology</span>
                 </h1>
+                <span data-llm-provider-badge class="hidden sm:inline-flex">● Checking AI Route...</span>
                 
                 <!-- XP & Level Badge -->
                 <div class="relative group cursor-pointer" onclick="openStatsModal()">
@@ -755,7 +788,7 @@
             <!-- Offline banner -->
             <div id="chat-offline-banner" class="hidden bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 flex items-center gap-3">
                 <i class="fa-solid fa-triangle-exclamation text-amber-500 flex-shrink-0"></i>
-                <p class="text-sm font-medium text-amber-700">Ollama is not running. Start it with <code class="bg-amber-100 px-1 rounded font-mono">ollama serve</code> to enable the AI Tutor.</p>
+                <p class="text-sm font-medium text-amber-700">Local provider is unavailable. Complete mobile setup or reconnect your desktop provider to enable the AI Tutor.</p>
             </div>
 
             <!-- Messages -->
@@ -836,7 +869,7 @@
                     </div>
                     <div id="dict-offline-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-triangle-exclamation text-amber-500 flex-shrink-0"></i>
-                        <p class="text-sm font-medium text-amber-700">Ollama is not running. Start it with <code class="bg-amber-100 px-1 rounded font-mono">ollama serve</code> to enable the Word Decomposer.</p>
+                        <p class="text-sm font-medium text-amber-700">Local provider is unavailable. Complete mobile setup or reconnect your desktop provider to enable the Word Decomposer.</p>
                     </div>
                     <div class="flex gap-3">
                         <input id="dict-decompose-input" type="text" placeholder="e.g. cardiomegaly, tachycardia, hepatitis…" class="flex-1 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:ring-4 focus:ring-teal-500/20 focus:border-teal-500 transition-all" autocomplete="off">
@@ -907,32 +940,32 @@
 
     <!-- Bottom tab navigation (mobile only) -->
     <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50 bnav-safe">
-        <div class="flex">
-            <button id="bnav-flashcards" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('flashcards')">
+        <div class="flex overflow-x-auto no-scrollbar">
+            <button id="bnav-flashcards" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('flashcards')">
                 <i class="bnav-icon fa-solid fa-layer-group text-lg text-teal-600 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-teal-600 transition-colors">Cards</span>
             </button>
-            <button id="bnav-word-builder" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('word-builder')">
+            <button id="bnav-word-builder" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('word-builder')">
                 <i class="bnav-icon fa-solid fa-puzzle-piece text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Builder</span>
             </button>
-            <button id="bnav-chart-decrypter" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('chart-decrypter')">
+            <button id="bnav-chart-decrypter" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('chart-decrypter')">
                 <i class="bnav-icon fa-solid fa-file-medical text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Charts</span>
             </button>
-            <button id="bnav-abbrev-decoder" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('abbrev-decoder')">
+            <button id="bnav-abbrev-decoder" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('abbrev-decoder')">
                 <i class="bnav-icon fa-solid fa-bolt text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Abbrevs</span>
             </button>
-            <button id="bnav-pluralization" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('pluralization')">
+            <button id="bnav-pluralization" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('pluralization')">
                 <i class="bnav-icon fa-solid fa-spell-check text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Plurals</span>
             </button>
-            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('tutor')">
+            <button id="bnav-tutor" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('tutor')">
                 <i class="bnav-icon fa-solid fa-robot text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Tutor</span>
             </button>
-            <button id="bnav-dictionary" class="flex flex-col items-center justify-center flex-1 py-2 min-w-0" onclick="switchTab('dictionary')">
+            <button id="bnav-dictionary" class="flex flex-col items-center justify-center flex-1 py-2 min-w-[64px]" onclick="switchTab('dictionary')">
                 <i class="bnav-icon fa-solid fa-book-open text-lg text-gray-400 transition-colors"></i>
                 <span class="bnav-label text-[9px] font-bold mt-0.5 tracking-wide text-gray-400 transition-colors">Lexicon</span>
             </button>
@@ -1212,7 +1245,7 @@
                     <option value="">Loading available models...</option>
                 </select>
                 <p id="modal-model-offline-msg" class="hidden text-[10px] text-amber-600 mt-1.5 leading-snug">
-                    <i class="fa-solid fa-circle-exclamation mr-1"></i> Ollama offline. Showing cached model only.
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i> Local provider unavailable. Showing cached model only.
                 </p>
             </div>
             <div class="space-y-3 mb-6">
@@ -1235,6 +1268,7 @@
         </div>
     </div>
 
+    <script src="../assets/llm-router.js"></script>
     <script src="data.js"></script>
     <script src="app.js"></script>
 </body>

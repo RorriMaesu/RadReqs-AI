@@ -724,6 +724,37 @@
         .tutor-popup-messages::-webkit-scrollbar-thumb:hover {
             background: rgba(139, 92, 246, 0.45);
         }
+
+        /* Mobile UI Layout Optimization Overrides */
+        .no-scrollbar::-webkit-scrollbar { display: none !important; }
+        .no-scrollbar { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+
+        @media (max-width: 1024px) {
+            /* Mobile bottom nav layout sizing */
+            nav[aria-label="Chemistry mobile sections"] button {
+                min-width: 72px !important;
+                flex-shrink: 0 !important;
+            }
+            
+            /* Header logo & navigation fixes */
+            header h1 { font-size: 1rem !important; }
+        }
+
+        @media (max-width: 640px) {
+            /* Dynamic height for chatbot message log */
+            #chat-messages {
+                max-height: 40vh !important;
+            }
+            #chat-input {
+                font-size: 0.9rem !important;
+            }
+            .flip-card {
+                height: 250px !important;
+            }
+            .flip-card-front, .flip-card-back {
+                padding: 1rem !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col selection:bg-amber-200 selection:text-amber-900">
@@ -737,6 +768,7 @@
                     <i class="fa-solid fa-flask-vial"></i>
                     Intro to Chemistry
                 </h1>
+                <span data-llm-provider-badge class="hidden sm:inline-flex">● Checking AI Route...</span>
             </div>
 
             <!-- Desktop quick links in header -->
@@ -2216,6 +2248,7 @@
 
     <script src="mastery.js"></script>
     <script src="data.js"></script>
+    <script src="../assets/llm-router.js"></script>
     <script src="../assets/ollama-launcher.js"></script>
     <script src="ai-tutor.js"></script>
     <script type="module" src="math-refresher/math-controller.js"></script>

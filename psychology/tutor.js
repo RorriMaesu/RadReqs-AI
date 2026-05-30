@@ -118,95 +118,70 @@ window.PsychTutor = (() => {
         msgsEl.appendChild(typingWrap);
         msgsEl.scrollTop = msgsEl.scrollHeight;
 
-        let payload = [
+        const payload = [
             { role: "system", content: "You are an expert Clinical Psychology and Patient Care Tutor for radiologic and dosimetry students. Be encouraging, precise, and concise. Explain clinical communication, medicolegal ethics, and de-escalation tactics." }, 
             ...chatHistory
         ];
-        
-        try {
+
         let targetModel = getPsychModel();
+        let assistantText = "";
+        let firstToken = true;
+        let bubble = null;
+
         try {
-            const reqOptions = {};
-            if (targetModel.toLowerCase().includes('gemma4')) {
-                reqOptions.draft_num_predict = 4;
-            }
-            let response = await fetch("http://localhost:11434/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ model: targetModel, messages: payload, stream: true, options: reqOptions })
-            });
-            
-            // Auto-detect installed model if 404 (Model not found)
-            if (response.status === 404) {
-                const tagsRes = await fetch("http://localhost:11434/api/tags");
-                if (tagsRes.ok) {
-                    const tagsData = await tagsRes.json();
-                    if (tagsData.models && tagsData.models.length > 0) {
-                        targetModel = pickAvailableModel(targetModel, tagsData.models);
-                        localStorage.setItem("psych_llm", targetModel);
-                        const retryOptions = {};
-                        if (targetModel.toLowerCase().includes('gemma4')) {
-                            retryOptions.draft_num_predict = 4;
-                        }
-                        // Retry with the detected model
-                        response = await fetch("http://localhost:11434/api/chat", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ model: targetModel, messages: payload, stream: true, options: retryOptions })
-                        });
-                    }
-                }
+            if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+                throw new Error('GnosysLLM is unavailable');
             }
 
-            if (!response.ok) throw new Error("HTTP error");
-            typingWrap.remove();
+            await window.GnosysLLM.generateResponse(
+                payload[0].content,
+                chatHistory.length ? chatHistory[chatHistory.length - 1].content : '',
+                {
+                    moduleKey: 'psych_llm',
+                    model: targetModel,
+                    history: chatHistory.slice(0, -1),
+                    stream: true,
+                    onToken: (_token, fullText) => {
+                        if (firstToken) {
+                            typingWrap.remove();
+                            bubble = appendBubble(msgsEl, "assistant", "");
+                            firstToken = false;
 
-            let assistantText = "";
-            let firstToken = true;
-            let bubble = null;
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.message?.content) {
-                            if (firstToken) {
-                                bubble = appendBubble(msgsEl, "assistant", "");
-                                firstToken = false;
-                                
-                                // Reset status text
-                                const statusText = document.getElementById('chat-status-text');
-                                const statusDot = document.getElementById('chat-status-dot');
-                                if (statusText && statusDot) {
-                                    statusText.textContent = 'Active';
-                                    statusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-                                }
+                            const statusText = document.getElementById('chat-status-text');
+                            const statusDot = document.getElementById('chat-status-dot');
+                            if (statusText && statusDot) {
+                                const display = window.GnosysLLM?.getTutorStatusDisplay?.(window.GnosysLLM?.getStatus?.());
+                                statusText.textContent = display?.text || 'Mobile Setup Required';
+                                statusDot.className = display?.dotClass || 'inline-block w-2 h-2 rounded-full bg-amber-500';
                             }
-                            assistantText += data.message.content;
-                            bubble.innerHTML = renderMath(parseMD(assistantText));
-                            msgsEl.scrollTop = msgsEl.scrollHeight;
                         }
-                        if (data.done) break;
-                    } catch {}
+
+                        assistantText = fullText;
+                        bubble.innerHTML = renderMath(parseMD(fullText));
+                        msgsEl.scrollTop = msgsEl.scrollHeight;
+                    },
                 }
+            );
+
+            if (firstToken) {
+                typingWrap.remove();
+                bubble = appendBubble(msgsEl, "assistant", "");
+                firstToken = false;
+                bubble.innerHTML = renderMath(parseMD(assistantText));
             }
+
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {
             if (window.gnosysActiveModelsCache) {
                 delete window.gnosysActiveModelsCache[targetModel];
             }
             typingWrap.remove();
-            appendBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
+            appendBubble(msgsEl, "assistant", "No local provider is available right now. If you are on mobile, choose On-Device mode when prompted.");
             const statusText = document.getElementById('chat-status-text');
             const statusDot = document.getElementById('chat-status-dot');
             if (statusText && statusDot) {
-                statusText.textContent = 'Offline';
-                statusDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-400';
+                statusText.textContent = 'Mobile Setup Required';
+                statusDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500';
             }
         }
     }
@@ -229,16 +204,17 @@ window.PsychTutor = (() => {
                 const statusDot = document.getElementById('chat-status-dot');
                 if (!statusText || !statusDot) return;
                 try {
-                    const res = await fetch("http://localhost:11434/api/tags");
-                    if (res.ok) {
-                        statusText.textContent = 'Ready';
-                        statusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400';
-                    } else {
-                        throw new Error("Not ok");
+                    if (window.GnosysLLM && typeof window.GnosysLLM.init === 'function') {
+                        const status = await window.GnosysLLM.init();
+                        const display = window.GnosysLLM?.getTutorStatusDisplay?.(status);
+                        statusText.textContent = display?.text || 'Mobile Setup Required';
+                        statusDot.className = display?.dotClass || 'inline-block w-2 h-2 rounded-full bg-amber-500';
+                        return;
                     }
+                    throw new Error('Provider not ready');
                 } catch(e) {
-                    statusText.textContent = 'Local AI Offline';
-                    statusDot.className = 'inline-block w-2 h-2 rounded-full bg-gray-400';
+                    statusText.textContent = 'Mobile Setup Required';
+                    statusDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500';
                 }
             };
             checkStatus();

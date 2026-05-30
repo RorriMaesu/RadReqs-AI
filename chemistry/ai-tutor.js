@@ -1,4 +1,4 @@
-const CONFIG = { endpoint: 'http://localhost:11434/api/generate', model: 'gemma' };
+const CONFIG = { endpoint: 'local-provider', model: 'gemma' };
 
 function cleanMathAndLaTeX(text) {
     if (typeof text !== 'string') return '';
@@ -127,7 +127,7 @@ function getConfiguredEndpoint() {
 }
 
 function getConfiguredChatEndpoint() {
-    return getConfiguredEndpoint().replace('/api/generate', '/api/chat');
+    return 'local-provider';
 }
 
 function getChemistryModel() {
@@ -156,13 +156,8 @@ function pickAvailableModel(requestedModel, models) {
 }
 
 async function fetchOllamaTags(endpoint) {
-    const tagsUrl = endpoint.replace('/api/generate', '/api/tags');
-    const response = await fetch(tagsUrl, { signal: AbortSignal.timeout(3000) });
-    if (!response.ok) {
-        throw new Error(`Ollama tags response status ${response.status}`);
-    }
-    const data = await response.json();
-    return Array.isArray(data?.models) ? data.models : [];
+    const model = getChemistryModel();
+    return model ? [{ name: model }] : [];
 }
 
 function buildTutorPrompt(systemPrompt, messageHistory, userInput) {
@@ -228,203 +223,47 @@ function normalizeTutorResponse(parsed) {
 }
 
 async function fetchLocalTutor(systemPrompt, messageHistory, userInput) {
-    let activeModel = getChemistryModel();
-    if (typeof window.ensureOllamaActive === 'function') {
-        try {
-            await window.ensureOllamaActive(getConfiguredEndpoint().replace('/api/generate', ''), activeModel);
-        } catch (err) {
-            console.error(err);
-            return { ...TUTOR_OFFLINE_MOCK };
-        }
-    }
-    const maxAttempts = 3;
+    const activeModel = getChemistryModel();
     const prompt = buildTutorPrompt(systemPrompt, messageHistory, userInput);
-    const endpoint = getConfiguredEndpoint();
+
+    if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+        return { ...TUTOR_OFFLINE_MOCK };
+    }
 
     try {
-        const models = await fetchOllamaTags(endpoint);
-        const fallback = pickAvailableModel(activeModel, models);
-        if (fallback !== activeModel) {
-            activeModel = fallback;
-            localStorage.setItem('chemistry_llm', activeModel);
-        }
-    } catch (_err) {
-        // Keep requested model when tags endpoint is unavailable.
-    }
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        let response;
-        let responseData;
-
-        try {
-            const bodyObj = {
-                model: activeModel,
-                stream: false,
-                prompt
-            };
-            if (activeModel.toLowerCase().includes('gemma4')) {
-                bodyObj.options = { draft_num_predict: 4 };
-            }
-            response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(bodyObj)
-            });
-        } catch (fetchErr) {
-            if (window.gnosysActiveModelsCache) {
-                delete window.gnosysActiveModelsCache[activeModel];
-            }
-            console.warn('Local tutor offline/unreachable. Using mock fallback.', fetchErr);
-            return { ...TUTOR_OFFLINE_MOCK };
-        }
-
-        if (!response.ok) {
-            if (window.gnosysActiveModelsCache) {
-                delete window.gnosysActiveModelsCache[activeModel];
-            }
-            // Retry on non-OK responses, then fail gracefully.
-            if (attempt === maxAttempts) {
-                return { ...TUTOR_ERROR_RESPONSE };
-            }
-            continue;
-        }
-
-        try {
-            responseData = await response.json();
-        } catch (_jsonErr) {
-            if (attempt === maxAttempts) {
-                return { ...TUTOR_ERROR_RESPONSE };
-            }
-            continue;
-        }
-
-        try {
-            const rawModelText = typeof responseData?.response === 'string'
-                ? responseData.response
-                : '';
-            const parsed = parseModelJson(rawModelText);
-            return normalizeTutorResponse(parsed);
-        } catch (_parseErr) {
-            // Silent retry for malformed model JSON.
-            if (attempt === maxAttempts) {
-                return { ...TUTOR_ERROR_RESPONSE };
-            }
-        }
-    }
-
-    return { ...TUTOR_ERROR_RESPONSE };
-}
-
-async function streamPeriodicTableTutor(systemPrompt, messageHistory, userInput, onToken) {
-    let activeModel = getChemistryModel();
-    if (typeof window.ensureOllamaActive === 'function') {
-        await window.ensureOllamaActive(getConfiguredEndpoint().replace('/api/generate', ''), activeModel);
-    }
-    const endpoint = getConfiguredChatEndpoint();
-    const safeHistory = Array.isArray(messageHistory) ? messageHistory : [];
-
-    try {
-        const models = await fetchOllamaTags(getConfiguredEndpoint());
-        const fallback = pickAvailableModel(activeModel, models);
-        if (fallback !== activeModel) {
-            activeModel = fallback;
-            localStorage.setItem('chemistry_llm', activeModel);
-        }
-    } catch (_err) {
-        // Keep requested model when tags endpoint is unavailable.
-    }
-
-    const payloadMessages = [
-        { role: 'system', content: typeof systemPrompt === 'string' ? systemPrompt : '' },
-        ...safeHistory,
-        { role: 'user', content: typeof userInput === 'string' ? userInput : '' }
-    ];
-
-    const requestOptions = {
-        num_ctx: 4096,
-        temperature: 0.6
-    };
-    if (activeModel.toLowerCase().includes('gemma4')) {
-        requestOptions.draft_num_predict = 4;
-    }
-
-    let response;
-    try {
-        response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: activeModel,
-                messages: payloadMessages,
-                stream: true,
-                options: requestOptions
-            })
+        const result = await window.GnosysLLM.generateResponse('', prompt, {
+            moduleKey: 'chemistry_llm',
+            model: activeModel,
+            stream: false,
         });
-        if (!response.ok || !response.body) {
-            throw new Error(`Ollama chat request failed with status ${response ? response.status : 'unknown'}`);
-        }
-    } catch (err) {
+        const parsed = parseModelJson(result && typeof result.text === 'string' ? result.text : '');
+        return normalizeTutorResponse(parsed);
+    } catch (routerErr) {
         if (window.gnosysActiveModelsCache) {
             delete window.gnosysActiveModelsCache[activeModel];
         }
-        throw err;
+        console.warn('Chemistry tutor failed to respond via shared provider.', routerErr);
+        return { ...TUTOR_ERROR_RESPONSE };
+    }
+}
+
+async function streamPeriodicTableTutor(systemPrompt, messageHistory, userInput, onToken) {
+    const activeModel = getChemistryModel();
+    if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+        throw new Error('Shared LLM router is unavailable.');
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let raw = '';
-    let buffer = '';
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-            let data;
-            try {
-                data = JSON.parse(line);
-            } catch (_parseErr) {
-                continue;
-            }
-
-            const token = typeof data?.message?.content === 'string' ? data.message.content : '';
-            if (token) {
-                raw += token;
-                if (typeof onToken === 'function') onToken(token, raw);
-            }
-
-            if (data?.done) {
-                return { raw, model: activeModel };
-            }
-        }
-    }
-
-    if (buffer.trim()) {
-        try {
-            const data = JSON.parse(buffer);
-            const token = typeof data?.message?.content === 'string' ? data.message.content : '';
-            if (token) {
-                raw += token;
-                if (typeof onToken === 'function') onToken(token, raw);
-            }
-        } catch (_finalParseErr) {
-            // Ignore trailing non-JSON fragments.
-        }
-    }
-
-    return { raw, model: activeModel };
+    const result = await window.GnosysLLM.generateResponse(systemPrompt, userInput, {
+        moduleKey: 'chemistry_llm',
+        model: activeModel,
+        history: Array.isArray(messageHistory) ? messageHistory : [],
+        stream: true,
+        onToken,
+    });
+    return { raw: result.text || '', model: result.model || activeModel };
 }
 
 async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
-    const endpoint = getConfiguredEndpoint();
     let activeModel = getChemistryModel();
     
     const systemPrompt = `You are an Expert Professor of General and Introductory Chemistry.`;
@@ -452,17 +291,15 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
     ].join('\n');
 
     // 1. Connection Step
-    onProgress('connect', 'running', `Connecting to Ollama endpoint at ${endpoint}...`);
+    onProgress('connect', 'running', 'Checking local AI provider...');
     let models = [];
     try {
-        if (typeof window.ensureOllamaActive === 'function') {
-            await window.ensureOllamaActive(endpoint.replace('/api/generate', ''), activeModel);
-        }
-        models = await fetchOllamaTags(endpoint);
-        onProgress('connect', 'success', `Successfully connected to Ollama.`);
+        await window.GnosysLLM?.init?.();
+        models = await fetchOllamaTags(getConfiguredEndpoint());
+        onProgress('connect', 'success', 'Successfully connected to local provider.');
     } catch (err) {
-        console.warn('Ollama tags check failed:', err);
-        onProgress('connect', 'warning', `Ollama connection warning: ${err.message}. Proceeding...`);
+        console.warn('Local provider readiness check failed:', err);
+        onProgress('connect', 'warning', `Local provider warning: ${err.message}. Proceeding...`);
     }
 
     // 2. Model Check Step
@@ -492,33 +329,14 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
     const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-            const requestOptions = {
-                num_ctx: 2048,
-                temperature: 0.7
-            };
-            if (activeModel.toLowerCase().includes('gemma4')) {
-                requestOptions.draft_num_predict = 4;
-            }
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: activeModel,
-                    stream: false,
-                    prompt: prompt,
-                    system: systemPrompt,
-                    options: requestOptions
-                })
+            const result = await window.GnosysLLM.generateResponse(systemPrompt, prompt, {
+                moduleKey: 'chemistry_llm',
+                model: activeModel,
+                stream: false,
             });
-
-            if (!response.ok) {
-                throw new Error(`Ollama returned status ${response.status}`);
-            }
-
-            const data = await response.json();
-            responseText = typeof data?.response === 'string' ? data.response.trim() : '';
+            responseText = typeof result?.text === 'string' ? result.text.trim() : '';
             if (!responseText) {
-                throw new Error('Empty response received from Ollama');
+                throw new Error('Empty response received from local provider');
             }
             break; // Success
         } catch (err) {
@@ -528,7 +346,7 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
             if (attempt === maxAttempts) {
                 throw err; // Re-throw if final attempt fails
             }
-            onProgress('generate', 'running', `Attempt ${attempt} failed. Retrying generate call...`);
+            onProgress('generate', 'running', `Attempt ${attempt} failed. Retrying generation call...`);
         }
     }
 
@@ -543,10 +361,7 @@ async function fetchGeneratedLesson(lesson, onProgress, variationIndex = 0) {
 
 async function fetchGeneratedQuestion(lesson, mode) {
     let activeModel = getChemistryModel();
-    if (typeof window.ensureOllamaActive === 'function') {
-        await window.ensureOllamaActive(getConfiguredEndpoint().replace('/api/generate', ''), activeModel);
-    }
-    const endpoint = getConfiguredEndpoint();
+    await window.GnosysLLM?.init?.();
     
     let systemPrompt = `You are an Expert Professor of General Chemistry.`;
     let prompt = '';
@@ -571,43 +386,23 @@ async function fetchGeneratedQuestion(lesson, mode) {
         throw new Error(`Unsupported mode for question generation: ${mode}`);
     }
 
-    const requestOptions = {
-        num_ctx: 2048,
-        temperature: 0.8
-    };
-    if (activeModel.toLowerCase().includes('gemma4')) {
-        requestOptions.draft_num_predict = 4;
-    }
-
-    let response;
     try {
-        response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: activeModel,
-                stream: false,
-                prompt: prompt,
-                system: systemPrompt,
-                options: requestOptions
-            })
+        const result = await window.GnosysLLM.generateResponse(systemPrompt, prompt, {
+            moduleKey: 'chemistry_llm',
+            model: activeModel,
+            stream: false,
         });
-        if (!response.ok) {
-            throw new Error(`Ollama returned status ${response.status}`);
+        const question = typeof result?.text === 'string' ? result.text.trim() : '';
+        if (!question) {
+            throw new Error('Empty response received from local provider');
         }
+        return cleanMathAndLaTeX(question);
     } catch (err) {
         if (window.gnosysActiveModelsCache) {
             delete window.gnosysActiveModelsCache[activeModel];
         }
         throw err;
     }
-
-    const data = await response.json();
-    const question = typeof data?.response === 'string' ? data.response.trim() : '';
-    if (!question) {
-        throw new Error('Empty response received from Ollama');
-    }
-    return cleanMathAndLaTeX(question);
 }
 
 window.CLINICAL_TUTOR = {

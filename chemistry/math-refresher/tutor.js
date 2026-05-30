@@ -169,46 +169,38 @@ Guidelines:
         
         const currentModel = getChemistryModel();
         try {
-            const bodyObj = { model: currentModel, messages: payload, stream: true };
-            if (currentModel.toLowerCase().includes('gemma4')) {
-                bodyObj.options = { draft_num_predict: 4 };
+            if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+                throw new Error('Shared LLM router is unavailable.');
             }
-            const response = await fetch("http://localhost:11434/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyObj)
-            });
-            if (!response.ok) throw new Error("HTTP error");
+
+            const systemMessage = payload.find((msg) => msg.role === 'system');
+            const nonSystem = payload.filter((msg) => msg.role !== 'system');
+            const userEntry = nonSystem[nonSystem.length - 1] || { role: 'user', content: '' };
+            const priorHistory = nonSystem.slice(0, -1);
 
             let assistantText = "";
             let firstToken = true;
             let bubbleEl = null;
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.message?.content) {
-                            if (firstToken) {
-                                if (typingWrap.parentNode) {
-                                    typingWrap.remove();
-                                }
-                                bubbleEl = appendInlineBubble(msgsEl, "assistant", "");
-                                firstToken = false;
-                            }
-                            assistantText += data.message.content;
-                            bubbleEl.innerHTML = parseMD(assistantText);
-                            msgsEl.scrollTop = msgsEl.scrollHeight;
+            await window.GnosysLLM.generateResponse(systemMessage?.content || '', userEntry.content || '', {
+                moduleKey: 'chemistry_llm',
+                model: currentModel,
+                stream: true,
+                history: priorHistory,
+                onToken: (token) => {
+                    if (firstToken) {
+                        if (typingWrap.parentNode) {
+                            typingWrap.remove();
                         }
-                        if (data.done) break;
-                    } catch {}
+                        bubbleEl = appendInlineBubble(msgsEl, "assistant", "");
+                        firstToken = false;
+                    }
+                    assistantText += token;
+                    bubbleEl.innerHTML = parseMD(assistantText);
+                    msgsEl.scrollTop = msgsEl.scrollHeight;
                 }
-            }
+            });
+
             if (typingWrap.parentNode) {
                 typingWrap.remove();
             }
@@ -220,7 +212,7 @@ Guidelines:
             if (typingWrap.parentNode) {
                 typingWrap.remove();
             }
-            appendInlineBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
+            appendInlineBubble(msgsEl, "assistant", "Could not connect to the local AI provider.");
         }
     }
 

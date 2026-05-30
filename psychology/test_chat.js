@@ -5,20 +5,22 @@ const ehrChatHistory = [
     { role: "user", content: "what should I have said instead?" }
 ];
 
-const payload = {
-    model: "gemma4:e4b",
-    messages: ehrChatHistory,
-    stream: false,
-    options: { num_predict: 200 }
-};
+if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+    console.error('GnosysLLM is unavailable in this context.');
+} else {
+    const systemMessage = ehrChatHistory.find((entry) => entry.role === 'system');
+    const nonSystem = ehrChatHistory.filter((entry) => entry.role !== 'system');
+    const userEntry = nonSystem[nonSystem.length - 1] || { role: 'user', content: '' };
+    const history = nonSystem.slice(0, -1);
 
-fetch('http://localhost:11434/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-})
-.then(res => res.json())
-.then(data => {
-    console.log("RESPONSE DATA:", JSON.stringify(data, null, 2));
-})
-.catch(err => console.error("FETCH ERROR:", err));
+    window.GnosysLLM.generateResponse(systemMessage?.content || '', userEntry.content || '', {
+        moduleKey: 'psych_llm',
+        model: 'gemma4:e4b',
+        history,
+        stream: false,
+    })
+    .then((result) => {
+        console.log("RESPONSE DATA:", JSON.stringify({ text: result?.text || '' }, null, 2));
+    })
+    .catch((err) => console.error("FETCH ERROR:", err));
+}

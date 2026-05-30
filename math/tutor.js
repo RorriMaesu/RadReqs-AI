@@ -113,53 +113,51 @@ window.MathTutor = (() => {
             ...chatHistory
         ];
         
+        let assistantText = "";
+        let firstToken = true;
+        let bubble = null;
         const currentModel = getMathModel();
+
         try {
-            const bodyObj = { model: currentModel, messages: payload, stream: true };
-            if (currentModel.toLowerCase().includes('gemma4')) {
-                bodyObj.options = { draft_num_predict: 4 };
+            if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+                throw new Error('GnosysLLM is unavailable');
             }
-            const response = await fetch("http://localhost:11434/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyObj)
-            });
-            if (!response.ok) throw new Error("HTTP error");
-            typingWrap.remove();
 
-            let assistantText = "";
-            let firstToken = true;
-            let bubble = null;
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
-                for (const line of lines) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.message?.content) {
-                            if (firstToken) {
-                                bubble = appendBubble(msgsEl, "assistant", "");
-                                firstToken = false;
-                            }
-                            assistantText += data.message.content;
-                            bubble.innerHTML = renderMath(parseMD(assistantText));
-                            msgsEl.scrollTop = msgsEl.scrollHeight;
+            await window.GnosysLLM.generateResponse(
+                payload[0].content,
+                chatHistory.length ? chatHistory[chatHistory.length - 1].content : '',
+                {
+                    moduleKey: 'math_llm',
+                    model: currentModel,
+                    history: chatHistory.slice(0, -1),
+                    stream: true,
+                    onToken: (token, fullText) => {
+                        if (firstToken) {
+                            typingWrap.remove();
+                            bubble = appendBubble(msgsEl, "assistant", "");
+                            firstToken = false;
                         }
-                        if (data.done) break;
-                    } catch {}
+                        assistantText = fullText;
+                        bubble.innerHTML = renderMath(parseMD(fullText));
+                        msgsEl.scrollTop = msgsEl.scrollHeight;
+                    },
                 }
+            );
+
+            if (firstToken) {
+                typingWrap.remove();
+                bubble = appendBubble(msgsEl, "assistant", "");
+                firstToken = false;
+                bubble.innerHTML = renderMath(parseMD(assistantText));
             }
+
             chatHistory.push({ role: "assistant", content: assistantText });
         } catch (e) {
             if (window.gnosysActiveModelsCache) {
                 delete window.gnosysActiveModelsCache[currentModel];
             }
             typingWrap.remove();
-            appendBubble(msgsEl, "assistant", "Could not connect to Ollama on localhost:11434.");
+            appendBubble(msgsEl, "assistant", "No local provider is available right now. If you are on mobile, choose On-Device mode when prompted.");
         }
     }
 

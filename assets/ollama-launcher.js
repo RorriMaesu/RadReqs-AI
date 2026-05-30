@@ -1110,6 +1110,17 @@
                     </button>
                 </div>
 
+                <!-- Local app data purge action -->
+                <div class="py-3 px-1 mb-6">
+                    <button id="chem-settings-purge-btn" class="w-full flex items-center gap-4 p-4 rounded-2xl border border-orange-200 hover:bg-orange-50 dark:border-orange-950/20 dark:hover:bg-orange-950/10 transition-colors text-left group">
+                        <i class="fa-solid fa-broom text-orange-500 text-xl shrink-0"></i>
+                        <div>
+                            <p class="font-bold text-gray-805 dark:text-slate-200 group-hover:text-orange-700 dark:group-hover:text-orange-400">Reset Local App Data</p>
+                            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Delete the on-device LiteRT model, cached download state, and local storage flags</p>
+                        </div>
+                    </button>
+                </div>
+
                 <button id="chem-settings-cancel" class="w-full py-3 rounded-2xl font-bold text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800 dark:border-slate-800 border border-gray-200 transition-colors">Close</button>
             </div>
         `;
@@ -1123,6 +1134,7 @@
         const selectEl = overlay.querySelector('#chem-settings-model-select');
         const bypassToggle = overlay.querySelector('#chem-settings-bypass-toggle');
         const resetBtn = overlay.querySelector('#chem-settings-reset-btn');
+        const purgeBtn = overlay.querySelector('#chem-settings-purge-btn');
         const cancelBtn = overlay.querySelector('#chem-settings-cancel');
         const offlineMsg = overlay.querySelector('#chem-settings-model-offline-msg');
 
@@ -1167,6 +1179,26 @@
                 alert('Progress reset logic is unavailable on this page.');
             }
         });
+
+        if (purgeBtn) {
+            purgeBtn.addEventListener('click', async () => {
+                const ok = window.confirm('This will delete the on-device LiteRT model and all local download state. Continue?');
+                if (!ok) return;
+
+                purgeBtn.setAttribute('disabled', 'true');
+                purgeBtn.classList.add('opacity-70', 'cursor-wait');
+
+                try {
+                    await window.GnosysLLM?.purgeModelStorage?.();
+                    closeModal();
+                } catch (err) {
+                    console.error('[Chemistry Settings] Local app data purge failed:', err);
+                    alert('Reset failed. Please try again.');
+                    purgeBtn.removeAttribute('disabled');
+                    purgeBtn.classList.remove('opacity-70', 'cursor-wait');
+                }
+            });
+        }
 
         cancelBtn.addEventListener('click', closeModal);
         overlay.addEventListener('click', (e) => {

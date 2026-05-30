@@ -1,6 +1,6 @@
 import { validateChallengeItem } from './adaptive-core.js';
 
-const DEFAULT_ENDPOINT = 'http://localhost:11434/api/generate';
+const DEFAULT_ENDPOINT = 'local-provider';
 const DEFAULT_MODEL = 'gemma4:e4b';
 
 const GENERATION_RESPONSE_FALLBACK = {
@@ -34,7 +34,7 @@ function getConfiguredModel() {
 }
 
 function getTagsEndpoint(generateEndpoint) {
-    return generateEndpoint.replace('/api/generate', '/api/tags');
+    return generateEndpoint;
 }
 
 function isObject(value) {
@@ -55,12 +55,8 @@ function pickAvailableModel(requestedModel, models) {
 }
 
 async function fetchAvailableModels(endpoint) {
-    const response = await fetch(getTagsEndpoint(endpoint), { signal: AbortSignal.timeout(3000) });
-    if (!response.ok) {
-        throw new Error(`Tags endpoint failed with status ${response.status}`);
-    }
-    const payload = await response.json();
-    return Array.isArray(payload?.models) ? payload.models : [];
+    const model = getConfiguredModel();
+    return model ? [{ name: model }] : [];
 }
 
 function parseJsonObject(rawText) {
@@ -157,11 +153,10 @@ function parseJsonObject(rawText) {
 }
 
 async function runGenerateCall(prompt, system, options = {}) {
-    const endpoint = getConfiguredEndpoint();
     let model = getConfiguredModel();
 
     try {
-        const models = await fetchAvailableModels(endpoint);
+        const models = await fetchAvailableModels(getConfiguredEndpoint());
         model = pickAvailableModel(model, models);
         localStorage.setItem('gnosys_active_llm', model);
         localStorage.setItem('chemistry_llm', model);
@@ -173,28 +168,14 @@ async function runGenerateCall(prompt, system, options = {}) {
         temperature: typeof options.temperature === 'number' ? options.temperature : 0.5,
         num_ctx: typeof options.num_ctx === 'number' ? options.num_ctx : 4096
     };
-    if (model.toLowerCase().includes('gemma4')) {
-        requestOptions.draft_num_predict = 4;
-    }
 
-    const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model,
-            stream: false,
-            prompt,
-            system,
-            options: requestOptions
-        })
+    const result = await window.GnosysLLM.generateResponse(system, prompt, {
+        moduleKey: 'chemistry_llm',
+        model,
+        stream: false,
+        requestOptions
     });
-
-    if (!response.ok) {
-        throw new Error(`Generate call failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const parsed = parseJsonObject(data?.response || '');
+    const parsed = parseJsonObject(result?.text || '');
     return {
         parsed,
         model

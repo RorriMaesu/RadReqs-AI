@@ -1930,7 +1930,7 @@ async function openSettingsModal() {
     const currentModel = typeof window.getGnosysModel === 'function'
         ? window.getGnosysModel('chemistry_llm')
         : (localStorage.getItem('gnosys_active_llm') || localStorage.getItem('chemistry_llm') || 'gemma4:e4b');
-    const endpoint = (localStorage.getItem('chemistry_ollama_endpoint') || 'http://localhost:11434')
+    const endpoint = (localStorage.getItem('chemistry_ollama_endpoint') || '')
         .replace('/api/chat', '')
         .replace('/api/generate', '');
 

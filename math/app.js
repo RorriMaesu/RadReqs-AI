@@ -966,22 +966,16 @@ function initCalculatorDrag() {
 
     // Minimize logic
     const minBtn = document.getElementById('calculator-minimize');
-    const calcBody = document.getElementById('calculator-body');
-    const calcLockout = document.getElementById('calc-lockout');
     
-    if (minBtn && calcBody) {
-        minBtn.addEventListener('click', () => {
-            if (calcBody.style.display === 'none') {
-                calcBody.style.display = 'block';
-                // If calculator is locked, show the lockout screen again when un-minimizing
-                if (AppState.calculatorLocked && calcLockout) {
-                    calcLockout.style.display = 'flex';
-                }
-            } else {
-                calcBody.style.display = 'none';
-                if (calcLockout) {
-                    calcLockout.style.display = 'none';
-                }
+    if (minBtn && widget) {
+        minBtn.addEventListener('click', (e) => {
+            widget.classList.add('minimized');
+            e.stopPropagation();
+        });
+        
+        header.addEventListener('click', () => {
+            if (widget.classList.contains('minimized')) {
+                widget.classList.remove('minimized');
             }
         });
     }

@@ -132,8 +132,17 @@ Learning complex clinical and academic data is hard. Gnosys-AI keeps you engaged
   </tr>
 </table>
 
-### 7. Fully Responsive Mobile UI
-Study anywhere, perfectly optimized for your phone.
+### 7. Fully Responsive Mobile UI & On-Device AI Engine
+Study anywhere, perfectly optimized for your phone with our dedicated on-device local AI support:
+- **On-Device Gemma 4 Execution:** Bypasses local PC server limitations! Runs Google's Gemma 4 model directly in your browser tab using WebGPU acceleration via the high-performance **LiteRT-LM** (formerly TFLite GenAI) framework.
+- **Hardware-Aware Model Recommendations:** Automatically detects the smartphone's physical memory using `navigator.deviceMemory`:
+  - Recommends and pre-selects the **Gemma 4 Efficient (2.5B)** tier (~2.01 GB) on devices with < 8GB RAM to prevent Out-Of-Memory (OOM) browser tab crashes.
+  - Recommends and pre-selects the **Gemma 4 Pro (4.5B)** tier (~2.97 GB) on flagship devices with 8GB+ RAM.
+  - Allows full manual overrides so users remain in control of their hardware configuration.
+- **Offline No-AI Fallback:** An option to "Continue without Local AI" saves mobile resources and local space (~2 GB OPFS file bypass). If the student chats with a tutor while offline, Gnosys-AI streams a friendly, zero-overhead tutorial card explaining how to re-activate it.
+- **Universal Header Toggles:** The top status badge of *every single page* is styled with hover transition states and pointer cursors, acting as a global toggle. Click the badge at any time to open the configuration modal.
+- **Preface History Batch Prefilling:** Feeds the entire conversational context (system prompt + history exchanges) in a single, parallel preface batch pass. Prefill speeds improve by **10x-20x** (under 1.5 seconds on phone GPU/CPUs), starting the tutor token stream instantly instead of hanging.
+- **OPFS Storage Management:** Intercepts, tracks, and verifies downloads. Safely purges *both* model files from the Origin Private File System (OPFS) when changing selections to eliminate double-storage bloat.
 
 <table width="100%">
   <tr>

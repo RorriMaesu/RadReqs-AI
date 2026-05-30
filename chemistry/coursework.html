@@ -331,15 +331,33 @@
                 max-height: 58px;
             }
 
-            #work-area-split.layout-split #lecture-panel {
-                flex: 1 1 50%;
-                min-height: 220px;
+            #work-area-split.layout-split.socratic-collapsed #lecture-panel {
+                flex: 1 1 100%;
+                min-height: 0;
+                max-height: none;
+                opacity: 1;
             }
 
-            #work-area-split.layout-split #chat-panel {
-                flex: 1 1 50%;
-                min-height: 220px;
+            #work-area-split.layout-split.socratic-collapsed #chat-panel {
+                flex: 0 0 58px;
+                max-height: 58px;
+                opacity: 1;
+            }
+
+            #work-area-split.layout-split.active-socratic #lecture-panel {
+                flex: 0 0 0px;
+                max-height: 0px;
+                opacity: 0;
+                pointer-events: none;
+                border-bottom-width: 0;
+                overflow: hidden;
+            }
+
+            #work-area-split.layout-split.active-socratic #chat-panel {
+                flex: 1 1 100%;
+                min-height: 0;
                 max-height: none;
+                opacity: 1;
             }
 
             #work-area-split.layout-socratic-full #lecture-panel {
@@ -448,7 +466,7 @@
     <div class="flex-1 flex min-h-0 overflow-hidden">
         
         <!-- Sidebar: Navigation & Skill Tree -->
-        <aside class="w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
+        <aside class="hidden md:flex w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex-col shrink-0">
             <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Course Syllabus</h3>
                 <span class="bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded font-mono" id="sidebar-lesson-count">0/30 Lessons</span>

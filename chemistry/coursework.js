@@ -683,7 +683,7 @@
                 <div class="bg-red-950/20 border border-red-500/30 rounded p-4 font-mono text-xs text-red-300 space-y-2">
                     <p class="font-bold">Error Details:</p>
                     <p class="text-red-200">${escapeHtml(errMsg)}</p>
-                    <p class="text-[10px] text-slate-400 mt-2">Make sure Ollama is running locally (http://localhost:11434) and you have the model installed.</p>
+                    <p class="text-[10px] text-slate-400 mt-2">Verify local provider readiness in the header badge, then retry generation.</p>
                 </div>
                 
                 <div class="flex space-x-3">
@@ -734,7 +734,7 @@
                 
                 <div class="bg-slate-900 border border-slate-800 rounded p-3 font-mono text-[10px] text-slate-300 space-y-2 shadow-inner">
                     <div id="step-connect" class="flex items-center justify-between text-slate-500">
-                        <span>[1/4] Connecting to Ollama endpoint...</span>
+                        <span>[1/4] Connecting to local provider...</span>
                         <span class="status font-bold">PENDING</span>
                     </div>
                     <div id="step-model" class="flex items-center justify-between text-slate-500">

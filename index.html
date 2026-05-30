@@ -24,6 +24,26 @@
         .bg-grid { background-size: 40px 40px; background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px); }
         .fade-in { animation: fadeIn 0.8s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Mobile overrides for floating widgets */
+        @media (max-width: 640px) {
+            #floating-timer-widget {
+                bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+                left: 1rem !important;
+            }
+            .fixed.bottom-6.right-6 {
+                bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+                right: 1rem !important;
+            }
+            #timer-expanded-panel {
+                width: calc(100vw - 2rem) !important;
+                max-width: 340px !important;
+                position: fixed !important;
+                bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)) !important;
+                left: 1rem !important;
+                z-index: 260 !important;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen bg-grid selection:bg-indigo-500/30">
@@ -41,6 +61,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-4">
+                <span data-llm-provider-badge>● Checking AI Route...</span>
                 <a href="https://buymeacoffee.com/rorrimaesu" target="_blank" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full glass-card text-yellow-400 hover:text-yellow-300 hover:bg-white/10 transition-all font-bold text-sm shadow-lg shadow-yellow-500/10 border border-yellow-500/20">
                     <i class="fa-solid fa-mug-hot"></i> Support the Dev
                 </a>
@@ -179,6 +200,8 @@
         <p>&copy; 2026 Gnosys-AI. Built for Academic Excellence.</p>
         <p class="mt-2"><a href="https://buymeacoffee.com/rorrimaesu" target="_blank" class="hover:text-yellow-400 transition-colors inline-flex justify-center items-center gap-1.5"><i class="fa-solid fa-heart text-rose-500"></i> Support the project</a></p>
     </footer>
+
+    <script src="./assets/llm-router.js"></script>
 
     <!-- Hub Application Script -->
     <script src="./hub.js?v=20260529"></script>

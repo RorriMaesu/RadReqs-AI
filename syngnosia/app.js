@@ -2004,7 +2004,7 @@ async function openMiniChat(card, grade = null) {
     } catch (err) {
         if (err.name !== 'AbortError') {
             if (typingBubble.isConnected) typingBubble.remove();
-            appendMiniChatBubble('assistant', "Dr. Lex isn't available right now (Ollama may be offline). Hit Next Card to continue.");
+            appendMiniChatBubble('assistant', "Dr. Lex isn't available right now. Complete mobile setup or reconnect your local provider.");
             if (status) status.textContent = '· offline';
         }
     }
@@ -2057,7 +2057,7 @@ async function sendMiniChatMessage() {
     } catch (err) {
         if (err.name !== 'AbortError') {
             if (typingBubble.isConnected) typingBubble.remove();
-            appendMiniChatBubble('assistant', 'Connection lost — is Ollama still running?');
+            appendMiniChatBubble('assistant', 'Connection lost. Check local provider readiness and try again.');
         }
     }
     state.miniChatAbortCtrl = null;
@@ -2121,7 +2121,10 @@ function openResetModal() {
         const currentModel = getTutorModel();
         
         if (typeof window.populateModelSelector === 'function') {
-            window.populateModelSelector(selectEl, currentModel, OLLAMA_URL).then(online => {
+            const endpoint = (localStorage.getItem('chemistry_ollama_endpoint') || '')
+                .replace('/api/chat', '')
+                .replace('/api/generate', '');
+            window.populateModelSelector(selectEl, currentModel, endpoint).then(online => {
                 if (!online && offlineMsg) {
                     offlineMsg.classList.remove('hidden');
                 } else if (offlineMsg) {
@@ -3095,8 +3098,6 @@ function nextPluralChallenge() {
 // ==========================================
 // FEATURE G: AI TUTOR CHATBOT
 // ==========================================
-const OLLAMA_URL  = 'http://localhost:11434';
-
 function getTutorModel() {
     if (typeof window.getActiveModel === 'function') {
         return window.getActiveModel('syngnosia_tutor_model');
@@ -3114,13 +3115,8 @@ function setTutorModel(model) {
 }
 
 async function getAvailableOllamaModels() {
-    const response = await fetch(`${OLLAMA_URL}/api/tags`, { signal: AbortSignal.timeout(3000) });
-    if (!response.ok) return [];
-    const data = await response.json();
-    if (!Array.isArray(data?.models)) return [];
-    return data.models
-        .map((m) => (typeof m?.name === 'string' ? m.name : ''))
-        .filter(Boolean);
+    const requestedModel = getTutorModel();
+    return requestedModel ? [requestedModel] : [];
 }
 
 function pickBestTutorModel(requestedModel, availableModels) {
@@ -3147,16 +3143,10 @@ async function resolveTutorModel() {
     }
 }
 
-function responseLooksLikeModelNotFound(status, bodyText) {
-    if (status !== 404) return false;
-    const text = (bodyText || '').toLowerCase();
-    return text.includes('model') && text.includes('not found');
-}
-
 async function requestOllamaWithModelFallback(path, buildBody) {
     let model = getTutorModel();
-    if (typeof window.ensureOllamaActive === 'function') {
-        await window.ensureOllamaActive(OLLAMA_URL, model);
+    if (!window.GnosysLLM?.generateResponse) {
+        throw new Error('Shared LLM router is unavailable.');
     }
 
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -3167,41 +3157,80 @@ async function requestOllamaWithModelFallback(path, buildBody) {
                 bodyObj.options.draft_num_predict = 4;
             }
         }
-        let response;
         try {
-            response = await fetch(`${OLLAMA_URL}${path}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(bodyObj)
+            const history = Array.isArray(bodyObj.messages) ? bodyObj.messages.slice() : [];
+            const systemMessage = history.find((entry) => entry?.role === 'system');
+            const nonSystem = history.filter((entry) => entry?.role !== 'system');
+            const userEntry = nonSystem[nonSystem.length - 1];
+            const priorHistory = nonSystem.slice(0, -1);
+
+            const result = await window.GnosysLLM.generateResponse(
+                systemMessage?.content || '',
+                userEntry?.content || '',
+                {
+                    stream: Boolean(bodyObj.stream),
+                    model,
+                    moduleKey: 'syngnosia_tutor_model',
+                    history: priorHistory,
+                    onToken: bodyObj.stream ? (token) => {
+                        if (!requestOllamaWithModelFallback._tokenBuffer) {
+                            requestOllamaWithModelFallback._tokenBuffer = [];
+                        }
+                        requestOllamaWithModelFallback._tokenBuffer.push(token);
+                    } : undefined,
+                }
+            );
+
+            model = result?.model || model;
+            setTutorModel(model);
+
+            if (bodyObj.stream) {
+                const tokenBuffer = Array.isArray(requestOllamaWithModelFallback._tokenBuffer)
+                    ? requestOllamaWithModelFallback._tokenBuffer.slice()
+                    : [result?.text || ''];
+                requestOllamaWithModelFallback._tokenBuffer = [];
+                const stream = new ReadableStream({
+                    start(controller) {
+                        const encoder = new TextEncoder();
+                        for (const token of tokenBuffer) {
+                            if (!token) continue;
+                            controller.enqueue(encoder.encode(`${JSON.stringify({ message: { content: token }, done: false })}\n`));
+                        }
+                        controller.enqueue(encoder.encode(`${JSON.stringify({ done: true })}\n`));
+                        controller.close();
+                    }
+                });
+                const response = new Response(stream, {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/x-ndjson' }
+                });
+                return { response, model };
+            }
+
+            const response = new Response(JSON.stringify({
+                message: { content: result?.text || '' },
+                response: result?.text || ''
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
             });
+            return { response, model };
         } catch (fetchErr) {
             if (window.gnosysActiveModelsCache) {
                 delete window.gnosysActiveModelsCache[model];
             }
+            if (attempt === 0) {
+                const fallbackModel = await resolveTutorModel();
+                if (fallbackModel && fallbackModel !== model) {
+                    model = fallbackModel;
+                    continue;
+                }
+            }
             throw fetchErr;
         }
-
-        if (response.ok) {
-            return { response, model };
-        }
-
-        if (window.gnosysActiveModelsCache) {
-            delete window.gnosysActiveModelsCache[model];
-        }
-
-        const errorText = await response.text();
-        if (attempt === 0 && responseLooksLikeModelNotFound(response.status, errorText)) {
-            const fallbackModel = await resolveTutorModel();
-            if (fallbackModel && fallbackModel !== model) {
-                model = fallbackModel;
-                continue;
-            }
-        }
-
-        throw new Error(`HTTP ${response.status}${errorText ? `: ${errorText}` : ''}`);
     }
 
-    throw new Error('Unable to query local Ollama after fallback attempt.');
+    throw new Error('Unable to query local provider after fallback attempt.');
 }
 
 function buildTutorSystemPrompt() {
@@ -3243,16 +3272,20 @@ async function checkOllamaStatus() {
     const banner = document.getElementById('chat-offline-banner');
     if (!dot) return false; // tutor tab not in DOM yet
     try {
-        const res = await fetch(`${OLLAMA_URL}/api/ps`, { signal: AbortSignal.timeout(3000) });
-        if (res.ok) {
-            dot.className    = 'inline-block w-2 h-2 rounded-full bg-green-500';
-            text.textContent = 'Dr. Lex is ready';
-            banner.classList.add('hidden');
-            return true;
+        await window.GnosysLLM?.init?.();
+        const status = window.GnosysLLM?.getStatus?.();
+        const display = window.GnosysLLM?.getTutorStatusDisplay?.(status);
+        if (display) {
+            dot.className = display.dotClass;
+            text.textContent = display.text;
+            if (display.connected) {
+                banner.classList.add('hidden');
+                return true;
+            }
         }
     } catch {}
-    dot.className    = 'inline-block w-2 h-2 rounded-full bg-red-400';
-    text.textContent = 'Ollama offline';
+    dot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500';
+    text.textContent = 'Mobile Setup Required';
     banner.classList.remove('hidden');
     return false;
 }
@@ -3382,7 +3415,7 @@ async function sendChatMessage() {
     } catch (err) {
         removeTypingIndicator();
         const reason = err && err.message ? err.message : 'Unknown error';
-        appendChatBubble('assistant', `Sorry, I had trouble connecting to Ollama. ${reason}`);
+        appendChatBubble('assistant', `Sorry, I had trouble connecting to the local AI provider. ${reason}`);
         checkOllamaStatus();
     }
 
@@ -4087,7 +4120,7 @@ Use notation like "cardi/o", "my/o", "hyper-", "-itis", "-megaly". Use null for 
     } catch (err) {
         console.warn('Decomposition failed:', err);
         offlineBanner.classList.remove('hidden');
-        output.innerHTML = `<div class="text-center py-8 text-gray-400 font-medium">Could not analyze "<span class="font-semibold text-gray-600">${word}</span>". Make sure Ollama is running.</div>`;
+        output.innerHTML = `<div class="text-center py-8 text-gray-400 font-medium">Could not analyze "<span class="font-semibold text-gray-600">${word}</span>". Verify local provider readiness and try again.</div>`;
     } finally {
         btn.disabled  = false;
         btn.innerHTML = `<i class="fa-solid fa-magnifying-glass-plus"></i> <span>Analyze</span>`;
@@ -4181,7 +4214,7 @@ Return ONLY valid JSON: {"examples": ["clinicalword1", "clinicalword2"], "mnemon
     } catch (err) {
         console.warn('Enrichment failed:', err);
         btn.disabled  = false;
-        btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> Enrichment failed \u2014 is Ollama running?`;
+        btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500 mr-1"></i> Enrichment failed \u2014 verify local provider readiness`;
     }
 }
 

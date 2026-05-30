@@ -74,63 +74,29 @@ function pickAvailableModel(requestedModel, models) {
 }
 
 /**
- * Reusable fetch hook for local Ollama integration.
- * Gracefully falls back to null if offline.
+ * Reusable fetch hook for local provider integration.
+ * Gracefully falls back to null if unavailable.
  */
 async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
-    let targetModel = getPsychModel();
+    const targetModel = getPsychModel();
     try {
-        const requestOptions = {
-            num_predict: 150,
-            num_ctx: 1024
-        };
-        if (targetModel.toLowerCase().includes('gemma4')) {
-            requestOptions.draft_num_predict = 4;
+        if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+            throw new Error('GnosysLLM is unavailable');
         }
-        let payload = {
-            model: targetModel,
-            prompt: `${systemPrompt}\n\nStudent Input: "${userInput}"`,
-            stream: false,
-            options: requestOptions
-        };
-        if (jsonFormat) payload.format = 'json';
 
-        let response = await fetch('http://localhost:11434/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        const finalPrompt = `${systemPrompt}\n\nStudent Input: "${userInput}"${jsonFormat ? '\n\nReturn valid JSON only.' : ''}`;
+        const result = await window.GnosysLLM.generateResponse('', finalPrompt, {
+            moduleKey: 'psych_llm',
+            model: targetModel,
+            stream: false,
         });
-        
-        if (response.status === 404) {
-            const tagsRes = await fetch("http://localhost:11434/api/tags");
-            if (tagsRes.ok) {
-                const tagsData = await tagsRes.json();
-                if (tagsData.models && tagsData.models.length > 0) {
-                    targetModel = pickAvailableModel(targetModel, tagsData.models);
-                    localStorage.setItem("psych_llm", targetModel);
-                    payload.model = targetModel;
-                    if (targetModel.toLowerCase().includes('gemma4')) {
-                        payload.options.draft_num_predict = 4;
-                    } else {
-                        delete payload.options.draft_num_predict;
-                    }
-                    response = await fetch('http://localhost:11434/api/generate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                }
-            }
-        }
-        
-        if (!response.ok) throw new Error('Network response not ok');
-        const data = await response.json();
-        return data.response;
+
+        return typeof result?.text === 'string' ? result.text : null;
     } catch (error) {
         if (window.gnosysActiveModelsCache) {
             delete window.gnosysActiveModelsCache[targetModel];
         }
-        console.warn('Local LLM is offline or returned an error. Using hardcoded clinical logic fallback.', error);
+        console.warn('Local provider is unavailable or returned an error. Using hardcoded clinical logic fallback.', error);
         return null;
     }
 }
@@ -647,7 +613,7 @@ function initEhrAuditor() {
             } else {
                 // Fallback if LLM offline
                 aiFeedbackDiv.classList.add('bg-gray-50', 'text-gray-800', 'border', 'border-gray-200', 'dark:bg-slate-800', 'dark:border-slate-700', 'dark:text-slate-400');
-                aiFeedbackDiv.innerHTML = `<em>Local AI offline. Pre-checks passed. Granted automatic PASS.</em>`;
+                aiFeedbackDiv.innerHTML = `<em>Local provider unavailable. Pre-checks passed. Granted automatic PASS.</em>`;
                 
                 btnSubmit.classList.add('hidden');
                 if(btnNext) btnNext.classList.remove('hidden');
@@ -725,26 +691,22 @@ async function sendEhrChatMessage() {
     
     const currentModel = getPsychModel();
     try {
-        const requestOptions = { num_predict: 1000 };
-        if (currentModel.toLowerCase().includes('gemma4')) {
-            requestOptions.draft_num_predict = 4;
+        if (!window.GnosysLLM || typeof window.GnosysLLM.generateResponse !== 'function') {
+            throw new Error('GnosysLLM is unavailable');
         }
-        const payload = {
+
+        const systemMessage = ehrChatHistory.find((entry) => entry?.role === 'system');
+        const nonSystem = ehrChatHistory.filter((entry) => entry?.role !== 'system');
+        const userEntry = nonSystem[nonSystem.length - 1] || { role: 'user', content: '' };
+        const priorHistory = nonSystem.slice(0, -1);
+
+        const result = await window.GnosysLLM.generateResponse(systemMessage?.content || '', userEntry.content || '', {
+            moduleKey: 'psych_llm',
             model: currentModel,
-            messages: ehrChatHistory,
+            history: priorHistory,
             stream: false,
-            options: requestOptions
-        };
-        
-        const response = await fetch('http://localhost:11434/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
         });
-        
-        if (!response.ok) throw new Error('API Error');
-        const data = await response.json();
-        const aiResponse = data.message.content || "*(The tutor is thinking, please try asking again or rephrasing.)*";
+        const aiResponse = result?.text || "*(The tutor is thinking, please try asking again or rephrasing.)*";
         
         ehrChatHistory.push({ role: 'assistant', content: aiResponse });
         
