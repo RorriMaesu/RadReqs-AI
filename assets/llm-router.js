@@ -380,6 +380,35 @@
         };
     }
 
+    async function registerServiceWorker() {
+        if (!('serviceWorker' in navigator)) return;
+        const baseHref = window.location.pathname.startsWith('/Gnosys-AI') ? '/Gnosys-AI/' : '/';
+        const swPath = `${baseHref}sw.js`;
+        try {
+            const reg = await navigator.serviceWorker.register(swPath, { scope: baseHref });
+            console.log('[GnosysLLM] Service Worker registered with scope:', reg.scope);
+            
+            // Wait for service worker to become active and control the page
+            if (navigator.serviceWorker.controller) {
+                return;
+            }
+            
+            await new Promise((resolve) => {
+                const handler = () => {
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.removeEventListener('controllerchange', handler);
+                        resolve();
+                    }
+                };
+                navigator.serviceWorker.addEventListener('controllerchange', handler);
+                // Set a timeout fallback of 1000ms
+                setTimeout(resolve, 1000);
+            });
+        } catch (err) {
+            console.warn('[GnosysLLM] Service Worker registration failed:', err);
+        }
+    }
+
     function createLiteRtProvider() {
         const providerState = {
             engine: null,
@@ -411,6 +440,9 @@
                     providerState.litertModule = await import('https://cdn.jsdelivr.net/npm/@litert-lm/core/+esm');
                 }
 
+                // Register and coordinate PWA Service Worker control
+                await registerServiceWorker();
+
                 let justDownloaded = false;
                 if (!providerState.modelObjectUrl) {
                     providerState.modelObjectUrl = await getOrDownloadModelObjectUrl(progressCallback);
@@ -437,8 +469,14 @@
                     const { Engine, Backend } = providerState.litertModule;
                     
                     const activeConfig = getActiveModelConfig();
+                    
+                    // Define a virtual local URL matching base scope. The PWA Service Worker will intercept
+                    // fetches to /models/* and stream them directly from OPFS in chunked Streaming Mode.
+                    const baseHref = window.location.pathname.startsWith('/Gnosys-AI') ? '/Gnosys-AI/' : '/';
+                    const modelUrl = `${window.location.origin}${baseHref}models/${activeConfig.filename}`;
+                    
                     const engineSettings = {
-                        model: providerState.modelObjectUrl.stream(),
+                        model: modelUrl,
                         backend: Backend ? Backend.GPU_ARTISAN : undefined,
                         mainExecutorSettings: {
                             maxNumTokens: isMobileDevice ? activeConfig.tokensLimit : activeConfig.tokensLimit * 2,
