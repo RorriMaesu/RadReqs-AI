@@ -497,7 +497,7 @@ class PeriodicTable extends HTMLElement {
     }
 
     // ==========================================
-    // Gemma 4 Agent / API State Controllers
+    // Tutor agent / API state controllers
     // ==========================================
 
     /**
@@ -606,4 +606,26 @@ class PeriodicTable extends HTMLElement {
     }
 }
 
+function updatePeriodicModelBadge() {
+    const badge = document.getElementById('periodic-model-badge');
+    if (!badge) return;
+
+    let modelLabel = 'Local Model';
+    if (typeof window.getActiveModelLabel === 'function') {
+        modelLabel = window.getActiveModelLabel('chemistry_llm');
+    } else if (typeof window.getGnosysModel === 'function') {
+        modelLabel = window.getGnosysModel('chemistry_llm');
+    }
+
+    badge.textContent = modelLabel;
+    badge.title = `Active tutor model: ${modelLabel}`;
+}
+
 customElements.define('periodic-table', PeriodicTable);
+
+updatePeriodicModelBadge();
+window.addEventListener('storage', (event) => {
+    if (event.key === 'gnosys_active_llm' || event.key === 'chemistry_llm') {
+        updatePeriodicModelBadge();
+    }
+});

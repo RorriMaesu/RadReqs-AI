@@ -524,9 +524,9 @@ export function createStage6Scientific() {
                             <div class="s6-feedback" id="s6-applied-feedback-text">${state.appliedFeedback}</div>
                         </div>
 
-                        <!-- L6.5 Adaptive Pilot (Gemma4) (Moved to match L6.5 sequence) -->
+                        <!-- L6.5 Adaptive Pilot (Moved to match L6.5 sequence) -->
                         <div class="s6-pane ${paneLockedClass('L6.5-applied')}" style="margin-top:0.75rem; margin-bottom: 0.75rem;">
-                            <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Gemma4)</h3>
+                            <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Local Model)</h3>
                             <p style="margin-top:0;">Generate a fresh challenge at your current level, submit your answer, and get adaptive feedback + mastery updates for L6.5.</p>
                             <div class="s6-grid" style="gap:4px;">
                                 <button id="s6-generate-adaptive" class="s6-btn" ${state.adaptive.loading ? 'disabled' : ''}>${state.adaptive.loading ? 'Generating...' : 'Generate Adaptive Challenge'}</button>

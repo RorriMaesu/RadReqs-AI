@@ -4,6 +4,56 @@
     const OLLAMA_DEFAULT_URL = 'http://localhost:11434';
     let launchModal = null;
     let pollInterval = null;
+    let launcherApiStatus = 'unknown';
+
+    function normalizeUrlBase(url) {
+        return String(url || '').trim().replace(/\/+$/, '');
+    }
+
+    function getConfiguredLauncherApiBase() {
+        return normalizeUrlBase(
+            localStorage.getItem('gnosys_launcher_api_base') ||
+            localStorage.getItem('gnosys_server_origin')
+        );
+    }
+
+    function getLauncherApiBase() {
+        if (launcherApiStatus === 'unavailable') {
+            return null;
+        }
+
+        const configuredBase = getConfiguredLauncherApiBase();
+        if (!configuredBase) {
+            launcherApiStatus = 'unavailable';
+            return null;
+        }
+
+        return configuredBase;
+    }
+
+    function markLauncherApiAvailable() {
+        launcherApiStatus = 'available';
+    }
+
+    function markLauncherApiUnavailable() {
+        launcherApiStatus = 'unavailable';
+    }
+
+    function shouldUseLauncherApi() {
+        const launcherApiBase = getLauncherApiBase();
+        return Boolean(launcherApiBase);
+    }
+
+    function handleLauncherApiFailure(status) {
+        if (status === 404 || status === 0) {
+            markLauncherApiUnavailable();
+            return;
+        }
+
+        if (typeof status === 'number') {
+            console.warn('[Launcher] Sidecar API unavailable:', status);
+        }
+    }
 
     // Premium styling injection for the launcher UI
     function injectStyles() {
@@ -397,8 +447,12 @@
 
     async function triggerLocalServerLaunch() {
         console.log('[Launcher] Contacting server sidecar for automatic Ollama start...');
+        if (!shouldUseLauncherApi()) {
+            return false;
+        }
+        const launcherApiBase = getLauncherApiBase();
         try {
-            const launchUrl = `${window.location.origin}/api/launch-ollama`;
+            const launchUrl = `${launcherApiBase}/api/launch-ollama`;
             const response = await fetch(launchUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -406,10 +460,13 @@
                 signal: AbortSignal.timeout(3000)
             });
             if (response.ok) {
+                markLauncherApiAvailable();
                 const data = await response.json();
                 return data.status === 'success';
             }
+            handleLauncherApiFailure(response.status);
         } catch (err) {
+            markLauncherApiUnavailable();
             console.warn('[Launcher] Local server launch request failed:', err);
         }
         return false;
@@ -427,7 +484,7 @@
                     <i class="fa-solid fa-flask-vial gnosys-glow-beaker"></i>
                 </div>
                 <h3 class="text-lg font-extrabold text-white mb-1">Activating AI Engine</h3>
-                <p class="text-xs text-slate-400 mb-4 leading-relaxed">Starting your local Ollama connection (gemma4) to process tutor intelligence...</p>
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">Starting your local Ollama connection to process tutor intelligence...</p>
                 
                 <div class="gnosys-step-list">
                     <div id="step-connect" class="gnosys-step active">
@@ -773,15 +830,25 @@
             console.warn('[Launcher] Failed to fetch Ollama tags:', e);
         }
 
-        // Fetch hardware info from server
+        // Fetch hardware info from the optional local launcher sidecar.
         let hwData = null;
-        try {
-            const res = await fetch(`${window.location.origin}/api/hardware-info`, { signal: AbortSignal.timeout(2000) });
-            if (res.ok) {
-                hwData = await res.json();
+        if (shouldUseLauncherApi()) {
+            const launcherApiBase = getLauncherApiBase();
+            try {
+                const res = await fetch(`${launcherApiBase}/api/hardware-info`, { signal: AbortSignal.timeout(2000) });
+                if (res.ok) {
+                    markLauncherApiAvailable();
+                    hwData = await res.json();
+                } else {
+                    handleLauncherApiFailure(res.status);
+                }
+                if (!res.ok && res.status !== 404) {
+                    console.warn('[Launcher] Hardware info unavailable:', res.status, res.statusText);
+                }
+            } catch (e) {
+                markLauncherApiUnavailable();
+                console.warn('[Launcher] Failed to fetch hardware info:', e);
             }
-        } catch (e) {
-            console.warn('[Launcher] Failed to fetch hardware info:', e);
         }
 
         selectEl.innerHTML = '';
@@ -966,6 +1033,26 @@
         return 'gemma4:e4b';
     };
 
+    window.getActiveModel = function(moduleKey = null, fallbackModel = 'gemma4:e4b') {
+        const shared = localStorage.getItem('gnosys_active_llm');
+        if (shared && shared.trim()) return shared.trim();
+        if (moduleKey) {
+            const legacy = localStorage.getItem(moduleKey);
+            if (legacy && legacy.trim()) return legacy.trim();
+        }
+        return fallbackModel;
+    };
+
+    window.formatModelLabel = function(modelTag) {
+        const raw = String(modelTag || '').trim();
+        if (!raw) return 'Local Model';
+        return raw.replace(/:latest$/i, '');
+    };
+
+    window.getActiveModelLabel = function(moduleKey = null, fallbackModel = 'gemma4:e4b') {
+        return window.formatModelLabel(window.getActiveModel(moduleKey, fallbackModel));
+    };
+
     window.openChemistrySettingsModal = function () {
         if (document.getElementById('chemistry-settings-overlay')) return;
 
@@ -993,7 +1080,7 @@
                         </div>
                     </div>
                     <select id="chem-settings-model-select" class="w-full bg-gray-50 dark:bg-slate-850 border border-gray-250 dark:border-slate-700 text-gray-750 dark:text-slate-200 font-medium text-xs rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 block px-3 py-2 cursor-pointer">
-                        <option value="gemma4:e4b">gemma4:e4b (Default)</option>
+                        <option value="">Loading available models...</option>
                     </select>
                     <p id="chem-settings-model-offline-msg" class="hidden text-[10px] text-amber-500 mt-1.5 leading-snug">
                         <i class="fa-solid fa-circle-exclamation mr-1"></i> Ollama offline. Showing cached model only.

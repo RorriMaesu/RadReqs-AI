@@ -1,4 +1,11 @@
 window.MathTutor = (() => {
+    function getMathModel() {
+        if (typeof window.getActiveModel === 'function') {
+            return window.getActiveModel('math_llm');
+        }
+        return localStorage.getItem('math_llm') || 'gemma4:e4b';
+    }
+
     // Use marked if available, but protect math blocks first!
     const parseMD = (text) => {
         // 1. Extract math blocks so markdown doesn't mangle underscores/asterisks inside them
@@ -106,7 +113,7 @@ window.MathTutor = (() => {
             ...chatHistory
         ];
         
-        const currentModel = localStorage.getItem("math_llm") || "gemma4:e4b";
+        const currentModel = getMathModel();
         try {
             const bodyObj = { model: currentModel, messages: payload, stream: true };
             if (currentModel.toLowerCase().includes('gemma4')) {

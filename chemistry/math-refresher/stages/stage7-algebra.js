@@ -501,7 +501,7 @@ export function createStage7Algebra() {
 
                         <!-- Adaptive Pilot -->
                         <div class="s7-pane ${paneLockedClass('L7.13')}" style="margin-top:0.75rem;">
-                            <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Gemma4)</h3>
+                            <h3 style="margin:0 0 0.45rem;">Adaptive Pilot (Local Model)</h3>
                             <p style="margin-top:0;">Generate a new challenge for literal rearrangements and calculations, submit your response, and get adaptive mastery tracking.</p>
                             <div class="s7-grid" style="gap:4px;">
                                 <button id="s7-generate-adaptive" class="s7-btn" ${state.adaptive.loading ? 'disabled' : ''}>${state.adaptive.loading ? 'Generating...' : 'Generate Adaptive Challenge'}</button>

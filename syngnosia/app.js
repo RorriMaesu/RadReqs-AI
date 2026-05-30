@@ -2584,7 +2584,7 @@ function renderChartDecrypter() {
     input.focus();
 }
 
-async function gradeWithGemma4(userVal, sentence, targetVal) {
+async function gradeWithModel(userVal, sentence, targetVal) {
     const prompt = `You are a strict medical assessor. The user translated a medical term from a clinical sentence.
 Sentence: "${sentence}"
 Target translation: "${targetVal}"
@@ -2608,12 +2608,12 @@ Return ONLY a valid JSON object in this exact format: {"isCorrect": true/false, 
         const jsonString = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
         return JSON.parse(jsonString);
     } catch (e) {
-        console.warn("Gemma 4 grading failed, falling back to exact match.", e);
+        console.warn('Model grading failed, falling back to exact match.', e);
         return null;
     }
 }
 
-async function gradeAdWithGemma4(userVal, abbrev, canonicalMeaning) {
+async function gradeAbbrevWithModel(userVal, abbrev, canonicalMeaning) {
     const prompt = `You are a medical education tutor grading a student's knowledge of medical abbreviations.
 Abbreviation: "${abbrev}"
 Canonical meaning: "${canonicalMeaning}"
@@ -2634,7 +2634,7 @@ Return ONLY a valid JSON object: {"isCorrect": true/false, "feedback": "One enco
         const jsonString = data.response.replace(/```json/gi, '').replace(/```/g, '').trim();
         return JSON.parse(jsonString);
     } catch (e) {
-        console.warn('Gemma 4 abbreviation grading failed, falling back to exact match.', e);
+        console.warn('Model abbreviation grading failed, falling back to exact match.', e);
         return null;
     }
 }
@@ -2658,12 +2658,12 @@ async function checkCdAnswer() {
     // Strip HTML from sentence for the prompt
     const plainTextSentence = challenge.text.replace(/<[^>]*>?/gm, '');
 
-    // Attempt Semantic Grading via Gemma 4
-    const gemmaResult = await gradeWithGemma4(userVal, plainTextSentence, challenge.answer);
+    // Attempt semantic grading via active local model.
+    const modelResult = await gradeWithModel(userVal, plainTextSentence, challenge.answer);
 
-    if (gemmaResult !== null && typeof gemmaResult.isCorrect === 'boolean') {
-        isCorrect   = gemmaResult.isCorrect;
-        feedbackMsg = gemmaResult.feedback || (isCorrect ? "Correct translation!" : "Incorrect. Please try again.");
+    if (modelResult !== null && typeof modelResult.isCorrect === 'boolean') {
+        isCorrect   = modelResult.isCorrect;
+        feedbackMsg = modelResult.feedback || (isCorrect ? "Correct translation!" : "Incorrect. Please try again.");
     } else {
         // Graceful Fallback: Exact String Match (ignoring punctuation)
         const cleanUserVal  = userVal.replace(/[^\w\s]/gi, '').trim();
@@ -2931,12 +2931,12 @@ async function checkAdAnswer() {
     let isCorrect  = false;
     let feedbackMsg = '';
 
-    // Attempt semantic grading via Gemma 4
-    const gemmaResult = await gradeAdWithGemma4(userVal, challenge.term, challenge.meaning);
+    // Attempt semantic grading via active local model.
+    const modelResult = await gradeAbbrevWithModel(userVal, challenge.term, challenge.meaning);
 
-    if (gemmaResult !== null && typeof gemmaResult.isCorrect === 'boolean') {
-        isCorrect   = gemmaResult.isCorrect;
-        feedbackMsg = gemmaResult.feedback || (isCorrect ? 'Correct!' : `Incorrect. Expected: ${challenge.meaning}`);
+    if (modelResult !== null && typeof modelResult.isCorrect === 'boolean') {
+        isCorrect   = modelResult.isCorrect;
+        feedbackMsg = modelResult.feedback || (isCorrect ? 'Correct!' : `Incorrect. Expected: ${challenge.meaning}`);
     } else {
         // Graceful fallback: exact string match
         isCorrect   = userVal === challenge.meaning.toLowerCase();
@@ -3098,6 +3098,9 @@ function nextPluralChallenge() {
 const OLLAMA_URL  = 'http://localhost:11434';
 
 function getTutorModel() {
+    if (typeof window.getActiveModel === 'function') {
+        return window.getActiveModel('syngnosia_tutor_model');
+    }
     if (typeof window.getGnosysModel === 'function') {
         return window.getGnosysModel('syngnosia_tutor_model');
     }
@@ -3126,9 +3129,6 @@ function pickBestTutorModel(requestedModel, availableModels) {
 
     const startsWith = availableModels.find((name) => name.startsWith(requestedModel));
     if (startsWith) return startsWith;
-
-    const gemma = availableModels.find((name) => name.toLowerCase().includes('gemma'));
-    if (gemma) return gemma;
 
     return availableModels[0];
 }
@@ -4147,8 +4147,12 @@ async function enrichDictionaryEntry(id) {
     if (!entry) return;
 
     const btn = document.getElementById('dict-modal-enrich-btn');
+    const activeModel = getTutorModel();
+    const modelLabel = typeof window.formatModelLabel === 'function'
+        ? window.formatModelLabel(activeModel)
+        : activeModel;
     btn.disabled  = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Enriching with Gemma4\u2026`;
+    btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Enriching with ${modelLabel}\u2026`;
 
     const prompt = `Medical term: "${entry.term}" (${entry.type}, meaning: "${entry.meaning}")
 Provide: 1) exactly two real clinical words that prominently use this morpheme, 2) one concise memory mnemonic for students.

@@ -56,13 +56,30 @@ function updateDashboard() {
     if(crisesText) crisesText.textContent = `${crisesResolved} / ${totalCrises}`;
 }
 
+function getPsychModel() {
+    if (typeof window.getActiveModel === 'function') {
+        return window.getActiveModel('psych_llm');
+    }
+    return localStorage.getItem('psych_llm') || localStorage.getItem('syngnosia_tutor_model') || 'gemma4:e4b';
+}
+
+function pickAvailableModel(requestedModel, models) {
+    if (!Array.isArray(models) || models.length === 0) return requestedModel;
+    const names = models.map((m) => (typeof m?.name === 'string' ? m.name : '')).filter(Boolean);
+    if (names.length === 0) return requestedModel;
+    if (names.includes(requestedModel)) return requestedModel;
+    const prefix = names.find((name) => name.startsWith(requestedModel));
+    if (prefix) return prefix;
+    return names[0];
+}
+
 /**
  * Reusable fetch hook for local Ollama integration.
  * Gracefully falls back to null if offline.
  */
 async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
+    let targetModel = getPsychModel();
     try {
-        let targetModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
         const requestOptions = {
             num_predict: 150,
             num_ctx: 1024
@@ -89,8 +106,7 @@ async function fetchLocalAI(systemPrompt, userInput, jsonFormat = false) {
             if (tagsRes.ok) {
                 const tagsData = await tagsRes.json();
                 if (tagsData.models && tagsData.models.length > 0) {
-                    const fallback = tagsData.models.find(m => m.name.includes('gemma')) || tagsData.models[0];
-                    targetModel = fallback.name;
+                    targetModel = pickAvailableModel(targetModel, tagsData.models);
                     localStorage.setItem("psych_llm", targetModel);
                     payload.model = targetModel;
                     if (targetModel.toLowerCase().includes('gemma4')) {
@@ -707,7 +723,7 @@ async function sendEhrChatMessage() {
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<i class="fa-solid fa-ellipsis"></i>';
     
-    const currentModel = localStorage.getItem("psych_llm") || localStorage.getItem("syngnosia_tutor_model") || "gemma4:e4b";
+    const currentModel = getPsychModel();
     try {
         const requestOptions = { num_predict: 1000 };
         if (currentModel.toLowerCase().includes('gemma4')) {

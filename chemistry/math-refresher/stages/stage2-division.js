@@ -132,6 +132,16 @@ const createInitialStage2State = () => ({
     activeLesson: 'L2.1'
 });
 
+function getChemModelLabel() {
+    if (typeof window.getActiveModelLabel === 'function') {
+        return window.getActiveModelLabel('chemistry_llm');
+    }
+    if (typeof window.getGnosysModel === 'function') {
+        return window.getGnosysModel('chemistry_llm');
+    }
+    return 'local model';
+}
+
 function getDivisionSteps(dividend, divisor) {
     const divStr = String(dividend);
     const digit12 = parseInt(divStr.substring(0, 2), 10);
@@ -633,8 +643,8 @@ export function createStage2Division() {
                             ${s2EstimateGenerated
                                 ? `
                                     <div class="s2-grid" style="grid-template-columns: 1fr auto; gap: 4px;">
-                                        <input id="s2-stoich-response" class="s2-input" placeholder="Enter your estimate (e.g. about 4 moles)" value="${state.stoichResponse || ''}" data-tutor-question-id="s2-estimate" data-tutor-level="applied" data-tutor-answer-keys="stoichResponse,stoichGrading,stoichError" data-tutor-question="Grade my free-response stoichiometric estimate using Gemma and explain the reasoning." ${disabled('L2.10')} ${state.stoichLoading ? 'disabled' : ''} />
-                                        <button id="s2-submit-stoich" class="s2-btn" data-tutor-question-id="s2-estimate" data-tutor-level="applied" data-tutor-answer-keys="stoichResponse,stoichGrading,stoichError" data-tutor-question="Grade my free-response stoichiometric estimate using Gemma and explain the reasoning." ${disabled('L2.10')} ${state.stoichLoading ? 'disabled' : ''}>${state.stoichLoading ? 'Grading...' : 'Grade with Gemma4'}</button>
+                                        <input id="s2-stoich-response" class="s2-input" placeholder="Enter your estimate (e.g. about 4 moles)" value="${state.stoichResponse || ''}" data-tutor-question-id="s2-estimate" data-tutor-level="applied" data-tutor-answer-keys="stoichResponse,stoichGrading,stoichError" data-tutor-question="Grade my free-response stoichiometric estimate using my active local model and explain the reasoning." ${disabled('L2.10')} ${state.stoichLoading ? 'disabled' : ''} />
+                                        <button id="s2-submit-stoich" class="s2-btn" data-tutor-question-id="s2-estimate" data-tutor-level="applied" data-tutor-answer-keys="stoichResponse,stoichGrading,stoichError" data-tutor-question="Grade my free-response stoichiometric estimate using my active local model and explain the reasoning." ${disabled('L2.10')} ${state.stoichLoading ? 'disabled' : ''}>${state.stoichLoading ? `Grading with ${getChemModelLabel()}...` : 'Grade with Active Model'}</button>
                                     </div>
                                 `
                                 : `
@@ -1031,10 +1041,10 @@ export function createStage2Division() {
 
                 state.stoichLoading = false;
                 state.stoichGrading = grading?.result || null;
-                state.stoichFeedback = grading?.result?.feedback || 'Gemma grading completed, but no feedback was returned.';
+                state.stoichFeedback = grading?.result?.feedback || 'Model grading completed, but no feedback was returned.';
 
                 if (!grading?.ok) {
-                    state.stoichError = `Gemma grading fallback: ${grading?.result?.rationale || 'Unable to grade response.'}`;
+                    state.stoichError = `Model grading fallback: ${grading?.result?.rationale || 'Unable to grade response.'}`;
                 }
 
                 const parsedEstimate = Number.parseFloat(String(learnerResponse).replace(/[^0-9.+-]/g, ''));

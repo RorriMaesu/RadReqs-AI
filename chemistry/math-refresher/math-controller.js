@@ -23,7 +23,7 @@ import {
     gradeAdaptiveResponse,
     generateQuestionVariant,
     QUESTION_TEMPLATES
-} from './gemma-adaptive-service.js';
+} from './adaptive-service.js';
 import {
     createCalculatorCoreState,
     mapKeyboardEventToCalculatorKey,
@@ -885,7 +885,10 @@ async function triggerQuestionGeneration(phaseId, questionId, btnEl) {
             return;
         }
 
-        setResetStatus('Generating new practice problem with local Gemma 4...');
+        const activeModelLabel = typeof window.getActiveModelLabel === 'function'
+            ? window.getActiveModelLabel('chemistry_llm')
+            : (typeof window.getGnosysModel === 'function' ? window.getGnosysModel('chemistry_llm') : 'local model');
+        setResetStatus(`Generating new practice problem with ${activeModelLabel}...`);
         const phase = phaseById(phaseId);
         const stageState = courseState.phases[phaseId] || phase.getInitialState();
         const maxRetries = questionId === 's1-applied-tare' ? GENERATED_SIGNATURE_MAX_RETRIES : 1;
@@ -919,7 +922,7 @@ async function triggerQuestionGeneration(phaseId, questionId, btnEl) {
 
             generated = {
                 data: nextData,
-                model: result.model || 'Gemma 4'
+                model: result.model || activeModelLabel
             };
             acceptedSignature = signature;
             break;
@@ -949,10 +952,10 @@ async function triggerQuestionGeneration(phaseId, questionId, btnEl) {
             setResetStatus(`New practice question generated using ${generated.model}.`);
         } else {
             if (duplicateRejected) {
-                throw new Error('Gemma returned duplicate L1.9 prompts repeatedly. Try generating again for a fresh prompt.');
+                throw new Error('The active model returned duplicate L1.9 prompts repeatedly. Try generating again for a fresh prompt.');
             }
             if (qualityRejected) {
-                throw new Error('Gemma returned low-quality L1.9 prompts repeatedly. Try generating again for a clearer conceptual prompt.');
+                throw new Error('The active model returned low-quality L1.9 prompts repeatedly. Try generating again for a clearer conceptual prompt.');
             }
             throw new Error('Invalid generation response format.');
         }
@@ -960,7 +963,7 @@ async function triggerQuestionGeneration(phaseId, questionId, btnEl) {
         console.error('Question generation failed:', error);
         const success = applyOfflineFallbackQuestion(phaseId, questionId);
         if (success) {
-            setResetStatus('Gemma 4 offline or failed. Generated a practice problem variant locally.');
+            setResetStatus('Local model offline or failed. Generated a practice problem variant locally.');
         } else {
             setResetStatus(`Generation failed: ${error.message}`);
         }
@@ -1869,7 +1872,146 @@ function getAdaptiveLessonRow(stageId, lessonId) {
     return courseState.adaptive.lessonMastery[getLessonKey(stageId, lessonId)] || null;
 }
 
+function applyPersistedTheme() {
+    const darkEnabled = localStorage.getItem('chemistry_darkmode') === 'true';
+    document.documentElement.classList.toggle('dark', darkEnabled);
+    syncThemeButton(darkEnabled);
+}
+
+function syncThemeButton(darkEnabled = document.documentElement.classList.contains('dark')) {
+    const darkBtn = document.getElementById('btn-darkmode');
+    if (!darkBtn) return;
+
+    darkBtn.classList.toggle('is-active', darkEnabled);
+    darkBtn.setAttribute('aria-pressed', darkEnabled ? 'true' : 'false');
+    darkBtn.setAttribute('title', darkEnabled ? 'Switch to light mode' : 'Switch to dark mode');
+    const icon = darkBtn.querySelector('i');
+    if (icon) {
+        icon.className = darkEnabled ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        icon.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function closeSettingsModal() {
+    const modal = document.getElementById('cmr-settings-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+    document.body.classList.remove('cmr-reset-modal-open');
+}
+
+function isStandaloneRefresherShellPresent() {
+    return Boolean(
+        document.getElementById('cmr-settings-modal') &&
+        document.getElementById('cmr-phase-nav') &&
+        document.getElementById('cmr-phase-canvas')
+    );
+}
+
+async function openSettingsModal() {
+    const modal = document.getElementById('cmr-settings-modal');
+    if (!modal) {
+        return;
+    }
+
+    const card = modal.querySelector('.cmr-settings-card');
+    const selectEl = document.getElementById('cmr-settings-model-select');
+    const bypassToggle = document.getElementById('cmr-settings-bypass-toggle');
+    const offlineMsg = document.getElementById('cmr-settings-model-status');
+
+    if (!selectEl || !bypassToggle || !offlineMsg) {
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    document.body.classList.add('cmr-reset-modal-open');
+    bypassToggle.checked = localStorage.getItem('chemistry_curriculum_bypass') === 'true';
+    offlineMsg.classList.add('hidden');
+
+    const currentModel = typeof window.getGnosysModel === 'function'
+        ? window.getGnosysModel('chemistry_llm')
+        : (localStorage.getItem('gnosys_active_llm') || localStorage.getItem('chemistry_llm') || 'gemma4:e4b');
+    const endpoint = (localStorage.getItem('chemistry_ollama_endpoint') || 'http://localhost:11434')
+        .replace('/api/chat', '')
+        .replace('/api/generate', '');
+
+    if (typeof window.populateModelSelector === 'function') {
+        const online = await window.populateModelSelector(selectEl, currentModel, endpoint);
+        if (!online) {
+            offlineMsg.classList.remove('hidden');
+        }
+    } else {
+        selectEl.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = currentModel;
+        option.textContent = currentModel;
+        selectEl.appendChild(option);
+        offlineMsg.textContent = 'Model list unavailable. Showing the saved selection only.';
+        offlineMsg.classList.remove('hidden');
+    }
+
+    window.requestAnimationFrame(() => {
+        card?.focus();
+    });
+}
+
+function bindSettingsModal() {
+    const modal = document.getElementById('cmr-settings-modal');
+    const closeBtn = document.getElementById('cmr-settings-close');
+    const doneBtn = document.getElementById('cmr-settings-done');
+    const selectEl = document.getElementById('cmr-settings-model-select');
+    const bypassToggle = document.getElementById('cmr-settings-bypass-toggle');
+
+    if (!modal || !closeBtn || !doneBtn || !selectEl || !bypassToggle) return;
+
+    closeBtn.addEventListener('click', closeSettingsModal);
+    doneBtn.addEventListener('click', closeSettingsModal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal || event.target.classList.contains('cmr-settings-backdrop')) {
+            closeSettingsModal();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeSettingsModal();
+        }
+    });
+
+    selectEl.addEventListener('change', () => {
+        const val = selectEl.value;
+        if (!val || val === '__custom__') return;
+        localStorage.setItem('gnosys_active_llm', val);
+        localStorage.setItem('chemistry_llm', val);
+    });
+
+    bypassToggle.addEventListener('change', () => {
+        const enabled = bypassToggle.checked;
+        localStorage.setItem('chemistry_curriculum_bypass', String(enabled));
+        window.dispatchEvent(new CustomEvent('curriculumBypassChanged', { detail: { enabled } }));
+    });
+}
+
+function bindHeaderControls() {
+    if (!isStandaloneRefresherShellPresent()) return;
+
+    const darkBtn = document.getElementById('btn-darkmode');
+    if (darkBtn) {
+        darkBtn.addEventListener('click', () => {
+            const root = document.documentElement;
+            root.classList.toggle('dark');
+            const darkEnabled = root.classList.contains('dark');
+            localStorage.setItem('chemistry_darkmode', String(darkEnabled));
+            syncThemeButton(darkEnabled);
+        });
+    }
+
+    const settingsBtn = document.getElementById('btn-settings');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', openSettingsModal);
+    }
+}
+
 function init() {
+    applyPersistedTheme();
     refs.nav = document.getElementById('cmr-phase-nav');
     refs.canvas = document.getElementById('cmr-phase-canvas');
     refs.currentPhase = document.getElementById('cmr-current-phase');
@@ -1894,6 +2036,9 @@ function init() {
     refs.resetToastBar = document.getElementById('cmr-reset-toast-bar');
     refs.progressBar = document.getElementById('cmr-progress-bar');
     refs.progressPercent = document.getElementById('cmr-progress-percent');
+
+    bindSettingsModal();
+    bindHeaderControls();
 
     if (!refs.nav || !refs.canvas) return;
 

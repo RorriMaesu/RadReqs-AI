@@ -58,6 +58,7 @@
         els.socraticCollapsedHint = document.getElementById('socratic-collapsed-hint');
         els.socraticCtaInline = document.getElementById('socratic-cta-inline');
         els.btnPrimarySocraticCta = document.getElementById('btn-primary-socratic-cta');
+        els.btnStartSocraticHeader = document.getElementById('btn-start-socratic-header');
 
         els.dots = {
             1: document.getElementById('dot-1'),
@@ -233,6 +234,11 @@
         }
     }
 
+    function startSocraticCheckpoint() {
+        markSocraticCtaSeen();
+        renderStage2();
+    }
+
     function getElementViewportCoverage(el) {
         if (!el || typeof el.getBoundingClientRect !== 'function') return 0;
 
@@ -279,6 +285,8 @@
     function updateSocraticCtaUi() {
         const isLectureStage = appState.stage === STAGE_LECTURE;
         const showPrimaryCta = isLectureStage && appState.socraticCollapsed;
+        const showHeaderCta = isLectureStage && !appState.socraticCollapsed;
+        const shouldPulse = isLectureStage && !hasSeenSocraticCta();
 
         if (els.socraticCtaInline) {
             els.socraticCtaInline.classList.toggle('hidden', !showPrimaryCta);
@@ -286,8 +294,13 @@
         }
 
         if (els.btnPrimarySocraticCta) {
-            const shouldPulse = showPrimaryCta && !hasSeenSocraticCta();
-            els.btnPrimarySocraticCta.classList.toggle('cta-attn', shouldPulse);
+            els.btnPrimarySocraticCta.classList.toggle('cta-attn', showPrimaryCta && shouldPulse);
+        }
+
+        if (els.btnStartSocraticHeader) {
+            els.btnStartSocraticHeader.classList.toggle('hidden', !showHeaderCta);
+            els.btnStartSocraticHeader.classList.toggle('inline-flex', showHeaderCta);
+            els.btnStartSocraticHeader.classList.toggle('cta-attn', showHeaderCta && shouldPulse);
         }
 
         scheduleSocraticPrimaryViewportStateRefresh();
@@ -336,6 +349,19 @@
         if (!el) return;
         el.classList.add('hidden');
         el.classList.remove('flex');
+    }
+
+    function getActiveModelLabel(moduleKey = 'chemistry_llm') {
+        if (typeof window.getActiveModelLabel === 'function') {
+            return window.getActiveModelLabel(moduleKey);
+        }
+        if (typeof window.getActiveModel === 'function' && typeof window.formatModelLabel === 'function') {
+            return window.formatModelLabel(window.getActiveModel(moduleKey));
+        }
+        if (typeof window.getGnosysModel === 'function') {
+            return window.getGnosysModel(moduleKey);
+        }
+        return localStorage.getItem('gnosys_active_llm') || localStorage.getItem(moduleKey) || 'local model';
     }
 
     function escapeHtml(value) {
@@ -697,12 +723,13 @@
             return;
         }
         appState.isGeneratingLecture = true;
+        const modelLabel = escapeHtml(getActiveModelLabel('chemistry_llm'));
 
         els.lectureContainer.innerHTML = `
             <div class="flex flex-col h-full justify-center p-4 max-w-lg mx-auto space-y-3">
                 <div class="flex items-center space-x-3 text-amber-500 dark:text-amber-400 font-semibold text-xs">
                     <i class="fa-solid fa-gears animate-spin"></i>
-                    <span>${isRegenerate ? 'Regenerating' : 'Generating'} Lecture via Gemma 4...</span>
+                    <span>${isRegenerate ? 'Regenerating' : 'Generating'} Lecture via ${modelLabel}...</span>
                 </div>
                 
                 <div class="bg-slate-900 border border-slate-800 rounded p-3 font-mono text-[10px] text-slate-300 space-y-2 shadow-inner">
@@ -1318,8 +1345,7 @@
         if (els.btnOpenSocratic) {
             els.btnOpenSocratic.addEventListener('click', () => {
                 if (appState.stage === STAGE_LECTURE) {
-                    markSocraticCtaSeen();
-                    renderStage2();
+                    startSocraticCheckpoint();
                     return;
                 }
 
@@ -1332,8 +1358,13 @@
 
         if (els.btnPrimarySocraticCta) {
             els.btnPrimarySocraticCta.addEventListener('click', () => {
-                markSocraticCtaSeen();
-                renderStage2();
+                startSocraticCheckpoint();
+            });
+        }
+
+        if (els.btnStartSocraticHeader) {
+            els.btnStartSocraticHeader.addEventListener('click', () => {
+                startSocraticCheckpoint();
             });
         }
 

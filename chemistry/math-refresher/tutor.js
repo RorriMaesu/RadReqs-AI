@@ -8,6 +8,13 @@ window.ChemTutor = (() => {
     let popupCalculatorLastState = null;
     let popupTutorQuestionContext = null;
 
+    function getChemistryModel() {
+        if (typeof window.getActiveModel === 'function') {
+            return window.getActiveModel('chemistry_llm');
+        }
+        return localStorage.getItem('gnosys_active_llm') || localStorage.getItem('chemistry_llm') || 'gemma4:e4b';
+    }
+
     const parseMD = (text) => {
         if (typeof text !== 'string') return '';
 
@@ -160,7 +167,7 @@ Guidelines:
             ...chatHistory
         ];
         
-        const currentModel = localStorage.getItem("gnosys_active_llm") || localStorage.getItem("chemistry_llm") || "gemma4:e4b";
+        const currentModel = getChemistryModel();
         try {
             const bodyObj = { model: currentModel, messages: payload, stream: true };
             if (currentModel.toLowerCase().includes('gemma4')) {

@@ -220,8 +220,41 @@
             animation: socraticCtaPulse 1.2s ease-in-out infinite;
         }
 
+        #btn-start-socratic-header.socratic-cta-strong {
+            background: linear-gradient(135deg, #059669, #0d9488);
+            color: #ffffff;
+            border: 1px solid rgba(16, 185, 129, 0.9);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.32);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            line-height: 1;
+            min-height: 2rem;
+            padding: 0.55rem 0.8rem;
+            border-radius: 0.6rem;
+            transition: transform 140ms ease, box-shadow 180ms ease, filter 180ms ease;
+        }
+
+        #btn-start-socratic-header.socratic-cta-strong:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(5, 150, 105, 0.4);
+        }
+
+        #btn-start-socratic-header.socratic-cta-strong:focus-visible {
+            outline: 2px solid rgba(16, 185, 129, 0.95);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.28), 0 10px 22px rgba(5, 150, 105, 0.45);
+        }
+
+        #btn-start-socratic-header.cta-attn {
+            animation: socraticCtaPulse 1.1s ease-in-out infinite;
+        }
+
         @media (prefers-reduced-motion: reduce) {
-            #btn-primary-socratic-cta.cta-attn {
+            #btn-primary-socratic-cta.cta-attn,
+            #btn-start-socratic-header.cta-attn {
                 animation: none;
             }
         }
@@ -276,6 +309,19 @@
         }
 
         @media (max-width: 767px) {
+            #chat-header-controls {
+                flex-wrap: wrap;
+                row-gap: 0.35rem;
+                align-items: center;
+            }
+
+            #btn-start-socratic-header.socratic-cta-strong {
+                order: -2;
+                flex: 1 1 auto;
+                justify-content: center;
+                min-width: 100%;
+            }
+
             #work-area-split.layout-lecture #lecture-panel {
                 flex: 1 1 auto;
             }
@@ -487,11 +533,11 @@
                             <select id="select-active-lecture" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-[10px] rounded px-1.5 py-0.5 outline-none font-medium text-slate-700 dark:text-slate-200 transition-colors">
                                 <option value="0">Lecture 1</option>
                             </select>
-                            <button id="btn-add-lecture" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1" title="Generate an additional lecture variation for this lesson using Gemma4">
+                            <button id="btn-add-lecture" class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1" title="Generate an additional lecture variation using your selected local model">
                                 <i class="fa-solid fa-plus text-[9px]"></i>
                                 <span>Add Lecture</span>
                             </button>
-                            <button id="btn-regenerate-lecture" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 border border-amber-500/20 dark:border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1" title="Regenerate the active lecture using Gemma4">
+                            <button id="btn-regenerate-lecture" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 border border-amber-500/20 dark:border-amber-500/30 px-2 py-0.5 rounded text-[10px] font-semibold transition flex items-center space-x-1" title="Regenerate the active lecture using your selected local model">
                                 <i class="fa-solid fa-arrows-rotate text-[9px]"></i>
                                 <span>Regenerate Active</span>
                             </button>
@@ -518,7 +564,11 @@
                             <span id="chat-header-title">Socratic Chemistry Interaction</span>
                         </div>
                         <div id="chat-header-controls" class="flex items-center gap-3 text-[10px] font-mono">
-                            <button id="btn-generate-question" class="hidden bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded font-sans font-semibold transition flex items-center space-x-1" title="Generate a new dynamic practice question using Gemma4">
+                            <button id="btn-start-socratic-header" type="button" aria-label="Start Socratic Checkpoint" title="Start Stage 2 guided Socratic questioning" class="hidden socratic-cta-strong font-sans items-center space-x-1">
+                                <i class="fa-solid fa-comments"></i>
+                                <span>Start Socratic Checkpoint</span>
+                            </button>
+                            <button id="btn-generate-question" class="hidden bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded font-sans font-semibold transition flex items-center space-x-1" title="Generate a new dynamic practice question using your selected local model">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 <span>New Question</span>
                             </button>

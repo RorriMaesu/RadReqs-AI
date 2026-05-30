@@ -357,6 +357,46 @@
     </style>
 </head>
 <body class="cmr-body">
+    <header class="cmr-global-header">
+        <div class="cmr-global-header-inner">
+            <div class="cmr-global-brand-wrap">
+                <a href="../../index.html" class="cmr-global-back" aria-label="Back to hub" title="Back to Hub">
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </a>
+                <div class="cmr-global-brand">
+                    <p class="cmr-global-brand-kicker">CH 104Z / 124Z</p>
+                    <h2>Chemistry Math Refresher</h2>
+                </div>
+            </div>
+
+            <nav class="cmr-global-nav" aria-label="Chemistry pages">
+                <a href="../index.html"><i class="fa-solid fa-house" aria-hidden="true"></i>Skills Lab</a>
+                <a href="../coursework.html"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>Coursework</a>
+                <a href="../periodic_table.html"><i class="fa-solid fa-table-cells" aria-hidden="true"></i>Periodic Table</a>
+                <a href="../assignments.html"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i>Homework Binder</a>
+                <a href="#" class="active" aria-current="page"><i class="fa-solid fa-square-root-variable" aria-hidden="true"></i>Math Refresher</a>
+            </nav>
+
+            <div class="cmr-global-actions">
+                <button id="btn-darkmode" type="button" title="Toggle Dark Mode" class="cmr-global-icon-btn" aria-label="Toggle dark mode">
+                    <i class="fa-solid fa-moon" aria-hidden="true"></i>
+                </button>
+                <button id="btn-settings" type="button" title="Settings & Reset" class="cmr-global-icon-btn" aria-label="Open settings">
+                    <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+
+        <nav class="cmr-mobile-nav" aria-label="Chemistry pages mobile">
+            <a href="../../index.html"><i class="fa-solid fa-grid-2"></i><span>Hub</span></a>
+            <a href="../index.html"><i class="fa-solid fa-house"></i><span>Lab</span></a>
+            <a href="../coursework.html"><i class="fa-solid fa-graduation-cap"></i><span>Coursework</span></a>
+            <a href="../periodic_table.html"><i class="fa-solid fa-table-cells"></i><span>Table</span></a>
+            <a href="../assignments.html"><i class="fa-solid fa-clipboard-list"></i><span>Homework</span></a>
+            <a href="#" class="active" aria-current="page"><i class="fa-solid fa-square-root-variable"></i><span>Math</span></a>
+        </nav>
+    </header>
+
     <main class="cmr-shell">
         <header class="cmr-header">
             <div>
@@ -364,7 +404,7 @@
                 <h1>Adaptive Math Refresher Engine</h1>
                 <p class="cmr-subtitle">A complete 12-stage math crash course for adult learners returning to college.</p>
             </div>
-            <a href="../index.html" class="cmr-back-link" aria-label="Back to chemistry dashboard">Back to Chemistry</a>
+            <a href="../index.html" class="cmr-back-link cmr-back-link-secondary" aria-label="Back to chemistry dashboard">Open Skills Lab</a>
         </header>
 
         <section class="cmr-progress-card" aria-live="polite">
@@ -420,6 +460,45 @@
         </div>
     </div>
 
+    <div id="cmr-settings-modal" class="cmr-settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cmr-settings-title">
+        <div class="cmr-settings-backdrop"></div>
+        <div class="cmr-settings-card" tabindex="-1">
+            <div class="cmr-settings-header">
+                <div>
+                    <p class="cmr-progress-label">Math Refresher Settings</p>
+                    <h2 id="cmr-settings-title">Study preferences</h2>
+                </div>
+                <button id="cmr-settings-close" class="cmr-settings-close" type="button" aria-label="Close settings dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
+
+            <div class="cmr-settings-section">
+                <label class="cmr-settings-label" for="cmr-settings-model-select">AI Tutor Model</label>
+                <p class="cmr-settings-copy">Choose the local Ollama model used for tutor and adaptive generation.</p>
+                <select id="cmr-settings-model-select" class="cmr-settings-select">
+                    <option value="">Loading available models...</option>
+                </select>
+                <p id="cmr-settings-model-status" class="cmr-settings-note hidden">Ollama appears offline. Showing the cached model selection.</p>
+            </div>
+
+            <div class="cmr-settings-section">
+                <div>
+                    <p class="cmr-settings-label">Explore Mode</p>
+                    <p class="cmr-settings-copy">Bypass lesson gating while reviewing the full refresher sequence.</p>
+                </div>
+                <label class="cmr-settings-toggle" for="cmr-settings-bypass-toggle">
+                    <input id="cmr-settings-bypass-toggle" type="checkbox">
+                    <span class="cmr-settings-toggle-track" aria-hidden="true"></span>
+                    <span class="cmr-settings-toggle-label">Enable</span>
+                </label>
+            </div>
+
+            <div class="cmr-settings-footer">
+                <p class="cmr-settings-footnote">Chemistry-wide reset stays on the chemistry module pages. Refresher reset controls remain on this page.</p>
+                <button id="cmr-settings-done" class="cmr-settings-done" type="button">Done</button>
+            </div>
+        </div>
+    </div>
+
     <div id="cmr-reset-toast" class="cmr-reset-toast hidden" aria-live="polite" aria-atomic="true">
         <div class="cmr-reset-toast-accent" aria-hidden="true"></div>
         <div class="cmr-reset-toast-copy">
@@ -433,6 +512,7 @@
         <button id="cmr-reset-undo-btn" class="cmr-reset-toast-btn" type="button">Undo</button>
     </div>
 
+    <script src="../../assets/ollama-launcher.js"></script>
     <script src="tutor.js"></script>
     <script type="module" src="math-controller.js"></script>
 </body>

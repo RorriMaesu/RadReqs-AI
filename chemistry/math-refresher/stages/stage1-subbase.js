@@ -57,6 +57,16 @@ const createInitialStage1State = () => ({
     appliedLastModel: ''
 });
 
+function getChemModelLabel() {
+    if (typeof window.getActiveModelLabel === 'function') {
+        return window.getActiveModelLabel('chemistry_llm');
+    }
+    if (typeof window.getGnosysModel === 'function') {
+        return window.getGnosysModel('chemistry_llm');
+    }
+    return 'local model';
+}
+
 export function createStage1Subbase() {
     return {
         id: 'stage1',
@@ -557,11 +567,11 @@ export function createStage1Subbase() {
                                 }).join('')}
                             </div>`}
                         <div class="s1-grid" style="margin-top: 0.6rem; grid-template-columns: 1fr;">
-                            <button id="s1-app-submit" class="s1-btn" data-tutor-question-id="s1-applied-tare" data-tutor-level="applied" data-tutor-answer-keys="appliedChoice,appliedSelectedOptionId,appliedSelectedOptionText,appliedResponseText,appliedFeedback,appliedError" data-tutor-question="Grade my L1.9 response for relative-zero versus absolute-zero and explain the reasoning." ${(state.appliedLoading || (!isAppliedFreeResponse && !state.appliedSelectedOptionId)) ? 'disabled' : ''} ${disabled(state.appliedUnlocked)}>${state.appliedLoading ? 'Grading with Gemma 4...' : 'Submit L1.9 Answer'}</button>
+                            <button id="s1-app-submit" class="s1-btn" data-tutor-question-id="s1-applied-tare" data-tutor-level="applied" data-tutor-answer-keys="appliedChoice,appliedSelectedOptionId,appliedSelectedOptionText,appliedResponseText,appliedFeedback,appliedError" data-tutor-question="Grade my L1.9 response for relative-zero versus absolute-zero and explain the reasoning." ${(state.appliedLoading || (!isAppliedFreeResponse && !state.appliedSelectedOptionId)) ? 'disabled' : ''} ${disabled(state.appliedUnlocked)}>${state.appliedLoading ? `Grading with ${getChemModelLabel()}...` : 'Submit L1.9 Answer'}</button>
                         </div>
                         <div class="s1-feedback">${state.appliedFeedback}</div>
                         ${state.appliedError ? `<div class="s1-feedback" style="border-color: rgba(248,113,113,0.45); background: rgba(127,29,29,0.35); color: #fecaca;">${state.appliedError}</div>` : ''}
-                        ${state.appliedGrading ? `<div class="s1-feedback" style="border-color: rgba(34,197,94,0.35); background: rgba(20,83,45,0.35); color: #bbf7d0;">Gemma score: ${state.appliedGrading.score ?? 0} | confidence: ${state.appliedGrading.confidence ?? 0}${state.appliedLastModel ? ` | model: ${state.appliedLastModel}` : ''}${state.appliedGrading.regraded ? ' | second-pass regrade applied' : ''}</div>` : ''}
+                        ${state.appliedGrading ? `<div class="s1-feedback" style="border-color: rgba(34,197,94,0.35); background: rgba(20,83,45,0.35); color: #bbf7d0;">Model score: ${state.appliedGrading.score ?? 0} | confidence: ${state.appliedGrading.confidence ?? 0}${state.appliedLastModel ? ` | model: ${state.appliedLastModel}` : ''}${state.appliedGrading.regraded ? ' | second-pass regrade applied' : ''}</div>` : ''}
 
                         <div class="s1-grid" style="margin-top: 0.6rem;">
                             <button class="tutor-btn s1-btn ghost" title="Reinforcement" data-prompt="Help me distinguish relative zero (tare) from absolute zero (Kelvin) using chemistry measurement examples." ${disabled(state.appliedUnlocked)}>Ask Prof. Beaker (Reinforcement)</button>
@@ -927,7 +937,7 @@ export function createStage1Subbase() {
                 this.mount({ host, state, onStateChange });
             });
 
-            // Applied Zeroing: selection/text entry, then explicit submit for Gemma grading.
+            // Applied Zeroing: selection/text entry, then explicit submit for model grading.
             host.querySelectorAll('[data-s1-applied-option="true"]').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     state.appliedSelectedOptionId = btn.getAttribute('data-option-id') || '';
@@ -935,7 +945,7 @@ export function createStage1Subbase() {
                     state.appliedChoice = state.appliedSelectedOptionId;
                     state.appliedError = '';
                     state.appliedGrading = null;
-                    state.appliedFeedback = 'Selection saved. Submit to grade this challenge with Gemma 4.';
+                    state.appliedFeedback = `Selection saved. Submit to grade this challenge with ${getChemModelLabel()}.`;
                     persist('Applied option selected');
                     this.mount({ host, state, onStateChange });
                 });
@@ -985,7 +995,7 @@ export function createStage1Subbase() {
 
                 if (grading?.ok && grading?.result) {
                     state.appliedGrading = grading.result;
-                    state.appliedFeedback = grading.result.feedback || 'Gemma grading completed.';
+                    state.appliedFeedback = grading.result.feedback || 'Model grading completed.';
                 } else {
                     const localCorrect = (() => {
                         if (!usingFreeResponse) {
@@ -1003,11 +1013,11 @@ export function createStage1Subbase() {
                         feedback: localCorrect
                             ? (appliedOverride?.workedSolution || applied?.workedSolution || 'Correct. Tare sets a relative reference while Kelvin is absolute.')
                             : 'Not quite. Tare does not define absolute physical zero; it shifts the measurement baseline.',
-                        rationale: grading?.result?.rationale || 'Gemma grading unavailable; used local fallback check.',
+                        rationale: grading?.result?.rationale || 'Model grading unavailable; used local fallback check.',
                         regraded: false
                     };
                     state.appliedFeedback = state.appliedGrading.feedback;
-                    state.appliedError = `Gemma grading fallback: ${grading?.result?.rationale || 'Unable to grade response with Gemma 4.'}`;
+                    state.appliedError = `Model grading fallback: ${grading?.result?.rationale || 'Unable to grade response with the active model.'}`;
                 }
 
                 const isCorrect = Boolean(state.appliedGrading?.isCorrect);

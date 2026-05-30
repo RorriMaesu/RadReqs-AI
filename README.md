@@ -12,7 +12,7 @@
 
 <a href="https://buymeacoffee.com/rorrimaesu" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
 
-**Gnosys-AI** is a premium, AI-powered educational suite designed for students across all disciplines. It accelerates academic mastery through highly gamified spaced-repetition, intelligent scenario decryption, scientific calculations, and an integrated local LLM tutor powered by Google's Gemma.
+**Gnosys-AI** is a premium, AI-powered educational suite designed for students across all disciplines. It accelerates academic mastery through highly gamified spaced-repetition, intelligent scenario decryption, scientific calculations, and an integrated local LLM tutor powered by **Ollama** with configurable model choices.
 
 > [!NOTE]
 > **Author's Note & Disclaimer:** I am a student navigating this learning path and developed this application for my personal study. While I am happy to share this tool with other students, please note that it is provided "as-is" with absolutely no guarantees of accuracy. I am using it to learn, and encourage you to always cross-reference definitions with official textbooks.
@@ -41,7 +41,7 @@ The foundational module for clinical language mastery.
 - **Word Builder:** Drag and drop prefixes, roots, and suffixes to construct complex clinical terms.
 - **Chart Decrypter:** Translates complex clinical SOAP notes into plain English, intelligently graded by an LLM.
 - **Abbreviation Decoder & Pluralization:** Rapid-fire tools to master medical shorthand and grammar.
-- **Dr. Lex (AI Tutor):** An integrated, warm, and precise AI tutor powered by **Gemma 4** (via Ollama) that can break down complex terms, provide mnemonics, and generate on-demand quizzes.
+- **Dr. Lex (AI Tutor):** An integrated, warm, and precise AI tutor powered by **your selected local Ollama model** (including Gemma, Llama, Qwen, Mistral, Phi, or custom tags) that can break down complex terms, provide mnemonics, and generate on-demand quizzes.
 
 <table width="100%">
   <tr>
@@ -144,7 +144,8 @@ Study anywhere, perfectly optimized for your phone.
 
 ### 8. Intelligent AI Connection Engine & Hardware Profiler
 Experience top-tier, private local intelligence with advanced configuration and scheduling tools:
-- **Curated High-Quality LLMs:** Select from pre-configured recommended models (`gemma4:e4b` Default with Multi-Token Prediction, `llama3.2` 3B, `qwen2.5` 7B, `llama3` 8B, `mistral` 7B, and `phi3` 3.8B) or supply a custom model tag.
+- **Curated High-Quality LLMs:** Select from pre-configured recommended models (`gemma4:e4b`, `llama3.2`, `qwen2.5`, `llama3`, `mistral`, and `phi3`) or supply a custom model tag.
+- **Model-Agnostic by Design:** Gnosys-AI is no longer tied to a single primary model. The app supports shared model selection across modules, with automatic fallback to available local models when needed.
 - **Hardware-Aware Recommendations:** Automatically query system specifications (GPU adapter, dedicated VRAM, system RAM, Apple Silicon Unified Memory limits) to dynamically recommend optimal models.
 - **VRAM Safeguards:** Identifies model memory footprints in GB. Categorizes choices (`✓ Recommended` if fully VRAM accelerated, `⚠️ CPU Offload` if offloaded to slower RAM), and disables options that exceed system thresholds to prevent crashes. One-click "Auto-Configure" automatically selects the best fit for your machine.
 - **Dynamic Pull Downloader:** If a chosen model is missing, Gnosys-AI automatically intercepts the state and streams the download directly within the glassmorphic loading modal using Ollama's `/api/pull` streaming endpoint with a real-time progress bar.
@@ -171,7 +172,7 @@ However, for **Dr. Lex** (the AI Tutor) to work, it runs completely free and pri
    - **[⬇️ Download Dr. Lex Smart Launcher (.zip)](https://github.com/RorriMaesu/Gnosys-AI/raw/main/assets/Start_Dr_Lex.zip)**
 3. **Run the Script:** Open the downloaded `.zip` file and double-click the launcher for your system (`Start_Dr_Lex.bat` for Windows, or `Start_Dr_Lex_Mac.command` for Mac).
 
-The script will configure CORS, download the model, and launch the website for you!
+The script will configure CORS, detect your hardware profile, download a compatible model, and launch the website for you.
 
 ---
 

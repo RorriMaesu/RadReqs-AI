@@ -2398,7 +2398,7 @@ function buildMathFallbackQuiz(lessonId) {
     return fallbackMap[lessonId] || fallbackMap["dimensional"];
 }
 
-async function generateMathQuizSetWithGemma(lessonId) {
+async function generateMathQuizSetWithModel(lessonId) {
     if (typeof window.ensureOllamaActive === 'function') {
         try {
             const tempEndpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
@@ -2469,7 +2469,7 @@ async function generateMathQuizSetWithGemma(lessonId) {
     }
 }
 
-async function generateMathQuizWithGemma(lessonId) {
+async function generateMathQuizWithModel(lessonId) {
     if (typeof window.ensureOllamaActive === 'function') {
         try {
             const tempEndpoint = localStorage.getItem("chemistry_ollama_endpoint") || "http://localhost:11434";
@@ -2959,7 +2959,7 @@ function bindMathRefresherLessonFlow() {
         const lesson = getActiveMathLesson();
         quizQuestion.textContent = "Generating checkpoint...";
         quizFeedback.textContent = "";
-        const items = await generateMathQuizSetWithGemma(lesson.id);
+        const items = await generateMathQuizSetWithModel(lesson.id);
         currentMathQuizSession = {
             lessonId: lesson.id,
             items,
