@@ -437,21 +437,16 @@
                     const { Engine, Backend } = providerState.litertModule;
                     
                     const activeConfig = getActiveModelConfig();
-                    const blobUrl = URL.createObjectURL(providerState.modelObjectUrl);
-                    try {
-                        const engineSettings = {
-                            model: blobUrl,
-                            backend: Backend ? Backend.GPU_ARTISAN : undefined,
-                            mainExecutorSettings: {
-                                maxNumTokens: isMobileDevice ? activeConfig.tokensLimit : activeConfig.tokensLimit * 2,
-                            },
-                        };
-                        providerState.engine = await Engine.create(engineSettings);
-                        localStorage.setItem(STORAGE_KEYS.onDeviceReady, 'true');
-                        localStorage.setItem(STORAGE_KEYS.onDeviceModelCacheVersion, activeConfig.cacheVersion);
-                    } finally {
-                        URL.revokeObjectURL(blobUrl);
-                    }
+                    const engineSettings = {
+                        model: providerState.modelObjectUrl.stream(),
+                        backend: Backend ? Backend.GPU_ARTISAN : undefined,
+                        mainExecutorSettings: {
+                            maxNumTokens: isMobileDevice ? activeConfig.tokensLimit : activeConfig.tokensLimit * 2,
+                        },
+                    };
+                    providerState.engine = await Engine.create(engineSettings);
+                    localStorage.setItem(STORAGE_KEYS.onDeviceReady, 'true');
+                    localStorage.setItem(STORAGE_KEYS.onDeviceModelCacheVersion, activeConfig.cacheVersion);
                 }
             },
 
