@@ -143,6 +143,8 @@ Study anywhere, perfectly optimized for your phone with our dedicated on-device 
 - **Universal Header Toggles:** The top status badge of *every single page* is styled with hover transition states and pointer cursors, acting as a global toggle. Click the badge at any time to open the configuration modal.
 - **Preface History Batch Prefilling:** Feeds the entire conversational context (system prompt + history exchanges) in a single, parallel preface batch pass. Prefill speeds improve by **10x-20x** (under 1.5 seconds on phone GPU/CPUs), starting the tutor token stream instantly instead of hanging.
 - **OPFS Storage Management:** Intercepts, tracks, and verifies downloads. Safely purges *both* model files from the Origin Private File System (OPFS) when changing selections to eliminate double-storage bloat.
+- **Expert-Level WebGPU Memory Management:** Exposes explicit, active context cleanup APIs that interface with LiteRT's native model deallocation triggers. Instantly frees up ~2-3 GB of physical GPU textures, buffers, and WebAssembly heaps when switching models or disabling AI, preventing double-allocation spikes and Safari/Chrome tab crashes.
+- **Closure-Breaking Token Stream GC:** Force-nullifies stream readers and closure references (such as stream callbacks) upon completion. This aggressively triggers garbage collection in mobile JS engines to protect precious tab memory footprints.
 
 <table width="100%">
   <tr>
