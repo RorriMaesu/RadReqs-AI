@@ -411,34 +411,37 @@
                     providerState.litertModule = await import('https://cdn.jsdelivr.net/npm/@litert-lm/core/+esm');
                 }
 
+                let justDownloaded = false;
                 if (!providerState.modelObjectUrl) {
                     providerState.modelObjectUrl = await getOrDownloadModelObjectUrl(progressCallback);
+                    justDownloaded = true;
                 }
 
                 if (!providerState.engine) {
+                    if (justDownloaded) {
+                        if (typeof progressCallback === 'function') {
+                            progressCallback({ loaded: 100, total: 100, percent: 100, stage: 'cooling' });
+                        }
+                        state.downloadSession = null;
+                        await new Promise((resolve) => setTimeout(resolve, 1500));
+                    }
+
                     if (typeof progressCallback === 'function') {
                         progressCallback({ loaded: 100, total: 100, percent: 100, stage: 'compiling' });
                     }
                     const { Engine, Backend } = providerState.litertModule;
                     
-                    // Create a blob URL from the File object so the browser fetches it efficiently via zero-copy mapping
-                    const blobUrl = URL.createObjectURL(providerState.modelObjectUrl);
-                    
                     const activeConfig = getActiveModelConfig();
                     const engineSettings = {
-                        model: blobUrl,
+                        model: providerState.modelObjectUrl,
                         backend: Backend ? Backend.GPU_ARTISAN : undefined,
                         mainExecutorSettings: {
                             maxNumTokens: isMobileDevice ? activeConfig.tokensLimit : activeConfig.tokensLimit * 2,
                         },
                     };
-                    try {
-                        providerState.engine = await Engine.create(engineSettings);
-                        localStorage.setItem(STORAGE_KEYS.onDeviceReady, 'true');
-                        localStorage.setItem(STORAGE_KEYS.onDeviceModelCacheVersion, activeConfig.cacheVersion);
-                    } finally {
-                        URL.revokeObjectURL(blobUrl);
-                    }
+                    providerState.engine = await Engine.create(engineSettings);
+                    localStorage.setItem(STORAGE_KEYS.onDeviceReady, 'true');
+                    localStorage.setItem(STORAGE_KEYS.onDeviceModelCacheVersion, activeConfig.cacheVersion);
                 }
             },
 
@@ -1215,8 +1218,11 @@
                         if (!progressText || !progressBar) return;
                         const pct = typeof info.percent === 'number' ? info.percent : 0;
                         progressBar.style.width = `${pct}%`;
-                        if (info.stage === 'compiling') {
-                            progressText.textContent = `Loading ${activeConfig.shortName} model & optimizing GPU shaders... (takes 10-25s)`;
+                        if (info.stage === 'cooling') {
+                            progressText.textContent = 'Verifying storage & releasing download memory...';
+                            progressBar.classList.add('animate-pulse');
+                        } else if (info.stage === 'compiling') {
+                            progressText.textContent = `Optimizing GPU shaders & allocating VRAM... (takes 10-25s)`;
                             progressBar.classList.add('animate-pulse');
                         } else {
                             progressText.textContent = `Downloading Gemma 4 ${activeConfig.shortName}: ${pct}%`;
