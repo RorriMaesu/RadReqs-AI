@@ -201,6 +201,11 @@
     }
 
     async function invalidateStaleOnDeviceCache() {
+        if (state.provider && typeof state.provider.close === 'function') {
+            await state.provider.close();
+            state.provider = null;
+        }
+
         const activeConfig = getActiveModelConfig();
         const existingVersion = localStorage.getItem(STORAGE_KEYS.onDeviceModelCacheVersion);
         const existingModelId = localStorage.getItem(STORAGE_KEYS.onDeviceSelectedModel);
@@ -386,6 +391,21 @@
         };
 
         return {
+            async close() {
+                if (providerState.engine) {
+                    try {
+                        await providerState.engine.delete();
+                        console.log('[GnosysLLM] Explicitly deleted LiteRT WebGPU engine instance.');
+                    } catch (e) {
+                        console.warn('[GnosysLLM] Failed to delete LiteRT engine:', e);
+                    }
+                    providerState.engine = null;
+                }
+                providerState.modelObjectUrl = null;
+                providerState.activeConversation = null;
+                providerState.activeHistory = [];
+            },
+
             async ensureReady(progressCallback) {
                 if (!providerState.litertModule) {
                     providerState.litertModule = await import('https://cdn.jsdelivr.net/npm/@litert-lm/core/+esm');
@@ -456,7 +476,7 @@
                         providerState.activeHistory.push({ role: item.role, content: item.content });
                     }
                 } else {
-                    const prefaceMessages = [];
+                    let prefaceMessages = [];
                     if (systemPrompt) {
                         prefaceMessages.push({ role: 'system', content: String(systemPrompt) });
                     }
@@ -473,6 +493,7 @@
                     providerState.activeConversation = conversation;
                     providerState.activeSystemPrompt = systemPrompt;
                     providerState.activeHistory = [...history];
+                    prefaceMessages = null;
                 }
 
                 const activeConfig = getActiveModelConfig();
@@ -495,14 +516,25 @@
                 }
 
                 let text = '';
-                for await (const chunk of conversation.sendMessageStreaming({ role: 'user', content: String(userPrompt || '') })) {
-                    if (!Array.isArray(chunk?.content)) continue;
-                    for (const item of chunk.content) {
-                        if (item?.type !== 'text' || typeof item?.text !== 'string') continue;
-                        text += item.text;
-                        if (typeof options.onToken === 'function') {
-                            options.onToken(item.text, text);
+                try {
+                    const streamSource = conversation.sendMessageStreaming({ role: 'user', content: String(userPrompt || '') });
+                    for await (let chunk of streamSource) {
+                        if (chunk && Array.isArray(chunk.content)) {
+                            for (let item of chunk.content) {
+                                if (item && item.type === 'text' && typeof item.text === 'string') {
+                                    text += item.text;
+                                    if (typeof options.onToken === 'function') {
+                                        options.onToken(item.text, text);
+                                    }
+                                    item = null;
+                                }
+                            }
                         }
+                        chunk = null;
+                    }
+                } finally {
+                    if (options && typeof options === 'object') {
+                        options.onToken = null;
                     }
                 }
 
@@ -686,6 +718,10 @@
         const suppressModal = Boolean(options.suppressModal);
         const session = state.downloadSession;
         state.downloadSession = null;
+
+        if (state.provider && typeof state.provider.close === 'function') {
+            await state.provider.close();
+        }
 
         if (session?.abortController && !session.abortController.signal.aborted) {
             try {
@@ -1222,10 +1258,13 @@
 
         const noAiBtn = overlay.querySelector('#gnosys-noai-btn');
         if (noAiBtn) {
-            noAiBtn.addEventListener('click', () => {
+            noAiBtn.addEventListener('click', async () => {
                 if (localStorage.getItem(STORAGE_KEYS.onDeviceDownloadInProgress) === 'true') {
                     alert('Cannot switch modes while download is in progress.');
                     return;
+                }
+                if (state.provider && typeof state.provider.close === 'function') {
+                    await state.provider.close();
                 }
                 localStorage.setItem(STORAGE_KEYS.routeMode, 'no-ai');
                 state.provider = createNoAiProvider();
