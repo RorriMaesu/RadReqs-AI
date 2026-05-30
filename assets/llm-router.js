@@ -420,6 +420,11 @@
                 if (!providerState.engine) {
                     if (justDownloaded) {
                         if (typeof progressCallback === 'function') {
+                            progressCallback({ loaded: 100, total: 100, percent: 100, stage: 'finalizing' });
+                        }
+                        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+                        if (typeof progressCallback === 'function') {
                             progressCallback({ loaded: 100, total: 100, percent: 100, stage: 'cooling' });
                         }
                         state.downloadSession = null;
@@ -1189,6 +1194,14 @@
         const onDeviceBtn = overlay.querySelector('#gnosys-ondevice-btn');
         if (onDeviceBtn) {
             onDeviceBtn.addEventListener('click', async () => {
+                const activeConfig = getActiveModelConfig();
+                if (activeConfig.id === 'gemma-4-e4b' && navigator.deviceMemory && navigator.deviceMemory < 8) {
+                    const confirmPro = confirm("Warning: Gemma 4 Pro requires at least 8GB RAM. Your device reports less than 8GB, which may cause your browser tab to crash during initialization.\n\nWe highly recommend using the Gemma 4 Efficient tier instead. Are you sure you want to download Pro?");
+                    if (!confirmPro) {
+                        return;
+                    }
+                }
+
                 const progressWrap = overlay.querySelector('#gnosys-ondevice-progress');
                 const progressText = overlay.querySelector('#gnosys-ondevice-progress-text');
                 const progressBar = overlay.querySelector('#gnosys-ondevice-progress-bar');
@@ -1223,8 +1236,11 @@
                         if (!progressText || !progressBar) return;
                         const pct = typeof info.percent === 'number' ? info.percent : 0;
                         progressBar.style.width = `${pct}%`;
-                        if (info.stage === 'cooling') {
-                            progressText.textContent = 'Verifying storage & releasing download memory...';
+                        if (info.stage === 'finalizing') {
+                            progressText.textContent = 'Verifying storage & finalizing file sync...';
+                            progressBar.classList.add('animate-pulse');
+                        } else if (info.stage === 'cooling') {
+                            progressText.textContent = 'Releasing download memory & cleaning up...';
                             progressBar.classList.add('animate-pulse');
                         } else if (info.stage === 'compiling') {
                             progressText.textContent = `Optimizing GPU shaders & allocating VRAM... (takes 10-25s)`;
