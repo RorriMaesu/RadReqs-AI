@@ -3,6 +3,7 @@
     const STAGE_SOCRATIC = 2;
     const STAGE_SANDBOX = 3;
     const STAGE_FEYNMAN = 4;
+    const SOCRATIC_CTA_SEEN_KEY = 'chemistry_socratic_cta_seen_v1';
 
     const appState = {
         lessonId: null,
@@ -16,7 +17,11 @@
         matrix: {},
         lectures: [],
         activeLectureIdx: 0,
-        isGeneratingLecture: false
+        isGeneratingLecture: false,
+        socraticCollapsed: true,
+        socraticManualPreference: null,
+        socraticPrimaryInView: true,
+        socraticViewportRaf: null
     };
 
     const els = {};
@@ -47,6 +52,12 @@
         els.selectActiveLecture = document.getElementById('select-active-lecture');
         els.btnAddLecture = document.getElementById('btn-add-lecture');
         els.btnRegenerateLecture = document.getElementById('btn-regenerate-lecture');
+        els.workAreaSplit = document.getElementById('work-area-split');
+        els.btnToggleSocratic = document.getElementById('btn-toggle-socratic');
+        els.btnOpenSocratic = document.getElementById('btn-open-socratic');
+        els.socraticCollapsedHint = document.getElementById('socratic-collapsed-hint');
+        els.socraticCtaInline = document.getElementById('socratic-cta-inline');
+        els.btnPrimarySocraticCta = document.getElementById('btn-primary-socratic-cta');
 
         els.dots = {
             1: document.getElementById('dot-1'),
@@ -173,6 +184,146 @@
             els.inputInstructions.textContent = 'Teach it back clearly to pass theory mastery...';
             if (els.btnGenerateQuestion) els.btnGenerateQuestion.classList.remove('hidden');
         }
+    }
+
+    function updateSocraticLayoutUi() {
+        const collapsed = !!appState.socraticCollapsed;
+        const isLectureStage = appState.stage === STAGE_LECTURE;
+        const activeSocratic = appState.stage !== STAGE_LECTURE && !collapsed;
+
+        if (els.workAreaSplit) {
+            els.workAreaSplit.classList.toggle('socratic-collapsed', collapsed);
+            els.workAreaSplit.classList.toggle('layout-lecture', collapsed);
+            els.workAreaSplit.classList.toggle('layout-split', !collapsed && appState.stage === STAGE_LECTURE);
+            els.workAreaSplit.classList.toggle('layout-socratic-full', !collapsed && appState.stage !== STAGE_LECTURE);
+            els.workAreaSplit.classList.toggle('active-socratic', activeSocratic);
+        }
+
+        if (els.btnToggleSocratic) {
+            els.btnToggleSocratic.setAttribute('aria-expanded', String(!collapsed));
+            els.btnToggleSocratic.innerHTML = collapsed
+                ? `<i class="fa-solid fa-chevron-up text-[9px]"></i><span>${isLectureStage ? 'Preview Panel' : 'Expand Panel'}</span>`
+                : `<i class="fa-solid fa-chevron-down text-[9px]"></i><span>${isLectureStage ? 'Hide Panel' : 'Collapse Panel'}</span>`;
+        }
+
+        if (els.btnOpenSocratic) {
+            els.btnOpenSocratic.setAttribute('aria-expanded', String(!collapsed));
+        }
+
+        if (els.socraticCollapsedHint) {
+            els.socraticCollapsedHint.classList.toggle('hidden', !collapsed);
+        }
+
+        updateSocraticCtaUi();
+    }
+
+    function markSocraticCtaSeen() {
+        try {
+            sessionStorage.setItem(SOCRATIC_CTA_SEEN_KEY, '1');
+        } catch (_err) {
+            // no-op
+        }
+    }
+
+    function hasSeenSocraticCta() {
+        try {
+            return sessionStorage.getItem(SOCRATIC_CTA_SEEN_KEY) === '1';
+        } catch (_err) {
+            return false;
+        }
+    }
+
+    function getElementViewportCoverage(el) {
+        if (!el || typeof el.getBoundingClientRect !== 'function') return 0;
+
+        const rect = el.getBoundingClientRect();
+        const vpHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const vpWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+
+        if (rect.width <= 0 || rect.height <= 0 || vpHeight <= 0 || vpWidth <= 0) {
+            return 0;
+        }
+
+        const visibleX = Math.max(0, Math.min(rect.right, vpWidth) - Math.max(rect.left, 0));
+        const visibleY = Math.max(0, Math.min(rect.bottom, vpHeight) - Math.max(rect.top, 0));
+        const visibleArea = visibleX * visibleY;
+        const totalArea = rect.width * rect.height;
+
+        if (totalArea <= 0) return 0;
+        return visibleArea / totalArea;
+    }
+
+    function refreshSocraticPrimaryViewportState() {
+        const showPrimaryCta = appState.stage === STAGE_LECTURE && appState.socraticCollapsed;
+        if (!showPrimaryCta) {
+            appState.socraticPrimaryInView = false;
+        } else {
+            const coverage = getElementViewportCoverage(els.socraticCtaInline);
+            appState.socraticPrimaryInView = coverage >= 0.55;
+        }
+
+        if (els.workAreaSplit) {
+            els.workAreaSplit.classList.toggle('socratic-primary-in-view', appState.socraticPrimaryInView);
+        }
+    }
+
+    function scheduleSocraticPrimaryViewportStateRefresh() {
+        if (appState.socraticViewportRaf !== null) return;
+
+        appState.socraticViewportRaf = window.requestAnimationFrame(() => {
+            appState.socraticViewportRaf = null;
+            refreshSocraticPrimaryViewportState();
+        });
+    }
+
+    function updateSocraticCtaUi() {
+        const isLectureStage = appState.stage === STAGE_LECTURE;
+        const showPrimaryCta = isLectureStage && appState.socraticCollapsed;
+
+        if (els.socraticCtaInline) {
+            els.socraticCtaInline.classList.toggle('hidden', !showPrimaryCta);
+            els.socraticCtaInline.classList.toggle('flex', showPrimaryCta);
+        }
+
+        if (els.btnPrimarySocraticCta) {
+            const shouldPulse = showPrimaryCta && !hasSeenSocraticCta();
+            els.btnPrimarySocraticCta.classList.toggle('cta-attn', shouldPulse);
+        }
+
+        scheduleSocraticPrimaryViewportStateRefresh();
+
+        if (els.btnOpenSocratic) {
+            if (showPrimaryCta) {
+                els.btnOpenSocratic.querySelector('span').textContent = 'Quick Start';
+            } else if (isLectureStage) {
+                els.btnOpenSocratic.querySelector('span').textContent = appState.socraticCollapsed
+                    ? 'Open Socratic Panel'
+                    : 'Hide Socratic Panel';
+            } else {
+                els.btnOpenSocratic.querySelector('span').textContent = appState.socraticCollapsed
+                    ? 'Resume Socratic Panel'
+                    : 'Collapse Socratic Panel';
+            }
+        }
+    }
+
+    function setSocraticCollapsed(collapsed, opts = {}) {
+        appState.socraticCollapsed = !!collapsed;
+        if (opts.manual === true) {
+            appState.socraticManualPreference = appState.socraticCollapsed;
+        }
+        updateSocraticLayoutUi();
+    }
+
+    function syncWorkspaceLayoutForStage() {
+        const isLectureStage = appState.stage === STAGE_LECTURE;
+        let shouldCollapse = isLectureStage;
+
+        if (isLectureStage && typeof appState.socraticManualPreference === 'boolean') {
+            shouldCollapse = appState.socraticManualPreference;
+        }
+
+        setSocraticCollapsed(shouldCollapse, { manual: false });
     }
 
     function showFlex(el) {
@@ -710,6 +861,7 @@
 
         setStageDots(STAGE_LECTURE);
         setModeUiForStage();
+        syncWorkspaceLayoutForStage();
 
         hideFlex(els.sandboxHandshake);
         hideFlex(els.masterCtaOverlay);
@@ -722,19 +874,10 @@
         els.chatMessages.innerHTML = `
             <div class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-sm text-slate-600 dark:text-slate-300">
                 <div class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Stage 1 Complete?</div>
-                <p class="mb-3">When you are ready, begin your Socratic checkpoint.</p>
-                <button id="btn-start-socratic" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-semibold text-xs uppercase tracking-wider transition">
-                    Start Socratic Interaction
-                </button>
+                <p class="mb-1">Use the <span class="font-semibold text-emerald-600 dark:text-emerald-300">Next: Start Socratic Checkpoint</span> button in the top ribbon when you are ready.</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">This starts Stage 2 guided questioning and unlocks your checkpoint path.</p>
             </div>
         `;
-
-        const startBtn = document.getElementById('btn-start-socratic');
-        if (startBtn) {
-            startBtn.addEventListener('click', () => {
-                renderStage2();
-            });
-        }
     }
 
     function renderHistoryToUi() {
@@ -747,9 +890,12 @@
     function renderStage2() {
         appState.stage = STAGE_SOCRATIC;
         appState.isChatLocked = false;
+        appState.socraticManualPreference = null;
+        markSocraticCtaSeen();
 
         setStageDots(STAGE_SOCRATIC);
         setModeUiForStage();
+        syncWorkspaceLayoutForStage();
 
         hideFlex(els.sandboxHandshake);
         hideFlex(els.masterCtaOverlay);
@@ -764,6 +910,10 @@
 
         if (appState.messageHistory.length === 0) {
             loadDynamicQuestion('socratic');
+        }
+
+        if (!els.chatInput.disabled) {
+            els.chatInput.focus();
         }
 
         scrollChatToBottom();
@@ -851,9 +1001,11 @@
     function renderStage3() {
         appState.stage = STAGE_SANDBOX;
         appState.isChatLocked = false;
+        appState.socraticManualPreference = null;
 
         setStageDots(STAGE_SANDBOX);
         setModeUiForStage();
+        syncWorkspaceLayoutForStage();
 
         els.chatInput.disabled = true;
         els.chatForm.dataset.mode = 'sandbox';
@@ -943,9 +1095,11 @@
         appState.stage = STAGE_FEYNMAN;
         appState.isChatLocked = false;
         appState.useSpeechInput = false;
+        appState.socraticManualPreference = null;
 
         setStageDots(STAGE_FEYNMAN);
         setModeUiForStage();
+        syncWorkspaceLayoutForStage();
 
         hideFlex(els.sandboxHandshake);
         hideFlex(els.masterCtaOverlay);
@@ -1135,6 +1289,8 @@
 
         appState.lessonId = lessonId;
         appState.lesson = lesson;
+        appState.socraticManualPreference = null;
+        appState.socraticCollapsed = true;
 
         clearConversationUi();
         hideFlex(els.masterCtaOverlay);
@@ -1149,6 +1305,34 @@
 
     function bindEvents() {
         els.chatForm.addEventListener('submit', onChatSubmit);
+
+        if (els.btnOpenSocratic) {
+            els.btnOpenSocratic.addEventListener('click', () => {
+                if (appState.stage === STAGE_LECTURE) {
+                    markSocraticCtaSeen();
+                    renderStage2();
+                    return;
+                }
+
+                setSocraticCollapsed(!appState.socraticCollapsed, { manual: true });
+                if (!appState.socraticCollapsed && !els.chatInput.disabled) {
+                    els.chatInput.focus();
+                }
+            });
+        }
+
+        if (els.btnPrimarySocraticCta) {
+            els.btnPrimarySocraticCta.addEventListener('click', () => {
+                markSocraticCtaSeen();
+                renderStage2();
+            });
+        }
+
+        if (els.btnToggleSocratic) {
+            els.btnToggleSocratic.addEventListener('click', () => {
+                setSocraticCollapsed(!appState.socraticCollapsed, { manual: true });
+            });
+        }
 
         // Dark Mode Toggle
         const btnDarkMode = document.getElementById('btn-darkmode');
@@ -1301,6 +1485,14 @@
             }
         });
 
+        window.addEventListener('resize', scheduleSocraticPrimaryViewportStateRefresh, { passive: true });
+        window.addEventListener('scroll', scheduleSocraticPrimaryViewportStateRefresh, { passive: true });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', scheduleSocraticPrimaryViewportStateRefresh, { passive: true });
+            window.visualViewport.addEventListener('scroll', scheduleSocraticPrimaryViewportStateRefresh, { passive: true });
+        }
+
         window.addEventListener('curriculumBypassChanged', () => {
             updateCurriculumBypassButtonUi();
             if (typeof window.renderSidebar === 'function') {
@@ -1373,6 +1565,7 @@
 
         try {
             await loadActiveLesson();
+            scheduleSocraticPrimaryViewportStateRefresh();
         } catch (err) {
             console.error('Coursework initialization failed:', err);
             setSessionStatus('ERROR', false);

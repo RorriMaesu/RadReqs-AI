@@ -119,103 +119,213 @@
             font-size: 0.75rem !important;
         }
 
-        /* Layout toggle active state */
-        .btn-layout-toggle.active {
-            background-color: #10b981 !important; /* emerald-500 */
-            color: #ffffff !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-        .dark .btn-layout-toggle.active {
-            background-color: #059669 !important; /* emerald-600 */
-            color: #ffffff !important;
+        /* Workspace layout controls for lecture-first flow */
+        #work-area-split {
+            position: relative;
         }
 
-        /* Workspace layout transition animation */
-        #lecture-panel, #chat-panel {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        #lecture-panel,
+        #chat-panel {
+            min-height: 0;
+            transition: flex-basis 220ms ease, max-height 220ms ease, opacity 200ms ease;
         }
 
-        /* Widescreen Columns Split styling */
+        #btn-open-socratic {
+            display: none;
+        }
+
+        #work-area-split.socratic-collapsed #btn-open-socratic {
+            display: inline-flex;
+        }
+
+        #work-area-split.socratic-primary-in-view #btn-open-socratic {
+            display: none !important;
+        }
+
+        #work-area-split.socratic-collapsed #chat-messages,
+        #work-area-split.socratic-collapsed #input-container,
+        #work-area-split.socratic-collapsed #btn-generate-question {
+            display: none !important;
+        }
+
+        #work-area-split.socratic-collapsed #chat-panel {
+            overflow: hidden;
+        }
+
+        #work-area-split.layout-socratic-full #lecture-panel,
+        #work-area-split.layout-socratic-full #chat-panel {
+            min-height: 0;
+        }
+
+        #work-area-split.layout-socratic-full #lecture-panel {
+            flex: 0 0 0;
+            max-height: 0;
+            opacity: 0;
+            pointer-events: none;
+            border-bottom-width: 0;
+            overflow: hidden;
+        }
+
+        #work-area-split.layout-socratic-full #chat-panel {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
+        }
+
+        #work-area-split.active-socratic #chat-panel-header {
+            padding-top: 0.4rem;
+            padding-bottom: 0.4rem;
+        }
+
+        #work-area-split.active-socratic #chat-header-controls {
+            gap: 0.45rem;
+        }
+
+        #work-area-split.active-socratic #chat-messages {
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+        }
+
+        #work-area-split.active-socratic #input-container {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        #work-area-split.active-socratic #socratic-collapsed-hint {
+            display: none !important;
+        }
+
+        @keyframes socraticCtaPulse {
+            0%, 100% {
+                transform: translateY(0);
+                box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+            }
+            50% {
+                transform: translateY(-1px);
+                box-shadow: 0 0 0.85rem rgba(16, 185, 129, 0.35);
+            }
+        }
+
+        #socratic-cta-inline {
+            transition: opacity 180ms ease;
+        }
+
+        #socratic-cta-copy {
+            max-width: 21rem;
+            line-height: 1.2;
+        }
+
+        #btn-primary-socratic-cta.cta-attn {
+            animation: socraticCtaPulse 1.2s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #btn-primary-socratic-cta.cta-attn {
+                animation: none;
+            }
+        }
+
         @media (min-width: 768px) {
-            /* 1. Default/Split Mode */
-            #work-area-split.layout-split #lecture-panel {
-                width: 44%;
-                opacity: 1;
-                pointer-events: auto;
-                border-right-width: 1px;
-            }
-            #work-area-split.layout-split #chat-panel {
-                width: 56%;
-                opacity: 1;
-                pointer-events: auto;
-            }
-
-            /* 2. Lecture Focus Mode */
             #work-area-split.layout-lecture #lecture-panel {
-                width: 100%;
-                opacity: 1;
-                pointer-events: auto;
-                border-right-width: 0;
-            }
-            #work-area-split.layout-lecture #chat-panel {
-                width: 0%;
-                opacity: 0;
-                pointer-events: none;
+                flex: 1 1 auto;
             }
 
-            /* 3. Tutor Focus Mode */
-            #work-area-split.layout-chat #lecture-panel {
-                width: 0%;
-                opacity: 0;
-                pointer-events: none;
-                border-right-width: 0;
+            #work-area-split.layout-lecture #chat-panel {
+                flex: 0 0 64px;
+                max-height: 64px;
             }
-            #work-area-split.layout-chat #chat-panel {
-                width: 100%;
-                opacity: 1;
-                pointer-events: auto;
+
+            #work-area-split.layout-split #lecture-panel {
+                flex: 1 1 50%;
+                min-height: 260px;
+            }
+
+            #work-area-split.layout-split #chat-panel {
+                flex: 1 1 50%;
+                min-height: 260px;
+                max-height: none;
+            }
+
+            #work-area-split.layout-socratic-full #lecture-panel {
+                flex: 0 0 0;
+                max-height: 0;
+            }
+
+            #work-area-split.layout-socratic-full #chat-panel {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+            }
+
+            #btn-open-socratic {
+                position: absolute;
+                right: 1rem;
+                bottom: 1rem;
+                z-index: 20;
+            }
+
+            #socratic-cta-inline {
+                margin-left: 1rem;
+                margin-right: 1rem;
+            }
+
+            #socratic-cta-copy {
+                display: block;
             }
         }
 
-        /* Mobile/Stacked Split styling */
         @media (max-width: 767px) {
-            /* 1. Default/Split Mode (vertical split) */
-            #work-area-split.layout-split #lecture-panel {
-                height: 40vh;
-                opacity: 1;
-                pointer-events: auto;
-                border-bottom-width: 1px;
-            }
-            #work-area-split.layout-split #chat-panel {
-                flex-grow: 1;
-                opacity: 1;
-                pointer-events: auto;
-            }
-
-            /* 2. Lecture Focus Mode */
             #work-area-split.layout-lecture #lecture-panel {
-                height: 100%;
-                opacity: 1;
-                pointer-events: auto;
-                border-bottom-width: 0;
-            }
-            #work-area-split.layout-lecture #chat-panel {
-                height: 0;
-                opacity: 0;
-                pointer-events: none;
+                flex: 1 1 auto;
             }
 
-            /* 3. Tutor Focus Mode */
-            #work-area-split.layout-chat #lecture-panel {
-                height: 0;
-                opacity: 0;
-                pointer-events: none;
-                border-bottom-width: 0;
+            #work-area-split.layout-lecture #chat-panel {
+                flex: 0 0 58px;
+                max-height: 58px;
             }
-            #work-area-split.layout-chat #chat-panel {
-                height: 100%;
-                opacity: 1;
-                pointer-events: auto;
+
+            #work-area-split.layout-split #lecture-panel {
+                flex: 1 1 50%;
+                min-height: 220px;
+            }
+
+            #work-area-split.layout-split #chat-panel {
+                flex: 1 1 50%;
+                min-height: 220px;
+                max-height: none;
+            }
+
+            #work-area-split.layout-socratic-full #lecture-panel {
+                flex: 0 0 0;
+                max-height: 0;
+            }
+
+            #work-area-split.layout-socratic-full #chat-panel {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+            }
+
+            #btn-open-socratic {
+                position: absolute;
+                left: 0.75rem;
+                right: 0.75rem;
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+                justify-content: center;
+                z-index: 20;
+            }
+
+            #socratic-cta-inline {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            #socratic-cta-inline .socratic-cta-helper {
+                display: none;
+            }
+
+            #socratic-cta-copy {
+                display: none;
             }
         }
     </style>
@@ -288,7 +398,7 @@
     </header>
 
     <!-- Main Container -->
-    <div class="flex-1 flex max-h-[calc(100vh flex-grow)] overflow-hidden">
+    <div class="flex-1 flex min-h-0 overflow-hidden">
         
         <!-- Sidebar: Navigation & Skill Tree -->
         <aside class="w-80 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0">
@@ -329,6 +439,15 @@
                     <h2 class="text-sm font-bold text-slate-800 dark:text-white tracking-wide" id="active-lesson-title">Loading...</h2>
                 </div>
                 
+                <div id="socratic-cta-inline" class="hidden items-center gap-2">
+                    <span class="socratic-cta-helper text-[10px] uppercase tracking-wider font-bold text-emerald-600 dark:text-emerald-300">Next Step</span>
+                    <div id="socratic-cta-copy" class="text-[10px] font-semibold text-slate-600 dark:text-slate-300">Start Stage 2 guided questioning to unlock your checkpoint.</div>
+                    <button id="btn-primary-socratic-cta" type="button" class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-comments"></i>
+                        <span>Next: Start Socratic Checkpoint</span>
+                    </button>
+                </div>
+
                 <!-- Stage Step Indicators -->
                 <div class="flex items-center space-x-2">
                     <div id="stage-dot-1" class="flex items-center space-x-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 transition">
@@ -354,10 +473,10 @@
             </div>
 
             <!-- Vertical Work Area Split -->
-            <div class="flex-1 flex flex-col overflow-hidden">
+            <div id="work-area-split" class="flex-1 flex flex-col overflow-hidden layout-lecture socratic-collapsed">
                 
                 <!-- Top Half: Micro-Lecture Panel -->
-                <div class="h-2/5 min-h-[180px] max-h-[350px] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden relative">
+                <div id="lecture-panel" class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden relative">
                     <div class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                         <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
                             <i class="fa-solid fa-book-open-reader text-emerald-500"></i>
@@ -389,21 +508,26 @@
                 </div>
 
                 <!-- Bottom Half: Chat-log UI for Socratic / Feynman Interaction -->
-                <div class="flex-grow flex flex-col bg-white dark:bg-slate-950 overflow-hidden relative">
+                <div id="chat-panel" class="flex-grow flex flex-col bg-white dark:bg-slate-950 overflow-hidden relative">
                     
                     <!-- Chat Header -->
-                    <div class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                    <div id="chat-panel-header" class="bg-slate-50 dark:bg-slate-950 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                         <div class="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
                             <i class="fa-solid fa-messages text-emerald-500"></i>
                             <span id="chat-header-title">Socratic Chemistry Interaction</span>
                         </div>
-                        <div class="flex items-center space-x-3 text-[10px] font-mono">
+                        <div id="chat-header-controls" class="flex items-center gap-3 text-[10px] font-mono">
                             <button id="btn-generate-question" class="hidden bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30 px-2 py-0.5 rounded font-sans font-semibold transition flex items-center space-x-1" title="Generate a new dynamic practice question using Gemma4">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 <span>New Question</span>
                             </button>
+                            <button id="btn-toggle-socratic" type="button" aria-expanded="false" aria-controls="chat-messages" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 px-2 py-0.5 rounded font-sans font-semibold text-slate-600 dark:text-slate-300 transition flex items-center space-x-1">
+                                <i class="fa-solid fa-chevron-up text-[9px]"></i>
+                                <span>Expand</span>
+                            </button>
                             <span class="text-slate-505 dark:text-slate-500">Mode:</span>
                             <span class="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/50" id="current-mode-badge">SOCRATIC CHECK</span>
+                            <span id="socratic-collapsed-hint" class="text-[10px] text-slate-500 dark:text-slate-400 hidden">Collapsed until needed</span>
                         </div>
                     </div>
 
@@ -478,6 +602,11 @@
                     </div>
 
                 </div>
+
+                <button id="btn-open-socratic" type="button" class="bg-slate-700/95 hover:bg-slate-700 dark:bg-slate-300 dark:hover:bg-white text-white dark:text-slate-900 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider shadow-lg transition flex items-center space-x-2">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Open Socratic Panel</span>
+                </button>
             </div>
         </main>
     </div>
